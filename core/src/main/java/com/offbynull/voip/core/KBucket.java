@@ -1,6 +1,5 @@
 package com.offbynull.voip.core;
 
-import java.io.Serializable;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.TreeSet;
@@ -20,6 +19,8 @@ public final class KBucket {
       
       // Each k-bucket is kept sorted by time last seen
     private final TreeSet<Entry> nodes;
+    
+    private Instant lastUpdateTime = Instant.MIN;
 
     public KBucket(Id id, int maxSize, int exponentPos) {
         Validate.notNull(id);
@@ -40,6 +41,20 @@ public final class KBucket {
         this.nodes = new TreeSet<>(new EntryComparator());
     }
     
+    public UpdateResult update(Instant time, NodeInformation nodeInfo) {
+        Validate.notNull(time);
+        Validate.notNull(nodeInfo);
+        Validate.isTrue(time.isAfter(lastUpdateTime));
+        
+        
+        
+        lastUpdateTime = time;
+    }
+    
+    public enum UpdateResult {
+        INSERTED, // inserted as latest entry
+        FULL // latest entry needs to be pinged to see if its still alive, if it isn't remove then update again to add this guy back in
+    }
     
     private static final class Entry {
         private final NodeInformation nodeInfo;

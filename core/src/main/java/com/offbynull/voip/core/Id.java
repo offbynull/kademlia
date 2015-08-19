@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013-2014, Kasra Faghihi, All rights reserved.
+ * Copyright (c) 2013-2015, Kasra Faghihi, All rights reserved.
  * 
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -22,41 +22,32 @@ import java.util.Objects;
 import org.apache.commons.lang3.Validate;
 
 /**
- * An ID between 0 and some pre-defined limit.
+ * An ID between 0 and a predefined limit of {@code 2^n-1}. Note that {@code 2^n-1} will always give back a number with {@code n-1} bits
+ * where all bits are set to 1. For example...
+ * <ul>
+ * <li>if {@code n = 1}, the ID must be between 0 and 1 (1b).</li>
+ * <li>if {@code n = 2}, the ID must be between 0 and 3 (11b).</li>
+ * <li>if {@code n = 3}, the ID must be between 0 and 7 (111b).</li>
+ * <li>if {@code n = 4}, the ID must be between 0 and 15 (1111b).</li>
+ * </ul>
  * @author Kasra Faghihi
  */
 public final class Id implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private final BigInteger data;
-    private final BigInteger limit;
+    private final int limitExp;
 
-    /**
-     * Constructs a {@link Id} from {@link BigInteger}s.
-     * @param data id value
-     * @param limit limit value
-     * @throws NullPointerException if any argument is {@code null}
-     * @throws IllegalArgumentException if {@code data > limit}, or if either argument is {@code < 0}
-     */
-    private Id(BigInteger data, BigInteger limit) {
+    private Id(BigInteger data, int limitExp) {
         Validate.notNull(data);
-        Validate.notNull(limit);
+        Validate.isTrue(data.signum() >= 0);
+        Validate.isTrue(limitExp > 0);
+        
+        BigInteger limit = generatePowerOfTwo(limitExp);
         Validate.isTrue(data.compareTo(limit) <= 0 && data.signum() >= 0 && limit.signum() >= 0);
         
         this.data = data;
-        this.limit = limit;
-    }
-
-    /**
-     * Constructs a {@link Id} from byte arrays. It's assumed that the byte arrays contain unsigned values and are aligned to byte
-     * boundaries (e.g. if you want to use the 6 bits instead of a whole byte (8 bits), make sure the 2 top-most bits are 0).
-     * @param data id value
-     * @param limit limit value
-     * @throws NullPointerException if any argument is {@code null}
-     * @throws IllegalArgumentException if {@code data > limit}
-     */
-    private Id(byte[] data, byte[] limit) {
-        this(new BigInteger(1, data), new BigInteger(1, limit)); 
+        this.limitExp = limitExp;
     }
 
     /**
@@ -69,7 +60,7 @@ public final class Id implements Serializable {
      * @throws IllegalArgumentException if {@code dataExp > limitExp}, or if {@code exp <= 0}
      */
     public static Id createExponent(int dataExp, int limitExp) {
-        return create(generatePowerOfTwoLimit(dataExp), limitExp); 
+        return create(generatePowerOfTwo(dataExp).toByteArray(), limitExp); 
     }
 
     /**
@@ -81,7 +72,7 @@ public final class Id implements Serializable {
      * @throws IllegalArgumentException if {@code data > 2^exp-1}, or if {@code exp <= 0}
      */
     public static Id create(byte[] data, int exp) {
-        return new Id(data, generatePowerOfTwoLimit(exp)); 
+        return new Id(new BigInteger(1, data), exp); 
     }
     
     /**
@@ -95,12 +86,12 @@ public final class Id implements Serializable {
     public static Id createSmall(int data, int exp) {
         Validate.isTrue(data >= 0);
         Validate.isTrue(exp <= 31);
-        return create(new BigInteger("" + data).toByteArray(), exp); 
+        return new Id(new BigInteger("" + data), exp); 
     }
     
     /**
-     * Generates a limit that's {@code 2^n-1}. Another way to think of it is, generates a limit that successively {@code n = (n << 1) | 1}
-     * for {@code n} times -- making sure you have a limit that's value is all 1 bits.
+     * Generates an integer that's {@code 2^n-1}. Another way to think of it is, generates an integer that successively
+     * {@code j = (j << 1) | 1} for {@code n} times -- making sure you have an integer that's value is all 1 bits.
      * <p>
      * Examples:
      * <ul>
@@ -110,15 +101,12 @@ public final class Id implements Serializable {
      * <li>{@code n = 8, limit = 15 (1111b)}<li/>
      * </ul>
      * @param exp exponent, such that the returned value is {@code 2^exp-1}
-     * @return {@code 2^exp-1} as a byte array
+     * @return {@code 2^exp-1} as a {@link BigInteger}
      * @throws IllegalArgumentException if {@code exp <= 0}
      */
-    private static byte[] generatePowerOfTwoLimit(int exp) {
+    private static BigInteger generatePowerOfTwo(int exp) {
         Validate.inclusiveBetween(1, Integer.MAX_VALUE, exp);
-
-        BigInteger val = BigInteger.ONE.shiftLeft(exp).subtract(BigInteger.ONE); // (1 << exp) - 1
-        
-        return val.toByteArray();
+        return BigInteger.ONE.shiftLeft(exp).subtract(BigInteger.ONE); // (1 << exp) - 1
     }
 
     /**
@@ -126,7 +114,7 @@ public final class Id implements Serializable {
      * @return this id incremented by 1, wrapped if it exceeds limit
      */
     public Id increment() {
-        return add(this, new Id(new byte[] {1}, limit.toByteArray()));
+        return add(this, new Id(BigInteger.ONE, limitExp));
     }
 
     /**
@@ -134,7 +122,7 @@ public final class Id implements Serializable {
      * @return this id decremented by 1, wrapped if it it goes below {@code 0}
      */
     public Id decrement() {
-        return subtract(this, new Id(new byte[] {1}, limit.toByteArray()));
+        return subtract(this, new Id(BigInteger.ONE, limitExp));
     }
 
     /**
@@ -148,10 +136,10 @@ public final class Id implements Serializable {
     public static Id xor(Id lhs, Id rhs) {
         Validate.notNull(lhs);
         Validate.notNull(rhs);
-        Validate.isTrue(lhs.limit.equals(rhs.limit));
+        Validate.isTrue(lhs.limitExp == rhs.limitExp);
 
         BigInteger xored = lhs.data.xor(rhs.data);
-        Id xoredId = new Id(xored, lhs.limit);
+        Id xoredId = new Id(xored, lhs.limitExp);
 
         return xoredId;
     }
@@ -167,14 +155,17 @@ public final class Id implements Serializable {
     public static Id add(Id lhs, Id rhs) {
         Validate.notNull(lhs);
         Validate.notNull(rhs);
-        Validate.isTrue(lhs.limit.equals(rhs.limit));
+        Validate.isTrue(lhs.limitExp == rhs.limitExp);
 
+        int limitExp = lhs.limitExp;
+        BigInteger limit = generatePowerOfTwo(limitExp);
+        
         BigInteger added = lhs.data.add(rhs.data);
-        if (added.compareTo(lhs.limit) > 0) {
-            added = added.subtract(lhs.limit).subtract(BigInteger.ONE);
+        if (added.compareTo(limit) > 0) {
+            added = added.subtract(limit).subtract(BigInteger.ONE);
         }
 
-        Id addedId = new Id(added, lhs.limit);
+        Id addedId = new Id(added, limitExp);
 
         return addedId;
     }
@@ -190,14 +181,17 @@ public final class Id implements Serializable {
     public static Id subtract(Id lhs, Id rhs) {
         Validate.notNull(lhs);
         Validate.notNull(rhs);
-        Validate.isTrue(lhs.limit.equals(rhs.limit));
+        Validate.isTrue(lhs.limitExp == rhs.limitExp);
 
+        int limitExp = lhs.limitExp;
+        BigInteger limit = generatePowerOfTwo(limitExp);
+        
         BigInteger subtracted = lhs.data.subtract(rhs.data);
         if (subtracted.signum() == -1) {
-            subtracted = subtracted.add(lhs.limit).add(BigInteger.ONE);
+            subtracted = subtracted.add(limit).add(BigInteger.ONE);
         }
 
-        Id subtractedId = new Id(subtracted, lhs.limit);
+        Id subtractedId = new Id(subtracted, limitExp);
 
         return subtractedId;
     }
@@ -230,7 +224,7 @@ public final class Id implements Serializable {
         Validate.notNull(base);
         Validate.notNull(lhs);
         Validate.notNull(rhs);
-        Validate.isTrue(base.limit.equals(lhs.limit) && base.limit.equals(rhs.limit));
+        Validate.isTrue(base.limitExp == lhs.limitExp && base.limitExp == rhs.limitExp);
         
         Id lhsOffsetId = subtract(lhs, base);
         Id rhsOffsetId = subtract(rhs, base);
@@ -254,7 +248,7 @@ public final class Id implements Serializable {
     public boolean isWithin(Id lower, boolean lowerInclusive, Id upper, boolean upperInclusive) {
         Validate.notNull(lower);
         Validate.notNull(upper);
-        Validate.isTrue(limit.equals(lower.limit) && limit.equals(upper.limit));
+        Validate.isTrue(limitExp == lower.limitExp && limitExp == upper.limitExp);
         
         if (lowerInclusive && upperInclusive) {
             return comparePosition(lower, this, lower) >= 0 && comparePosition(lower, this, upper) <= 0;
@@ -268,9 +262,8 @@ public final class Id implements Serializable {
     }
 
     public int getBit(int index) {
-        int exp = limit.bitLength();
         Validate.isTrue(index >= 0);
-        Validate.isTrue(index < exp);
+        Validate.isTrue(index < limitExp);
         
         return data.testBit(index) ? 1 : 0;
     }
@@ -282,10 +275,9 @@ public final class Id implements Serializable {
      * @throws IllegalArgumentException if {@code bitSize} is 0 or larger than number of bits in id
      */
     public BigInteger getValuePrefixAsBigInteger(int bitCount) {
-        int exp = limit.bitLength();
         Validate.isTrue(bitCount >= 0);
-        Validate.isTrue(bitCount < exp);
-        return data.shiftRight(exp - bitCount);
+        Validate.isTrue(bitCount < limitExp);
+        return data.shiftRight(limitExp - bitCount);
     }
     
     /**
@@ -309,7 +301,7 @@ public final class Id implements Serializable {
      * @return this ID's limit as a {@link BigInteger}
      */
     public BigInteger getLimitAsBigInteger() {
-        return limit;
+        return generatePowerOfTwo(limitExp);
     }
 
     /**
@@ -317,7 +309,7 @@ public final class Id implements Serializable {
      * @return this ID's limit as a byte array
      */
     public byte[] getLimitAsByteArray() {
-        return limit.toByteArray();
+        return generatePowerOfTwo(limitExp).toByteArray();
     }
 
     /**
@@ -326,25 +318,7 @@ public final class Id implements Serializable {
      * @return this ID's limit as a exponent
      */
     public int getLimitAsExponent() {
-        return limit.bitLength();
-    }
-    
-    /**
-     * Checks if the limit of this id passed in satisfies {@code 2^n-1}. In other words, ensures that all bits making up the limit are
-     * {@code 1}.
-     * @return {@code true} if limit of this id matches {@code 2^n-1}, {@code false} otherwise.
-     */
-    private boolean isUseableId() {
-        BigInteger limit = getLimitAsBigInteger();
-        int bitLength = limit.bitLength();
-        
-        for (int i = 0; i < bitLength; i++) {
-            if (!limit.testBit(i)) {
-                return false;
-            }
-        }
-        
-        return true;
+        return limitExp;
     }
 
     /**
@@ -352,15 +326,14 @@ public final class Id implements Serializable {
      * @return bit length of this id
      */
     public int getBitLength() {
-        Validate.isTrue(isUseableId()); // sanity check
-        BigInteger limit = this.getLimitAsBigInteger();
-        return limit.not().getLowestSetBit();
+        return limitExp;
     }
-    
+
     @Override
     public int hashCode() {
-        int hash = 5;
-        hash = 89 * hash + Objects.hashCode(this.data);
+        int hash = 3;
+        hash = 31 * hash + Objects.hashCode(this.data);
+        hash = 31 * hash + this.limitExp;
         return hash;
     }
 
@@ -376,11 +349,15 @@ public final class Id implements Serializable {
         if (!Objects.equals(this.data, other.data)) {
             return false;
         }
+        if (this.limitExp != other.limitExp) {
+            return false;
+        }
         return true;
     }
+    
 
     @Override
     public String toString() {
-        return "Id{" + "data=" + data + ", limit=" + limit + '}';
+        return "Id{" + "data=" + data + ", limitExp=" + limitExp + '}';
     }
 }
