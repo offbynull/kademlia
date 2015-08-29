@@ -107,4 +107,35 @@ public class IdTest {
         
         assertEquals(Id.createFromInteger(0x3C5AL, 16), id);
     }
+    
+    @Test
+    public void mustFlipBits() {
+        Id id = Id.createFromInteger(0x3C5AL, 16);
+
+        // 3
+        id = id.flipBit(0);
+        id = id.flipBit(1);
+        id = id.flipBit(2);
+        id = id.flipBit(3);
+        
+        // 9
+        id = id.flipBit(4);
+        id = id.flipBit(5);
+        id = id.flipBit(6);
+        id = id.flipBit(7);
+        
+        // 5
+        id = id.flipBit(8);
+        id = id.flipBit(9);
+        id = id.flipBit(10);
+        id = id.flipBit(11);
+
+        // A
+        id = id.flipBit(12);
+        id = id.flipBit(13);
+        id = id.flipBit(14);
+        id = id.flipBit(15);
+        
+        assertEquals(Id.createFromInteger(0xC3A5L, 16), id);
+    }
 }

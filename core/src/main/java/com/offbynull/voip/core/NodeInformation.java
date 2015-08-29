@@ -1,23 +1,21 @@
 package com.offbynull.voip.core;
 
-import com.offbynull.peernetic.core.shuttle.Address;
 import java.util.Objects;
 import org.apache.commons.lang3.Validate;
 
 public final class NodeInformation {
-    private final Address address; // equivalent to ip address + udp port
+    private final String link; // equivalent to ip address + udp port
     private final Id id;
 
-    public NodeInformation(Address address, Id id) {
-        Validate.notNull(address);
+    public NodeInformation(String link, Id id) {
+        Validate.notNull(link);
         Validate.notNull(id);
-        Validate.isTrue(!address.isEmpty());
-        this.address = address;
+        this.link = link;
         this.id = id;
     }
 
-    public Address getAddress() {
-        return address;
+    public String getLink() {
+        return link;
     }
 
     public Id getId() {
@@ -27,7 +25,7 @@ public final class NodeInformation {
     @Override
     public int hashCode() {
         int hash = 5;
-        hash = 83 * hash + Objects.hashCode(this.address);
+        hash = 83 * hash + Objects.hashCode(this.link);
         hash = 83 * hash + Objects.hashCode(this.id);
         return hash;
     }
@@ -41,7 +39,7 @@ public final class NodeInformation {
             return false;
         }
         final NodeInformation other = (NodeInformation) obj;
-        if (!Objects.equals(this.address, other.address)) {
+        if (!Objects.equals(this.link, other.link)) {
             return false;
         }
         if (!Objects.equals(this.id, other.id)) {

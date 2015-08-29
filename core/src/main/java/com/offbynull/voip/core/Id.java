@@ -23,6 +23,8 @@ import org.apache.commons.lang3.Validate;
 
 /**
  * A Kademlia ID. Bit-size of ID is configurable.
+ * <p>
+ * Class is immutable.
  * @author Kasra Faghihi
  */
 public final class Id implements Serializable {
@@ -174,28 +176,30 @@ public final class Id implements Serializable {
             container[0] = (byte) (container[0] & clearBitMask);
         }
     }
-    
-    /**
-     * XOR this ID with another ID and return the result as a new ID. The bit length of the IDs must match.
-     * @param other other ID to XOR against
-     * @return new ID that is {@code this ^ other}
-     * @throws NullPointerException if any argument is {@code null}
-     * @throws IllegalArgumentException if the limit from {@code this} doesn't match the limit from {@code other}
-     */
-    public Id xor(Id other) {
-        Validate.notNull(other);
-        Validate.isTrue(bitLength == other.bitLength);
 
-        byte[] xoredData = new byte[data.length]; // this and other have data field of same size if bitLength is same... checked above
-        
-        for (int i = 0; i < xoredData.length; i++) {
-            xoredData[i] = (byte) ((xoredData[i] ^ other.data[i]) & 0xFF); // is 0xFF nessecary? -- yes due to byte to int upcast?
-        }
-        
-        Id xoredId = new Id(xoredData, bitLength);
-
-        return xoredId;
-    }
+    // UNTESTED, but is this even required?
+//    /**
+//     * XOR this ID with another ID and return the result as a new ID. The bit length of the IDs must match.
+//     * @param other other ID to XOR against
+//     * @return new ID that is {@code this ^ other}
+//     * @throws NullPointerException if any argument is {@code null}
+//     * @throws IllegalArgumentException if the limit from {@code this} doesn't match the limit from {@code other}
+//     */
+//    public Id xor(Id other) {
+//        Validate.notNull(other);
+//        Validate.isTrue(bitLength == other.bitLength);
+//
+//        byte[] xoredData = new byte[data.length]; // this and other have data field of same size if bitLength is same... checked above
+//        
+//        for (int i = 0; i < xoredData.length; i++) {
+//            xoredData[i] = (byte) ((xoredData[i] ^ other.data[i]) & 0xFF); // is 0xFF nessecary? -- yes due to byte to int upcast?
+//        }
+//        
+//        clearUnusedTopBits(bitLength, xoredData);
+//        Id xoredId = new Id(xoredData, bitLength);
+//
+//        return xoredId;
+//    }
 
     /**
      * Get the number of bits that are the same between this ID and another ID
@@ -260,7 +264,13 @@ public final class Id implements Serializable {
     }
 
     /**
-     * Set bit within a copy of this ID.
+     * Set bit within a copy of this ID. Bit 0 is the left-most bit, bit 1 the second left-most bit, etc. For example, ID 0x3C...
+     * <pre>
+     * 3    C
+     * 0011 1100
+     * |  | |  |
+     * 0  3 4  7
+     * </pre>
      * @param index index of bit
      * @param bit {@code true} if bit is 1, {@code false} if bit is 0
      * @return new ID that has bit set
@@ -285,6 +295,20 @@ public final class Id implements Serializable {
         
         clearUnusedTopBits(bitLength, dataCopy); // not nessecary but just incase
         return new Id(dataCopy, bitLength);
+    }
+
+    /**
+     * Flip bit within a copy of this ID.
+     * @param index index of bit
+     * @return new ID that has bit flipped
+     * @throws IllegalArgumentException if {@code index < 0} or if {@code index > bitLength}
+     */
+    public Id flipBit(int index) {
+        Validate.isTrue(index >= 0);
+        Validate.isTrue(index < bitLength);
+        
+        boolean bit = getBit(index);
+        return setBit(index, !bit);
     }
 
     /**
