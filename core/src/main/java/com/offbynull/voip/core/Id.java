@@ -30,6 +30,7 @@ public final class Id implements Serializable {
     private final byte[] data;
     private final int bitLength;
     
+    // make sure that whatever you pass in as data is a copy / not-shared.
     private Id(byte[] data, int bitLength) {
         Validate.notNull(data);
         Validate.isTrue(bitLength > 0);
