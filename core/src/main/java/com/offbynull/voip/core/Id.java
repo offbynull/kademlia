@@ -17,323 +17,263 @@
 package com.offbynull.voip.core;
 
 import java.io.Serializable;
-import java.math.BigInteger;
-import java.util.Objects;
+import java.util.Arrays;
 import org.apache.commons.lang3.Validate;
 
 /**
- * An ID between 0 and a predefined limit of {@code 2^n-1}. Note that {@code 2^n-1} will always give back a number with {@code n-1} bits
- * where all bits are set to 1. For example...
- * <ul>
- * <li>if {@code n = 1}, the ID must be between 0 and 1 (1b).</li>
- * <li>if {@code n = 2}, the ID must be between 0 and 3 (11b).</li>
- * <li>if {@code n = 3}, the ID must be between 0 and 7 (111b).</li>
- * <li>if {@code n = 4}, the ID must be between 0 and 15 (1111b).</li>
- * </ul>
+ * A Kademlia ID. Bit-size of ID is configurable.
  * @author Kasra Faghihi
  */
 public final class Id implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    private final BigInteger data;
-    private final int limitExp;
-
-    private Id(BigInteger data, int limitExp) {
+    private final byte[] data;
+    private final int bitLength;
+    
+    private Id(byte[] data, int bitLength) {
         Validate.notNull(data);
-        Validate.isTrue(data.signum() >= 0);
-        Validate.isTrue(limitExp > 0);
+        Validate.isTrue(bitLength > 0);
         
-        BigInteger limit = generatePowerOfTwo(limitExp);
-        Validate.isTrue(data.compareTo(limit) <= 0 && data.signum() >= 0 && limit.signum() >= 0);
+        int minLength = calculateMinimumByteArraySize(bitLength);
+        Validate.isTrue(data.length == minLength);
         
         this.data = data;
-        this.limitExp = limitExp;
+        this.bitLength = bitLength;
     }
 
     /**
-     * Constructs a {@link Id} with the limit set to {@code 2^n-1} (a limit where the bits are all 1) and the id set to {@code 2^j-1) (an
-     * id where the bits are all 1).
-     * @param dataExp number of bits for id value, such that the id value will be {@code 2^j-1}.
-     * @param limitExp number of bits in limit, such that the limit will be {@code 2^n-1}.
-     * @return created id
-     * @throws NullPointerException if any argument is {@code null}
-     * @throws IllegalArgumentException if {@code dataExp > limitExp}, or if {@code exp <= 0}
-     */
-    public static Id createExponent(int dataExp, int limitExp) {
-        return create(generatePowerOfTwo(dataExp).toByteArray(), limitExp); 
-    }
-
-    /**
-     * Constructs a {@link Id} with the limit set to {@code 2^n-1} (a limit where the bits are all 1).
+     * Constructs an {@link Id} from a byte array.
      * @param data id value
-     * @param exp number of bits in limit, such that the limit will be {@code 2^n-1}.
+     * @param bitLength number of bits in this id
      * @return created id
      * @throws NullPointerException if any argument is {@code null}
-     * @throws IllegalArgumentException if {@code data > 2^exp-1}, or if {@code exp <= 0}
+     * @throws IllegalArgumentException if {@code bitLength <= 0}, or if {@code data} is larger than the minimum number of bytes that it
+     * takes to retain {@code bitLength} (e.g. if you're retaining 12 bits, you need 2 bytes or less -- {@code 12/8 + (12%8 == 0 ? 0 : 1)})
      */
-    public static Id create(byte[] data, int exp) {
-        return new Id(new BigInteger(1, data), exp); 
+    public static Id create(byte[] data, int bitLength) {
+        Validate.notNull(data);
+        Validate.isTrue(bitLength > 0);
+        
+        int minLength = calculateMinimumByteArraySize(bitLength);
+        Validate.isTrue(data.length >= minLength);
+        
+        byte[] dataCopy = Arrays.copyOfRange(data, 0, minLength);
+        
+        // clear unused top bits
+        int partialBitCount = bitLength % 8;
+        int clearBitMask = ~((0xFF >>> partialBitCount) << partialBitCount); // e.g. 3 -- 11111111b -> 00011111b -> 11111000b -> 00000111b
+        dataCopy[minLength - 1] = (byte) (dataCopy[minLength - 1] & clearBitMask);
+        
+        
+        return new Id(dataCopy, bitLength);
     }
     
     /**
-     * Constructs a small (31-bit or less) {@link Id} with the limit set to {@code 2^n-1} (a limit where the bits are all 1).
-     * @param data id value
-     * @param exp number of bits in limit, such that the limit will be {@code 2^n-1}.
+     * Constructs a {@link Id} where a contiguous number of bits, starting from position 0, are set to 1. For example, if you want an id
+     * that is {@code 00001111 11111111}, you would set {@code count} to 12, and {@code bitLength} to 16.
+     * @param count number of 1 bits in id
+     * @param bitLength number of total bits allowed in the id
      * @return created id
      * @throws NullPointerException if any argument is {@code null}
-     * @throws IllegalArgumentException if {@code data > 2^exp-1 || data <= 0}, or if {@code exp <= 0}
+     * @throws IllegalArgumentException if {@code count < 0}, or if {@code bitLength <= 0}, or if {@code bitLength < count}
      */
-    public static Id createSmall(int data, int exp) {
-        Validate.isTrue(data >= 0);
-        Validate.isTrue(exp <= 31);
-        return new Id(new BigInteger("" + data), exp); 
+    public static Id createContiguous(int count, int bitLength) {
+        Validate.isTrue(count >= 0);
+        Validate.isTrue(bitLength > 0);
+        Validate.isTrue(bitLength >= count);
+        
+        int byteLength = calculateMinimumByteArraySize(bitLength);
+        byte[] data = new byte[byteLength];
+        
+        insertOneBits(bitLength, data);
+        
+        return new Id(data, bitLength); 
     }
     
     /**
-     * Generates an integer that's {@code 2^n-1}. Another way to think of it is, generates an integer that successively
-     * {@code j = (j << 1) | 1} for {@code n} times -- making sure you have an integer that's value is all 1 bits.
+     * Constructs an {@link Id} from a long.
+     * @param data id value
+     * @param bitLength number of total bits allowed in the id (must be between 0 and 63 inclusive)
+     * @return created id
+     * @throws IllegalArgumentException if {@code 64 < bitLength < 1}
+     */
+    public static Id createFromInteger(long data, int bitLength) {
+        Validate.isTrue(bitLength < 0);
+        Validate.isTrue(bitLength > 64);
+        
+        int length = calculateMinimumByteArraySize(bitLength);
+        
+        byte[] bytes = new byte[length];
+        for (int i = 0; i < length; i++) {
+            bytes[i] = (byte) (data >>> (i * 8));
+        }
+        
+        return new Id(bytes, bitLength); 
+    }
+    
+    /**
+     * Populates a byte array with {@code bitLength} contiguous 1 bits, starting from bit position 0.
      * <p>
      * Examples:
      * <ul>
-     * <li>{@code n = 1, limit = 1 (1b)}<li/>
-     * <li>{@code n = 2, limit = 3 (11b)}<li/>
-     * <li>{@code n = 4, limit = 7 (111b)}<li/>
-     * <li>{@code n = 8, limit = 15 (1111b)}<li/>
+     * <li>{@code bitLength = 1} results in 1 byte -- 00000001b<li/>
+     * <li>{@code bitLength = 2} results in 1 byte -- 00000011b<li/>
+     * <li>{@code bitLength = 8} results in 1 byte -- 11111111b<li/>
+     * <li>{@code bitLength = 12} results in 2 bytes -- 00001111b, 11111111b<li/>
      * </ul>
-     * @param exp exponent, such that the returned value is {@code 2^exp-1}
-     * @return {@code 2^exp-1} as a {@link BigInteger}
-     * @throws IllegalArgumentException if {@code exp <= 0}
+     * @param bitLength number of bits
+     * @param container byte array that can support at least {@code bitLength} bits
+     * @throws IllegalArgumentException if {@code bitLength <= 0}, or if {@code container} isn't big enough
      */
-    private static BigInteger generatePowerOfTwo(int exp) {
-        Validate.inclusiveBetween(1, Integer.MAX_VALUE, exp);
-        return BigInteger.ONE.shiftLeft(exp).subtract(BigInteger.ONE); // (1 << exp) - 1
+    private static void insertOneBits(int bitLength, byte[] container) {
+        Validate.inclusiveBetween(1, Integer.MAX_VALUE, bitLength);
+        
+        int fullByteCount = bitLength / 8;
+        int remainingBits = bitLength % 8;
+        
+        int byteLength = fullByteCount + (remainingBits == 0 ? 0 : 1);
+        
+        Validate.isTrue(container.length >= byteLength);
+        
+        for (int i = 0; i < fullByteCount; i++) {
+            container[i] = (byte) 0xFF;
+        }
+        
+        if (remainingBits > 0) {
+            byte partialByte = (byte) (0xFF >>> (8 - remainingBits));
+            container[byteLength - 1] = partialByte;
+        }
+        
+        // 0 out the remaining bytes
+        for (int i = byteLength; i < container.length; i++) {
+            container[i] = 0;
+        }
+    }
+    
+    private static int calculateMinimumByteArraySize(int bitLength) {
+        Validate.inclusiveBetween(1, Integer.MAX_VALUE, bitLength);
+        
+        int fullByteCount = bitLength / 8;
+        int remainingBits = bitLength % 8;
+        
+        int byteLength = fullByteCount + (remainingBits == 0 ? 0 : 1);
+        
+        return byteLength;
     }
 
     /**
-     * Increments an id.
-     * @return this id incremented by 1, wrapped if it exceeds limit
-     */
-    public Id increment() {
-        return add(this, new Id(BigInteger.ONE, limitExp));
-    }
-
-    /**
-     * Decrements an id.
-     * @return this id decremented by 1, wrapped if it it goes below {@code 0}
-     */
-    public Id decrement() {
-        return subtract(this, new Id(BigInteger.ONE, limitExp));
-    }
-
-    /**
-     * Xor two IDs together. The limit of the IDs must match.
-     * @param lhs right-hand side
-     * @param rhs right-hand side
-     * @return {@code lhs ^ rhs}
+     * XOR this ID with another ID. The bit length of the IDs must match.
+     * @param other other ID to XOR against
+     * @return new ID that is {@code this ^ other}
      * @throws NullPointerException if any argument is {@code null}
-     * @throws IllegalArgumentException if the limit from {@code lhs} doesn't match the limit from {@code rhs}
+     * @throws IllegalArgumentException if the limit from {@code this} doesn't match the limit from {@code other}
      */
-    public static Id xor(Id lhs, Id rhs) {
-        Validate.notNull(lhs);
-        Validate.notNull(rhs);
-        Validate.isTrue(lhs.limitExp == rhs.limitExp);
+    public Id xor(Id other) {
+        Validate.notNull(other);
+        Validate.isTrue(bitLength == other.bitLength);
 
-        BigInteger xored = lhs.data.xor(rhs.data);
-        Id xoredId = new Id(xored, lhs.limitExp);
+        byte[] xoredData = new byte[data.length]; // this and other have data field of same size if bitLength is same... checked above
+        
+        for (int i = 0; i < xoredData.length; i++) {
+            xoredData[i] = (byte) ((xoredData[i] ^ other.data[i]) & 0xFF); // is 0xFF nessecary? -- yes due to byte to int upcast?
+        }
+        
+        Id xoredId = new Id(xoredData, bitLength);
 
         return xoredId;
     }
 
     /**
-     * Adds two IDs together. The limit of the IDs must match.
-     * @param lhs right-hand side
-     * @param rhs right-hand side
-     * @return {@code lhs + rhs}, wrapped if it exceeds the limit
+     * Get the number of bits that are the same between this ID and another ID
+     * @param other other ID to test against
+     * @return number of common prefix bits
      * @throws NullPointerException if any argument is {@code null}
-     * @throws IllegalArgumentException if the limit from {@code lhs} doesn't match the limit from {@code rhs}
+     * @throws IllegalArgumentException if the limit from {@code this} doesn't match the limit from {@code other}
      */
-    public static Id add(Id lhs, Id rhs) {
-        Validate.notNull(lhs);
-        Validate.notNull(rhs);
-        Validate.isTrue(lhs.limitExp == rhs.limitExp);
+    public int getSharedPrefixLength(Id other) {
+        Validate.notNull(other);
+        Validate.isTrue(bitLength == other.bitLength);
 
-        int limitExp = lhs.limitExp;
-        BigInteger limit = generatePowerOfTwo(limitExp);
-        
-        BigInteger added = lhs.data.add(rhs.data);
-        if (added.compareTo(limit) > 0) {
-            added = added.subtract(limit).subtract(BigInteger.ONE);
+        int byteMatchCount = 0;
+        for (int i = data.length - 1; i >= 0; i++) {
+            if (other.data[i] != data[i]) {
+                break;
+            }
+            byteMatchCount++;
         }
-
-        Id addedId = new Id(added, limitExp);
-
-        return addedId;
-    }
-
-    /**
-     * Subtracts two IDs. The limit of the IDs must match.
-     * @param lhs left-hand side
-     * @param rhs right-hand side
-     * @return {@code lhs - rhs}, wrapped around limit if it goes below {@code 0}
-     * @throws NullPointerException if any argument is {@code null}
-     * @throws IllegalArgumentException if the limit from {@code lhs} doesn't match the limit from {@code rhs}
-     */
-    public static Id subtract(Id lhs, Id rhs) {
-        Validate.notNull(lhs);
-        Validate.notNull(rhs);
-        Validate.isTrue(lhs.limitExp == rhs.limitExp);
-
-        int limitExp = lhs.limitExp;
-        BigInteger limit = generatePowerOfTwo(limitExp);
         
-        BigInteger subtracted = lhs.data.subtract(rhs.data);
-        if (subtracted.signum() == -1) {
-            subtracted = subtracted.add(limit).add(BigInteger.ONE);
+        int nextByteIdx = data.length - byteMatchCount + 1;
+        int thisLastByte = data[nextByteIdx] & 0xFF;
+        int otherLastByte = other.data[nextByteIdx] & 0xFF;
+        
+        int bitMatchCount = 0;
+        for (int i = 7; i >= 0; i++) {
+            int thisBit = thisLastByte >> i;
+            int otherBit = otherLastByte >> i;
+            if (thisBit == otherBit) {
+                break;
+            }
+            bitMatchCount++;
         }
-
-        Id subtractedId = new Id(subtracted, limitExp);
-
-        return subtractedId;
-    }
-
-    /**
-     * Compare the position of two IDs, using a base reference point. Another way to think of this is that this method compares two IDs from
-     * the view of a certain reference point.
-     * <p>
-     * <b>Example 1:</b><br>
-     * The ID limit is 16<br>
-     * {@code lhs = 15}<br>
-     * {@code rhs = 2}<br>
-     * {@code base = 10}<br>
-     * In this case, {@code lhs > rhs}. From {@code base}'s view, {@code lhs} is only 5 nodes away, while {@code rhs} is 8 nodes away.
-     * <p>
-     * <b>Example 2:</b><br>
-     * The ID limit is 16<br>
-     * {@code lhs = 9}<br>
-     * {@code rhs = 2}<br>
-     * {@code base = 10}<br>
-     * In this case, {@code rhs < lhs}. From {@code base}'s view, {@code lhs} is 15 nodes away, while {@code rhs} is 8 only nodes away.
-     * @param base reference point
-     * @param lhs left-hand side
-     * @param rhs right-hand side
-     * @return -1, 0 or 1 as {@lhs} is less than, equal to, or greater than {@code rhs}.
-     * @throws NullPointerException if any argument is {@code null}
-     * @throws IllegalArgumentException if the limit from {@code lhs} or {@code rhs} doesn't match the limit from {@code base}
-     */
-    public static int comparePosition(Id base, Id lhs, Id rhs) {
-        Validate.notNull(base);
-        Validate.notNull(lhs);
-        Validate.notNull(rhs);
-        Validate.isTrue(base.limitExp == lhs.limitExp && base.limitExp == rhs.limitExp);
         
-        Id lhsOffsetId = subtract(lhs, base);
-        Id rhsOffsetId = subtract(rhs, base);
-
-        BigInteger rhsOffsetIdNum = rhsOffsetId.getValueAsBigInteger();
-        BigInteger lhsOffsetIdNum = lhsOffsetId.getValueAsBigInteger();
+        int unusedBitsInId = 8 - (bitLength % 8);
+        int finalBitMatchCount = (byteMatchCount * 8) - unusedBitsInId + bitMatchCount;
         
-        return lhsOffsetIdNum.compareTo(rhsOffsetIdNum);
-    }
-
-    /**
-     * Checks to see if this ID is between two other IDs.
-     * @param lower lower ID bound
-     * @param lowerInclusive {@code true} if lower ID bound is inclusive, {@code false} if exclusive
-     * @param upper upper ID bound
-     * @param upperInclusive {@code true} if upper ID bound is inclusive, {@code false} if exclusive
-     * @return {@code true} if this ID is between the two specified values
-     * @throws NullPointerException if any arguments are {@code null}
-     * @throws IllegalArgumentException if ID limits don't match this ID's limit
-     */
-    public boolean isWithin(Id lower, boolean lowerInclusive, Id upper, boolean upperInclusive) {
-        Validate.notNull(lower);
-        Validate.notNull(upper);
-        Validate.isTrue(limitExp == lower.limitExp && limitExp == upper.limitExp);
-        
-        if (lowerInclusive && upperInclusive) {
-            return comparePosition(lower, this, lower) >= 0 && comparePosition(lower, this, upper) <= 0;
-        } else if (lowerInclusive) {
-            return comparePosition(lower, this, lower) >= 0 && comparePosition(lower, this, upper) < 0;
-        } else if (upperInclusive) {
-            return comparePosition(lower, this, lower) > 0 && comparePosition(lower, this, upper) <= 0;
-        } else {
-            return comparePosition(lower, this, lower) > 0 && comparePosition(lower, this, upper) < 0;
-        }
-    }
-
-    public int getBit(int index) {
-        Validate.isTrue(index >= 0);
-        Validate.isTrue(index < limitExp);
-        
-        return data.testBit(index) ? 1 : 0;
-    }
-
-    /**
-     * Returns this ID's prefix as a {@link BigInteger}.
-     * @param bitCount size of prefix in bits 
-     * @return this ID as a {@link BigInteger}
-     * @throws IllegalArgumentException if {@code bitSize} is 0 or larger than number of bits in id
-     */
-    public BigInteger getValuePrefixAsBigInteger(int bitCount) {
-        Validate.isTrue(bitCount >= 0);
-        Validate.isTrue(bitCount < limitExp);
-        return data.shiftRight(limitExp - bitCount);
+        return finalBitMatchCount;
     }
     
     /**
-     * Returns this ID as a {@link BigInteger}.
-     * @return this ID as a {@link BigInteger}
+     * Get bit from this ID.
+     * @param index index of bit
+     * @return {@code true} if bit is set, {@code false} otherwise
+     * @throws IllegalArgumentException if {@code index < 0} or if {@code index > bitLength}
      */
-    public BigInteger getValueAsBigInteger() {
-        return data;
+    public boolean getBit(int index) {
+        Validate.isTrue(index >= 0);
+        Validate.isTrue(index < bitLength);
+        
+        int bitPos = index % 8;
+        int bytePos = index / 8 + (bitPos == 0 ? 0 : 1);
+        
+        int bitMask = 1 << (bitPos - 1);
+        return (data[bytePos] & bitMask) == bitMask;
     }
 
     /**
-     * Returns this ID as a byte array.
-     * @return this ID as a byte array
+     * Set bit within this ID.
+     * @param index index of bit
+     * @param bit {@code true} if bit is set, {@code false} otherwise
+     * @throws IllegalArgumentException if {@code index < 0} or if {@code index > bitLength}
      */
-    public byte[] getValueAsByteArray() {
-        return data.toByteArray();
+    public void setBit(int index, boolean bit) {
+        Validate.isTrue(index > 0);
+        Validate.isTrue(index < bitLength);
+        
+        int bitPos = index % 8;
+        int bytePos = index / 8 + (bitPos == 0 ? 0 : 1);
+        
+        if (bit) {
+            int bitMask = 1 << bitPos;
+            data[bytePos] |= bitMask;
+        } else {
+            int bitMask = ~(1 << bitPos);
+            data[bytePos] &= bitMask;
+        }
     }
 
     /**
-     * Returns this ID's limit as a {@link BigInteger}.
-     * @return this ID's limit as a {@link BigInteger}
-     */
-    public BigInteger getLimitAsBigInteger() {
-        return generatePowerOfTwo(limitExp);
-    }
-
-    /**
-     * Returns this ID's limit as a byte array.
-     * @return this ID's limit as a byte array
-     */
-    public byte[] getLimitAsByteArray() {
-        return generatePowerOfTwo(limitExp).toByteArray();
-    }
-
-    /**
-     * Returns as a exponent, where limit is {@code (2^limit) - 1} (this is guaranteed to always work since this class only allows limits
-     * that are pow(2) - 1).
-     * @return this ID's limit as a exponent
-     */
-    public int getLimitAsExponent() {
-        return limitExp;
-    }
-
-    /**
-     * Gets the bit size of the limit of the of this id.
-     * @return bit length of this id
+     * Gets the maximum bit length for this ID.
+     * @return max bit length for ID
      */
     public int getBitLength() {
-        return limitExp;
+        return bitLength;
     }
 
     @Override
     public int hashCode() {
-        int hash = 3;
-        hash = 31 * hash + Objects.hashCode(this.data);
-        hash = 31 * hash + this.limitExp;
+        int hash = 7;
+        hash = 89 * hash + Arrays.hashCode(this.data);
+        hash = 89 * hash + this.bitLength;
         return hash;
     }
 
@@ -346,18 +286,17 @@ public final class Id implements Serializable {
             return false;
         }
         final Id other = (Id) obj;
-        if (!Objects.equals(this.data, other.data)) {
+        if (!Arrays.equals(this.data, other.data)) {
             return false;
         }
-        if (this.limitExp != other.limitExp) {
+        if (this.bitLength != other.bitLength) {
             return false;
         }
         return true;
     }
-    
 
     @Override
     public String toString() {
-        return "Id{" + "data=" + data + ", limitExp=" + limitExp + '}';
+        return "Id{" + "data=" + Arrays.toString(data) + ", bitLength=" + bitLength + '}';
     }
 }
