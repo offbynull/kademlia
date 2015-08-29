@@ -18,6 +18,7 @@ package com.offbynull.voip.core;
 
 import java.io.Serializable;
 import java.util.Arrays;
+import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.Validate;
 
 /**
@@ -35,7 +36,7 @@ public final class Id implements Serializable {
         Validate.notNull(data);
         Validate.isTrue(bitLength > 0);
         
-        int minLength = calculateMinimumByteArraySize(bitLength);
+        int minLength = calculateRequiredByteArraySize(bitLength);
         Validate.isTrue(data.length == minLength);
         
         this.data = data;
@@ -55,17 +56,14 @@ public final class Id implements Serializable {
         Validate.notNull(data);
         Validate.isTrue(bitLength > 0);
         
-        int minLength = calculateMinimumByteArraySize(bitLength);
-        Validate.isTrue(data.length >= minLength);
+        int length = calculateRequiredByteArraySize(bitLength);
+        Validate.isTrue(data.length <= length);
         
-        byte[] dataCopy = Arrays.copyOfRange(data, 0, minLength);
+        // Create copy. Copy is of size length. If data is less than length, extra 0's are added as prefix.
+        byte[] dataCopy = new byte[length];
+        System.arraycopy(data, 0, dataCopy, length - data.length, data.length);
         
-        // clear unused top bits
-        int partialBitCount = bitLength % 8;
-        int clearBitMask = ~((0xFF >>> partialBitCount) << partialBitCount); // e.g. 3 -- 11111111b -> 00011111b -> 11111000b -> 00000111b
-        dataCopy[minLength - 1] = (byte) (dataCopy[minLength - 1] & clearBitMask);
-        
-        
+        clearUnusedTopBits(bitLength, dataCopy);
         return new Id(dataCopy, bitLength);
     }
     
@@ -83,12 +81,14 @@ public final class Id implements Serializable {
         Validate.isTrue(bitLength > 0);
         Validate.isTrue(bitLength >= count);
         
-        int byteLength = calculateMinimumByteArraySize(bitLength);
+        int byteLength = calculateRequiredByteArraySize(bitLength);
         byte[] data = new byte[byteLength];
         
-        insertOneBits(bitLength, data);
+        insertOneBits(count, data);
         
-        return new Id(data, bitLength); 
+        clearUnusedTopBits(bitLength, data); // don't need to do this here because insertOneBits already makes sure unused top bits are 0'd,
+                                             // but do it just to be safe
+        return new Id(data, bitLength);
     }
     
     /**
@@ -99,17 +99,20 @@ public final class Id implements Serializable {
      * @throws IllegalArgumentException if {@code 64 < bitLength < 1}
      */
     public static Id createFromInteger(long data, int bitLength) {
-        Validate.isTrue(bitLength < 0);
-        Validate.isTrue(bitLength > 64);
+        Validate.isTrue(bitLength > 0);
+        Validate.isTrue(bitLength < 64);
         
-        int length = calculateMinimumByteArraySize(bitLength);
+        int length = calculateRequiredByteArraySize(bitLength);
         
         byte[] bytes = new byte[length];
-        for (int i = 0; i < length; i++) {
-            bytes[i] = (byte) (data >>> (i * 8));
+        for (int i = length - 1; i >= 0; i--) {
+            int insertIntoIdx = length - i - 1;
+            int shiftLeftAmount = i * 8;
+            bytes[insertIntoIdx] = (byte) (data >>> shiftLeftAmount);
         }
         
-        return new Id(bytes, bitLength); 
+        clearUnusedTopBits(bitLength, bytes);
+        return new Id(bytes, bitLength);
     }
     
     /**
@@ -135,23 +138,23 @@ public final class Id implements Serializable {
         int byteLength = fullByteCount + (remainingBits == 0 ? 0 : 1);
         
         Validate.isTrue(container.length >= byteLength);
-        
+
         for (int i = 0; i < fullByteCount; i++) {
-            container[i] = (byte) 0xFF;
+            container[container.length - i - 1] = (byte) 0xFF;
         }
         
         if (remainingBits > 0) {
             byte partialByte = (byte) (0xFF >>> (8 - remainingBits));
-            container[byteLength - 1] = partialByte;
+            container[container.length - byteLength] = partialByte;
         }
         
         // 0 out the remaining bytes
-        for (int i = byteLength; i < container.length; i++) {
+        for (int i = 0; i < container.length - byteLength; i++) {
             container[i] = 0;
         }
     }
     
-    private static int calculateMinimumByteArraySize(int bitLength) {
+    private static int calculateRequiredByteArraySize(int bitLength) {
         Validate.inclusiveBetween(1, Integer.MAX_VALUE, bitLength);
         
         int fullByteCount = bitLength / 8;
@@ -162,8 +165,18 @@ public final class Id implements Serializable {
         return byteLength;
     }
 
+    private static void clearUnusedTopBits(int bitLength, byte[] container) {
+        // Clear unused top bits
+        int partialBitCount = bitLength % 8;
+        if (partialBitCount != 0) {
+            // e.g. partialBitCount == 3, then clearBitMask 11111111b -> 00011111b -> 11111000b -> 00000111b
+            int clearBitMask = ~((0xFF >>> partialBitCount) << partialBitCount);
+            container[0] = (byte) (container[0] & clearBitMask);
+        }
+    }
+    
     /**
-     * XOR this ID with another ID. The bit length of the IDs must match.
+     * XOR this ID with another ID and return the result as a new ID. The bit length of the IDs must match.
      * @param other other ID to XOR against
      * @return new ID that is {@code this ^ other}
      * @throws NullPointerException if any argument is {@code null}
@@ -224,9 +237,15 @@ public final class Id implements Serializable {
     }
     
     /**
-     * Get bit from this ID.
+     * Get bit from this ID. Bit 0 is the left-most bit, bit 1 the second left-most bit, etc. For example, ID 0x3C...
+     * <pre>
+     * 3    C
+     * 0011 1100
+     * |  | |  |
+     * 0  3 4  7
+     * </pre>
      * @param index index of bit
-     * @return {@code true} if bit is set, {@code false} otherwise
+     * @return {@code true} if bit is 1, {@code false} if bit is 0
      * @throws IllegalArgumentException if {@code index < 0} or if {@code index > bitLength}
      */
     public boolean getBit(int index) {
@@ -234,32 +253,38 @@ public final class Id implements Serializable {
         Validate.isTrue(index < bitLength);
         
         int bitPos = index % 8;
-        int bytePos = index / 8 + (bitPos == 0 ? 0 : 1);
+        int bytePos = index / 8;
         
-        int bitMask = 1 << (bitPos - 1);
-        return (data[bytePos] & bitMask) == bitMask;
+        int bitMask = 1 << (7 - bitPos);
+        return (data[bytePos] & bitMask) != 0;
     }
 
     /**
-     * Set bit within this ID.
+     * Set bit within a copy of this ID.
      * @param index index of bit
-     * @param bit {@code true} if bit is set, {@code false} otherwise
+     * @param bit {@code true} if bit is 1, {@code false} if bit is 0
+     * @return new ID that has bit set
      * @throws IllegalArgumentException if {@code index < 0} or if {@code index > bitLength}
      */
-    public void setBit(int index, boolean bit) {
-        Validate.isTrue(index > 0);
+    public Id setBit(int index, boolean bit) {
+        Validate.isTrue(index >= 0);
         Validate.isTrue(index < bitLength);
         
+        byte[] dataCopy = Arrays.copyOf(data, data.length);
+        
         int bitPos = index % 8;
-        int bytePos = index / 8 + (bitPos == 0 ? 0 : 1);
+        int bytePos = index / 8;
         
         if (bit) {
-            int bitMask = 1 << bitPos;
-            data[bytePos] |= bitMask;
+            int bitMask = 1 << (7 - bitPos);
+            dataCopy[bytePos] |= bitMask;
         } else {
-            int bitMask = ~(1 << bitPos);
-            data[bytePos] &= bitMask;
+            int bitMask = ~(1 << (7 - bitPos));
+            dataCopy[bytePos] &= bitMask;
         }
+        
+        clearUnusedTopBits(bitLength, dataCopy); // not nessecary but just incase
+        return new Id(dataCopy, bitLength);
     }
 
     /**
@@ -268,6 +293,14 @@ public final class Id implements Serializable {
      */
     public int getBitLength() {
         return bitLength;
+    }
+
+    /**
+     * Gets a copy of the data for this ID. You can convert this to a BigInteger via {@code new BigInteger(1, getData())}.
+     * @return copy of the ID data
+     */
+    public byte[] getData() {
+        return Arrays.copyOf(data, data.length);
     }
 
     @Override
@@ -298,6 +331,6 @@ public final class Id implements Serializable {
 
     @Override
     public String toString() {
-        return "Id{" + "data=" + Arrays.toString(data) + ", bitLength=" + bitLength + '}';
+        return "Id{" + "data=" + Hex.encodeHexString(data) + ", bitLength=" + bitLength + '}';
     }
 }
