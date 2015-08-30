@@ -22,7 +22,7 @@ import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.Validate;
 
 /**
- * A Kademlia ID. Bit-size of ID is configurable.
+ * Kademlia ID. Bit-size of ID is configurable.
  * <p>
  * Class is immutable.
  * @author Kasra Faghihi

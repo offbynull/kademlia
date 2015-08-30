@@ -5,21 +5,28 @@ import org.apache.commons.lang3.Validate;
 
 
 public final class KBucketEntry {
-    private final NodeInformation nodeInfo;
-    private final Instant lastSeenTime;
+    private final Id id;
+    private final String link;
     private final Instant insertTime;
+    private Instant lastSeenTime;
+    private boolean stale;
 
-    public KBucketEntry(NodeInformation nodeInfo, Instant insertTime, Instant lastSeenTime) {
-        Validate.notNull(nodeInfo);
-        Validate.notNull(lastSeenTime);
+    public KBucketEntry(Id id, String link, Instant insertTime) {
+        Validate.notNull(id);
+        Validate.notNull(link);
         Validate.notNull(insertTime);
-        this.nodeInfo = nodeInfo;
-        this.lastSeenTime = lastSeenTime;
+        this.id = id;
+        this.link = link;
+        this.lastSeenTime = insertTime;
         this.insertTime = insertTime;
     }
 
-    public NodeInformation getNodeInfo() {
-        return nodeInfo;
+    public Id getId() {
+        return id;
+    }
+
+    public String getLink() {
+        return link;
     }
 
     public Instant getLastSeenTime() {
@@ -30,10 +37,17 @@ public final class KBucketEntry {
         return insertTime;
     }
 
-    public KBucketEntry updateLastSeenTime(Instant lastSeenTime) {
+    public void setLastSeenTime(Instant lastSeenTime) {
         Validate.notNull(lastSeenTime);
         Validate.isTrue(!this.lastSeenTime.isAfter(lastSeenTime));
-        return new KBucketEntry(nodeInfo, insertTime, lastSeenTime);
+        this.lastSeenTime = lastSeenTime;
     }
-    
+
+    public boolean isStale() {
+        return stale;
+    }
+
+    public void setStale(boolean stale) {
+        this.stale = stale;
+    }
 }
