@@ -138,4 +138,28 @@ public class IdTest {
         
         assertEquals(Id.createFromInteger(0xC3A5L, 16), id);
     }
+    
+    @Test
+    public void mustIdentifyCommonPrefixLengthOnUnaligned() {
+        Id baseId = Id.createFromInteger(0xA2F, 12);
+        Id noMatchId = Id.createFromInteger(0x000, 12);
+        Id partialMatchId = Id.createFromInteger(0xA30, 12);
+        Id fullMatchId = Id.createFromInteger(0xA2F, 12);
+        
+        assertEquals(0, baseId.getSharedPrefixLength(noMatchId));
+        assertEquals(7, baseId.getSharedPrefixLength(partialMatchId));
+        assertEquals(12, baseId.getSharedPrefixLength(fullMatchId));
+    }
+
+    @Test
+    public void mustIdentifyCommonPrefixLengthOnAligned() {
+        Id baseId = Id.createFromInteger(0xABCD0000L, 32);
+        Id noMatchId = Id.createFromInteger(0x00000000L, 32);
+        Id partialMatchId = Id.createFromInteger(0xABCDFFFFL, 32);
+        Id fullMatchId = Id.createFromInteger(0xABCD0000L, 32);
+        
+        assertEquals(0, baseId.getSharedPrefixLength(noMatchId));
+        assertEquals(16, baseId.getSharedPrefixLength(partialMatchId));
+        assertEquals(32, baseId.getSharedPrefixLength(fullMatchId));
+    }
 }

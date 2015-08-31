@@ -212,30 +212,35 @@ public final class Id implements Serializable {
         Validate.notNull(other);
         Validate.isTrue(bitLength == other.bitLength);
 
-        int byteMatchCount = 0;
-        for (int i = data.length - 1; i >= 0; i++) {
+        int nextByteIdx = 0;
+        for (int i = 0; i < data.length; i++) {
             if (other.data[i] != data[i]) {
                 break;
             }
-            byteMatchCount++;
+            nextByteIdx++;
         }
         
-        int nextByteIdx = data.length - byteMatchCount + 1;
+        if (nextByteIdx == data.length) {
+            // All bytes matched, both strings match entirely
+            return bitLength;
+        }
+        
         int thisLastByte = data[nextByteIdx] & 0xFF;
         int otherLastByte = other.data[nextByteIdx] & 0xFF;
         
         int bitMatchCount = 0;
-        for (int i = 7; i >= 0; i++) {
+        for (int i = 7; i >= 0; i--) {
             int thisBit = thisLastByte >> i;
             int otherBit = otherLastByte >> i;
-            if (thisBit == otherBit) {
+            if (thisBit != otherBit) {
                 break;
             }
             bitMatchCount++;
         }
         
-        int unusedBitsInId = 8 - (bitLength % 8);
-        int finalBitMatchCount = (byteMatchCount * 8) - unusedBitsInId + bitMatchCount;
+        int partialBitCount = bitLength % 8;
+        int unusedBitCount = partialBitCount == 0 ? 0 : 8 - partialBitCount;
+        int finalBitMatchCount = (nextByteIdx * 8) - unusedBitCount + bitMatchCount;
         
         return finalBitMatchCount;
     }

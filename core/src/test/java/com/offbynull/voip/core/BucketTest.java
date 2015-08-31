@@ -1,34 +1,32 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package com.offbynull.voip.core;
 
-import org.junit.After;
-import org.junit.Before;
+import java.time.Instant;
+import static org.junit.Assert.assertEquals;
 import org.junit.Test;
-import static org.junit.Assert.*;
 
-/**
- *
- * @author User
- */
 public class BucketTest {
     
-    public BucketTest() {
-    }
     
-    @Before
-    public void setUp() {
-    }
-    
-    @After
-    public void tearDown() {
-    }
+    private Id baseId = Id.createFromInteger(0x1234ABCDL, 32);
+    private Bucket fixture = new Bucket(baseId, 16, 4); // bucket for prefix of 4, bucket capacity of 4
 
     @Test
-    public void testSomeMethod() {
+    public void mustInsertAndRetrieveNodes() {
+        Bucket.TouchResult touchRes;
+        
+        Instant time1 = Instant.ofEpochMilli(0L);
+        Instant time2 = Instant.ofEpochMilli(1L);
+        Node node1 = new Node(Id.createFromInteger(0x12340000L, 32), "0");
+        Node node2 = new Node(Id.createFromInteger(0x12340001L, 32), "0");
+        
+        touchRes = fixture.touch(time1, node1);
+        assertEquals(Bucket.TouchResult.INSERTED, touchRes);
+        touchRes = fixture.touch(time2, node2);
+        assertEquals(Bucket.TouchResult.INSERTED, touchRes);
+        
+        assertEquals(node1, fixture.get(0));
+        assertEquals(node2, fixture.get(1));
+        assertEquals(2, fixture.size());
     }
     
 }

@@ -163,7 +163,10 @@ public final class Bucket {
 
         return entries.get(i).getNode();
     }
-    
+
+    public int size() {
+        return entries.size();
+    }
 
     // bitCount = 1 is 2 buckets
     // bitCount = 2 is 4 buckets
