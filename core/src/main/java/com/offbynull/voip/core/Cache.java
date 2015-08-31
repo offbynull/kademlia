@@ -58,7 +58,7 @@ public final class Cache {
         String nodeLink = node.getLink();
         
         Validate.isTrue(baseId.getBitLength() == nodeId.getBitLength());
-        Validate.isTrue(baseId.getSharedPrefixLength(nodeId) == commonPrefixSize);
+        Validate.isTrue(baseId.getSharedPrefixLength(nodeId) >= commonPrefixSize);
         
         Validate.isTrue(!time.isBefore(lastUpdateTime)); // time must be >= lastUpdatedTime
 

@@ -65,7 +65,7 @@ public final class Bucket {
         String nodeLink = node.getLink();
         
         Validate.isTrue(baseId.getBitLength() == nodeId.getBitLength());
-        Validate.isTrue(baseId.getSharedPrefixLength(nodeId) == commonPrefixSize);
+        Validate.isTrue(baseId.getSharedPrefixLength(nodeId) >= commonPrefixSize);
         
         Validate.isTrue(!time.isBefore(lastUpdateTime)); // time must be >= lastUpdatedTime
         
@@ -113,10 +113,10 @@ public final class Bucket {
         Validate.notNull(newNode);
         
         Validate.isTrue(replaceId.getBitLength() == baseId.getBitLength());
-        Validate.isTrue(replaceId.getSharedPrefixLength(baseId) == commonPrefixSize);
+        Validate.isTrue(replaceId.getSharedPrefixLength(baseId) >= commonPrefixSize);
         
         Validate.isTrue(newNode.getId().getBitLength() == baseId.getBitLength());
-        Validate.isTrue(newNode.getId().getSharedPrefixLength(baseId) == commonPrefixSize);
+        Validate.isTrue(newNode.getId().getSharedPrefixLength(baseId) >= commonPrefixSize);
         
         Validate.isTrue(!time.isBefore(lastUpdateTime)); // time must be >= lastUpdatedTime
         
@@ -138,7 +138,7 @@ public final class Bucket {
         Validate.isTrue(count >= 0);
 
         Validate.isTrue(id.getBitLength() == baseId.getBitLength());
-        Validate.isTrue(id.getSharedPrefixLength(baseId) == commonPrefixSize);
+        Validate.isTrue(id.getSharedPrefixLength(baseId) >= commonPrefixSize);
         
         return entries.stream()
                 .map(x -> new ImmutablePair<>(x, x.getNode().getId().getSharedPrefixLength(id)))
@@ -179,13 +179,24 @@ public final class Bucket {
                                          // new KBucket[1 << 30] -- 1 << 30 is positive
         
         Validate.isTrue(commonPrefixSize + bitCount <= baseId.getBitLength());
-        
+
+        // Create buckets
         int len = 1 << bitCount;
         Bucket[] newBuckets = new Bucket[len];
-        for (int i = 0; i < newBuckets.length; i++) {
-            newBuckets[i] = new Bucket(baseId, commonPrefixSize + bitCount, maxBucketSize);
+        for (int prefixAppendage = 0; prefixAppendage < newBuckets.length; prefixAppendage++) {
+            // Append prefixAppendage to baseId to create the base id for split bucket
+            // TODO: Make a more efficient method to do this, unnecessary creation of IDs on setBit
+            Id newBucketBaseId = baseId;
+            for (int i = 0; i < bitCount; i++) {
+                int shiftLen = (bitCount - i) - 1;
+                boolean nextBit = ((prefixAppendage >>> shiftLen) & 0x1) == 0x1;
+                newBucketBaseId = newBucketBaseId.setBit(commonPrefixSize + i, nextBit);
+            }
+            
+            newBuckets[prefixAppendage] = new Bucket(newBucketBaseId, commonPrefixSize + bitCount, maxBucketSize);
         }
         
+        // Place entries in buckets
         for (Entry entry : entries) {
             Node node = entry.getNode();
             
@@ -198,11 +209,16 @@ public final class Bucket {
             Id id = node.getId();
             int idx = 0;
             for (int i = 0; i < bitCount; i++) {
-                idx |= (id.getBit(commonPrefixSize + i) ? 1 : 0) << i;
+                int shiftLen = (bitCount - i) - 1;
+                int idBitPos = commonPrefixSize + i;
+                idx |= (id.getBit(idBitPos) ? 1 : 0) << shiftLen;
             }
             
-            TouchResult res = newBuckets[idx].touch(entry.getInsertTime(), node);
-            Validate.validState(res == TouchResult.INSERTED); // not required, but just in case
+            TouchResult res;
+            res = newBuckets[idx].touch(entry.getInsertTime(), node); // first call to touch should add with insert time
+            Validate.validState(res == TouchResult.INSERTED); // should always happen, but just in case
+            res = newBuckets[idx].touch(entry.getLastSeenTime(), node); // send call to touch should set laset seen time
+            Validate.validState(res == TouchResult.UPDATED); // should always happen, but just in case
         }
         
         return newBuckets;
