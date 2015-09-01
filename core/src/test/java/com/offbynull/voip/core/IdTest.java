@@ -14,32 +14,18 @@ public class IdTest {
 
     @Test
     public void mustCreateTheSameIdUsingAllConstructors() {
-        // IDs must be xxxxxxxx xxxxxxx1 11111111 11111111
-        Id id1 = Id.createContiguous(17, 32);
-        Id id2 = Id.createFromInteger(0x1FFFFL, 32);
-        Id id3 = Id.create(new byte[] { 0x01, (byte) 0xFF, (byte) 0xFF }, 32);
+        Id id1 = Id.createFromLong(0x1FFFF00000000000L, 32);
+        Id id2 = Id.create(new byte[] { 0x1F, (byte) 0xFF, (byte) 0xF0 }, 32);
         
         assertEquals(id1, id2);
-        assertEquals(id2, id3);
-        assertEquals(id1, id3);
     }
 
     @Test
     public void mustIgnoreUnusedBitsWhenConstructing() {
-        // IDs must be xxxxxx01 11111111 11111111
-        Id id1 = Id.createContiguous(17, 18);
-        Id id2 = Id.createFromInteger(0xA9FFFFL, 18);
-        Id id3 = Id.create(new byte[] { (byte) 0xFD, (byte) 0xFF, (byte) 0xFF }, 18);
+        Id id1 = Id.createFromLong(0xFFFF800000000000L, 18);
+        Id id2 = Id.create(new byte[] { (byte) 0xFD, (byte) 0xFF, (byte) 0xFF }, 18);
         
         assertEquals(id1, id2);
-        assertEquals(id2, id3);
-        assertEquals(id1, id3);
-    }
-    
-    @Test
-    public void mustFailWhenConstructingTooLargeContiguousId() {
-        expectedException.expect(IllegalArgumentException.class);
-        Id.createContiguous(19, 18);
     }
 
     @Test
@@ -50,7 +36,7 @@ public class IdTest {
     
     @Test
     public void mustGetBits() {
-        Id id = Id.createFromInteger(0x3C5AL, 16);
+        Id id = Id.createFromLong(0x3C5AL, 16);
 
         // 3
         assertFalse(id.getBit(0));
@@ -79,7 +65,7 @@ public class IdTest {
 
     @Test
     public void mustSetBits() {
-        Id id = Id.createFromInteger(0, 16);
+        Id id = Id.createFromLong(0, 16);
 
         // 3
         id = id.setBit(0, false);
@@ -105,12 +91,12 @@ public class IdTest {
         id = id.setBit(14, true);
         id = id.setBit(15, false);
         
-        assertEquals(Id.createFromInteger(0x3C5AL, 16), id);
+        assertEquals(Id.createFromLong(0x3C5AL, 16), id);
     }
     
     @Test
     public void mustFlipBits() {
-        Id id = Id.createFromInteger(0x3C5AL, 16);
+        Id id = Id.createFromLong(0x3C5AL, 16);
 
         // 3
         id = id.flipBit(0);
@@ -136,15 +122,15 @@ public class IdTest {
         id = id.flipBit(14);
         id = id.flipBit(15);
         
-        assertEquals(Id.createFromInteger(0xC3A5L, 16), id);
+        assertEquals(Id.createFromLong(0xC3A5L, 16), id);
     }
     
     @Test
     public void mustIdentifyCommonPrefixLengthOnUnaligned() {
-        Id baseId = Id.createFromInteger(0xA2F, 12);
-        Id noMatchId = Id.createFromInteger(0x000, 12);
-        Id partialMatchId = Id.createFromInteger(0xA30, 12);
-        Id fullMatchId = Id.createFromInteger(0xA2F, 12);
+        Id baseId = Id.createFromLong(0xA2F, 12);
+        Id noMatchId = Id.createFromLong(0x000, 12);
+        Id partialMatchId = Id.createFromLong(0xA30, 12);
+        Id fullMatchId = Id.createFromLong(0xA2F, 12);
         
         assertEquals(0, baseId.getSharedPrefixLength(noMatchId));
         assertEquals(7, baseId.getSharedPrefixLength(partialMatchId));
@@ -153,10 +139,10 @@ public class IdTest {
 
     @Test
     public void mustIdentifyCommonPrefixLengthOnAligned() {
-        Id baseId = Id.createFromInteger(0xABCD0000L, 32);
-        Id noMatchId = Id.createFromInteger(0x00000000L, 32);
-        Id partialMatchId = Id.createFromInteger(0xABCDFFFFL, 32);
-        Id fullMatchId = Id.createFromInteger(0xABCD0000L, 32);
+        Id baseId = Id.createFromLong(0xABCD0000L, 32);
+        Id noMatchId = Id.createFromLong(0x00000000L, 32);
+        Id partialMatchId = Id.createFromLong(0xABCDFFFFL, 32);
+        Id fullMatchId = Id.createFromLong(0xABCD0000L, 32);
         
         assertEquals(0, baseId.getSharedPrefixLength(noMatchId));
         assertEquals(16, baseId.getSharedPrefixLength(partialMatchId));
