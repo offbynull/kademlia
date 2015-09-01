@@ -147,6 +147,26 @@ public class BucketTest {
     }
 
     @Test
+    public void mustSplitInTo2BucketsWhere1BucketIsEmpty() {
+        fixture.touch(BASE_TIME.plusMillis(2L), NODE_1000);
+        fixture.touch(BASE_TIME.plusMillis(3L), NODE_1100);
+        fixture.touch(BASE_TIME.plusMillis(4L), NODE_1111);
+        
+        Bucket[] buckets = fixture.split(1);
+        
+        assertEquals(2, buckets.length);
+        
+        assertEquals(NODE_1000, buckets[1].get(0));
+        assertEquals(NODE_1100, buckets[1].get(1));
+        assertEquals(NODE_1111, buckets[1].get(2));
+        
+        assertEquals(buckets[0].size(), 0);
+        assertEquals(buckets[0].getLastUpdateTime(), Instant.MIN);
+        assertEquals(buckets[1].size(), 3);
+        assertEquals(buckets[1].getLastUpdateTime(), BASE_TIME.plusMillis(4L));
+    }
+
+    @Test
     public void mustSplitInTo4Buckets() {
         fixture.touch(BASE_TIME.plusMillis(1L), NODE_0000);
         fixture.touch(BASE_TIME.plusMillis(2L), NODE_1000);

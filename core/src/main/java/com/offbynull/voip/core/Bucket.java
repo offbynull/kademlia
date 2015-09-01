@@ -240,4 +240,20 @@ public final class Bucket {
         FULL // latest entry needs to be pinged to see if its still alive, if it isn't remove then update again to add this guy back in
     }
 
+    @Override
+    public String toString() {
+        StringBuilder prefixSb = new StringBuilder();
+        for (int i = 0; i < commonPrefixSize; i++) {
+            prefixSb.append(baseId.getBit(i) ? 1 : 0);
+        }
+        
+        int totalSize = baseId.getBitLength();
+        for (int i = commonPrefixSize; i < totalSize; i++) {
+            prefixSb.append('x');
+        }
+        
+        return "Bucket{" + "baseId=" + prefixSb + ", commonPrefixSize=" + commonPrefixSize + ", maxBucketSize=" + maxBucketSize
+                + ", entries=" + entries + ", lastUpdateTime=" + lastUpdateTime + '}';
+    }
+
 }
