@@ -183,17 +183,9 @@ public final class Bucket {
         // Create buckets
         int len = 1 << bitCount;
         Bucket[] newBuckets = new Bucket[len];
-        for (int prefixAppendage = 0; prefixAppendage < newBuckets.length; prefixAppendage++) {
-            // Append prefixAppendage to baseId to create the base id for split bucket
-            // TODO: Make a more efficient method to do this, unnecessary creation of IDs on setBit
-            Id newBucketBaseId = baseId;
-            for (int i = 0; i < bitCount; i++) {
-                int shiftLen = (bitCount - i) - 1;
-                boolean nextBit = ((prefixAppendage >>> shiftLen) & 0x1) == 0x1;
-                newBucketBaseId = newBucketBaseId.setBit(commonPrefixSize + i, nextBit);
-            }
-            
-            newBuckets[prefixAppendage] = new Bucket(newBucketBaseId, commonPrefixSize + bitCount, maxBucketSize);
+        for (int bucketNum = 0; bucketNum < newBuckets.length; bucketNum++) {
+            Id newBucketBaseId = baseId.setBitsAsLong((long) bucketNum, commonPrefixSize, bitCount);
+            newBuckets[bucketNum] = new Bucket(newBucketBaseId, commonPrefixSize + bitCount, maxBucketSize);
         }
         
         // Place entries in buckets
@@ -207,12 +199,7 @@ public final class Bucket {
             // If you read 10b, 10 = 2, so this ID will be go to newBucket[2]
             // If you read 11b, 11 = 3, so this ID will be go to newBucket[3]
             Id id = node.getId();
-            int idx = 0;
-            for (int i = 0; i < bitCount; i++) {
-                int shiftLen = (bitCount - i) - 1;
-                int idBitPos = commonPrefixSize + i;
-                idx |= (id.getBit(idBitPos) ? 1 : 0) << shiftLen;
-            }
+            int idx = (int) id.getBitsAsLong(commonPrefixSize, bitCount);
             
             TouchResult res;
             res = newBuckets[idx].touch(entry.getInsertTime(), node); // first call to touch should add with insert time
@@ -242,17 +229,7 @@ public final class Bucket {
 
     @Override
     public String toString() {
-        StringBuilder prefixSb = new StringBuilder();
-        for (int i = 0; i < commonPrefixSize; i++) {
-            prefixSb.append(baseId.getBit(i) ? 1 : 0);
-        }
-        
-        int totalSize = baseId.getBitLength();
-        for (int i = commonPrefixSize; i < totalSize; i++) {
-            prefixSb.append('x');
-        }
-        
-        return "Bucket{" + "baseId=" + prefixSb + ", commonPrefixSize=" + commonPrefixSize + ", maxBucketSize=" + maxBucketSize
+        return "Bucket{" + "baseId=" + baseId + ", commonPrefixSize=" + commonPrefixSize + ", maxBucketSize=" + maxBucketSize
                 + ", entries=" + entries + ", lastUpdateTime=" + lastUpdateTime + '}';
     }
 

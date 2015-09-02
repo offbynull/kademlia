@@ -15,7 +15,7 @@ public class IdTest {
     @Test
     public void mustCreateTheSameIdUsingAllConstructors() {
         Id id1 = Id.create(new byte[] { (byte) 0xF8, (byte) 0xFF, (byte) 0x0F, 0x00 }, 32);
-        Id id2 = Id.createFromNumber(0xF8FF0F00L, 32);
+        Id id2 = Id.createFromLong(0xF8FF0F00L, 32);
         
         assertEquals(id1, id2);
     }
@@ -29,12 +29,12 @@ public class IdTest {
     @Test
     public void mustFailConstructingWhenLengthOutOfBoundsForLong() {
         expectedException.expect(IllegalArgumentException.class);
-        Id.createFromNumber(0x000FFFFF12345678L, 65);
+        Id.createFromLong(0x000FFFFF12345678L, 65);
     }
 
     @Test
     public void mustGetBits() {
-        Id id = Id.createFromNumber(0x3C5AL, 16);
+        Id id = Id.createFromLong(0x3C5AL, 16);
         
         long expected = 0x5L;
         long actual = id.getBitsAsLong(8, 4);
@@ -44,29 +44,29 @@ public class IdTest {
 
     @Test
     public void mustSetBitsTo1() {
-        Id id = Id.createFromNumber(0x3C5AL, 16);
+        Id id = Id.createFromLong(0x3C5AL, 16);
         long modifier = 0x0FL;
         
         Id actual = id.setBitsAsLong(modifier, 6, 4);
-        Id expected = Id.createFromNumber(0x3FDAL, 16);
+        Id expected = Id.createFromLong(0x3FDAL, 16);
 
         assertEquals(expected, actual);
     }
 
     @Test
     public void mustSetBitsTo0() {
-        Id id = Id.createFromNumber(0x3C5AL, 16);
+        Id id = Id.createFromLong(0x3C5AL, 16);
         long modifier = 0x00L;
         
         Id actual = id.setBitsAsLong(modifier, 6, 4);
-        Id expected = Id.createFromNumber(0x3C1AL, 16);
+        Id expected = Id.createFromLong(0x3C1AL, 16);
 
         assertEquals(expected, actual);
     }
 
     @Test
     public void mustFlipBits() {
-        Id id = Id.createFromNumber(0x3C5AL, 16);
+        Id id = Id.createFromLong(0x3C5AL, 16);
 
         // 3
         id = id.flipBit(0);
@@ -92,15 +92,15 @@ public class IdTest {
         id = id.flipBit(14);
         id = id.flipBit(15);
         
-        assertEquals(Id.createFromNumber(0xC3A5L, 16), id);
+        assertEquals(Id.createFromLong(0xC3A5L, 16), id);
     }
 
     @Test
     public void mustIdentifyCommonPrefixLength() {
-        Id baseId = Id.createFromNumber(0xA2FL, 12);
-        Id noMatchId = Id.createFromNumber(0x000L, 12);
-        Id partialMatchId = Id.createFromNumber(0xA30L, 12);
-        Id fullMatchId = Id.createFromNumber(0xA2FL, 12);
+        Id baseId = Id.createFromLong(0xA2FL, 12);
+        Id noMatchId = Id.createFromLong(0x000L, 12);
+        Id partialMatchId = Id.createFromLong(0xA30L, 12);
+        Id fullMatchId = Id.createFromLong(0xA2FL, 12);
         
         assertEquals(0, baseId.getSharedPrefixLength(noMatchId));
         assertEquals(7, baseId.getSharedPrefixLength(partialMatchId));

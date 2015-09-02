@@ -77,7 +77,7 @@ public final class Id implements Serializable {
      * @throws IllegalArgumentException if {@code bitLength <= 0}, or if {@code data} is larger than the minimum number of bytes that it
      * takes to retain {@code bitLength} (e.g. if you're retaining 12 bits, you need 2 bytes or less -- {@code 12/8 + (12%8 == 0 ? 0 : 1)})
      */
-    public static Id createFromNumber(long data, int bitLength) {
+    public static Id createFromLong(long data, int bitLength) {
         Validate.notNull(data);
         Validate.isTrue(bitLength > 0);
 
@@ -138,7 +138,7 @@ public final class Id implements Serializable {
      * @throws IllegalArgumentException if {@code offset < 0} or if {@code offset > bitLength} or {@code offset + other.bitLength > bitLength}
      */
     public Id setBitsAsLong(long other, int offset, int len) {
-        BitString modifiedBitString = bitString.setBits(offset, Id.createFromNumber(other, len).bitString);
+        BitString modifiedBitString = bitString.setBits(offset, Id.createFromLong(other, len).bitString);
         return new Id(modifiedBitString);
     }
     
