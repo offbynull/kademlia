@@ -1,5 +1,6 @@
 package com.offbynull.voip.core;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -41,28 +42,24 @@ public class BitStringTest {
     }
     
     @Test
-    public void mustGetBits() {
+    public void mustGetIndividualBits() {
         BitString bitString = BitString.createFromNumber(0x3C5A000000000000L, 0, 16);
 
-        // 3
         assertFalse(bitString.getBit(0));
         assertFalse(bitString.getBit(1));
         assertTrue(bitString.getBit(2));
         assertTrue(bitString.getBit(3));
-        
-        // 9
+
         assertTrue(bitString.getBit(4));
         assertTrue(bitString.getBit(5));
         assertFalse(bitString.getBit(6));
         assertFalse(bitString.getBit(7));
-        
-        // 5
+
         assertFalse(bitString.getBit(8));
         assertTrue(bitString.getBit(9));
         assertFalse(bitString.getBit(10));
         assertTrue(bitString.getBit(11));
 
-        // A
         assertTrue(bitString.getBit(12));
         assertFalse(bitString.getBit(13));
         assertTrue(bitString.getBit(14));
@@ -70,34 +67,72 @@ public class BitStringTest {
     }
 
     @Test
-    public void mustSetBits() {
+    public void mustGetGroupsOfBits() {
+        BitString bitString = BitString.createFromNumber(0x3C5A000000000000L, 0, 16);
+        
+        BitString expected = BitString.createFromNumber(0x5000000000000000L, 3, 4);
+        BitString actual = bitString.getBits(8, 4);
+
+        assertEquals(expected, actual);
+    }
+
+    @Test
+    public void mustGetGroupsOfBitsAsLong() {
+        BitString bitString = BitString.createFromNumber(0x3CFA000000000000L, 0, 16);
+        
+        long expected = 0xC5L;
+        long actual = bitString.getBitsAsLong(4, 8);
+
+        assertEquals(expected, actual);
+    }
+
+    @Test
+    public void mustSetIndividualBits() {
         BitString bitString = BitString.createFromNumber(0x0000000000000000L, 48, 16);
 
-        // 3
         bitString = bitString.setBit(0, false);
         bitString = bitString.setBit(1, false);
         bitString = bitString.setBit(2, true);
         bitString = bitString.setBit(3, true);
-        
-        // 9
+
         bitString = bitString.setBit(4, true);
         bitString = bitString.setBit(5, true);
         bitString = bitString.setBit(6, false);
         bitString = bitString.setBit(7, false);
-        
-        // 5
+
         bitString = bitString.setBit(8, false);
         bitString = bitString.setBit(9, true);
         bitString = bitString.setBit(10, false);
         bitString = bitString.setBit(11, true);
 
-        // A
         bitString = bitString.setBit(12, true);
         bitString = bitString.setBit(13, false);
         bitString = bitString.setBit(14, true);
         bitString = bitString.setBit(15, false);
         
         assertEquals(BitString.createFromNumber(0x0000000000003C5AL, 48, 16), bitString);
+    }
+
+    @Test
+    public void mustSetGroupsOfBitsTo1() {
+        BitString bitString = BitString.createFromNumber(0x3C5A000000000000L, 0, 16);
+        BitString modifier  = BitString.createFromNumber(0xF000000000000000L, 4, 4);
+        
+        BitString actual = bitString.setBits(8, modifier);
+        BitString expected = BitString.createFromNumber(0x3C5F000000000000L, 0, 16);
+
+        assertEquals(expected, actual);
+    }
+
+    @Test
+    public void mustSetGroupsOfBitsTo0() {
+        BitString bitString = BitString.createFromNumber(0x3C5A000000000000L, 0, 16);
+        BitString modifier  = BitString.createFromNumber(0x0000000000000000L, 4, 4);
+        
+        BitString actual = bitString.setBits(8, modifier);
+        BitString expected = BitString.createFromNumber(0x3C50000000000000L, 0, 16);
+
+        assertEquals(expected, actual);
     }
     
     @Test

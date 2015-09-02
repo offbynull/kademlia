@@ -318,7 +318,10 @@ public final class BitString implements Serializable {
     }
 
     /**
-     * Get multiple bits from this bitstring as a long. Bit 0 is the left-most bit.
+     * Get multiple bits from this bitstring as a long.
+     * <p>
+     * For example {@code BitString.createFromNumber(0x3CFA000000000000L, 0, 16)} will generate the bit string {@code 0011 1100 0101 1111},
+     * which if you called {@code getBitsAsLong(8, 4)} on would generate the long 5L ({@code 5 = 0101}).
      * @param offset offset of bit within this bitstring to read from
      * @param len number of bits to get
      * @return bits starting from {@code offset} to {@code offset + len} from this bitstring, inside of a long
@@ -343,7 +346,7 @@ public final class BitString implements Serializable {
             int readBitMask = 1 << readBitPos;
             boolean bit = (data[readBytePos] & readBitMask) != 0;
             
-            int writeBitPos = i;
+            int writeBitPos = (len - i) - 1;
             
             if (bit) {
                 long bitMask = 1 << writeBitPos;
@@ -375,10 +378,10 @@ public final class BitString implements Serializable {
         
         // TODO: You can make this much more efficient
         for (int i = offset; i < end; i++)  {
-            int bitPos = offset % 8;
-            int bytePos = offset / 8;
+            int bitPos = i % 8;
+            int bytePos = i / 8;
 
-            if (other.getBit(i)) {
+            if (other.getBit(i - offset)) {
                 int bitMask = 1 << bitPos;
                 dataCopy[bytePos] |= bitMask;
             } else {
@@ -396,14 +399,6 @@ public final class BitString implements Serializable {
      */
     public int getBitLength() {
         return bitLength;
-    }
-
-    /**
-     * Gets a copy of the data for this bitstring. You can convert this to an unsigned BigInteger via {@code new BigInteger(1, getData())}.
-     * @return copy of the bitstring data
-     */
-    public byte[] getData() {
-        return Arrays.copyOf(data, data.length);
     }
 
     @Override
@@ -436,6 +431,9 @@ public final class BitString implements Serializable {
     public String toString() {
         StringBuilder sb = new StringBuilder(bitLength);
         for (int i = 0; i < bitLength; i++) {
+            if (i % 4 == 0 && i != 0) {
+                sb.append(' ');
+            }
             sb.append(getBit(i) == true ? 1 : 0);
         }
         return sb.toString();
