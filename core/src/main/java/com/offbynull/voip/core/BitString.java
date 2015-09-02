@@ -45,12 +45,12 @@ public final class BitString implements Serializable {
     }
 
     /**
-     * Constructs a {@link BitString} from a byte array. Input array is treated as an array of bit starting from bit 0. This seems
-     * counter-intuitive because an array of bytes is represented from left-to-right (byte 0 is leftmost) while an array of bits is
+     * Constructs a {@link BitString} from a byte array. Bits from input array are read in logical-order (starting from bit 0 onward). This
+     * seems counter-intuitive because an array of bytes is represented from left-to-right (byte 0 is leftmost) while an array of bits is
      * represented from right-to-left (bit 0 is the right-most). So for example, the input array {@code [0x04, 0xFB]} with offset of 2 and
-     * length of 12 would result in bitstring {@code 1000 0011 0111}.
+     * length of 10 would result in bitstring {@code 1000 0011 01}.
      * <p>
-     * Normal representation {@code [0x01, 0xFB]}, where bits are ordered from right-to-left...
+     * Read-order representation {@code [0x01, 0xFB]}, where bits are ordered from right-to-left...
      * <pre>
      * Byte    0                 1
      * Bit     7 6 5 4 3 2 1 0   7 6 5 4 3 2 1 0
@@ -58,15 +58,18 @@ public final class BitString implements Serializable {
      *         0 0 0 0 0 1 0 0   1 1 1 1 1 0 1 1
      *         0       4         F       B
      * </pre>
-     * Flipped representation {@code [0x01, 0xFB]}, where bits are ordered from left-to-right ...
+     * Logical-order representation {@code [0x01, 0xFB]}, where bits are ordered from left-to-right ...
      * <pre>
      * Byte    0                 1
      * Bit     0 1 2 3 4 5 6 7   0 1 2 3 4 5 6 7
      *         ---------------------------------
      *         0 0 1 0 0 0 0 0   1 1 0 1 1 1 1 1
      *               4       0         B       F
+     *             ^                   ^
+     *             |                   |
+     *          offset             offset+len
      * </pre>
-     * The flipped representation is the way you should be thinking when you're creating a bitstring from a byte array.
+     * The logical-order representation is the way bits are read in.
      * @param data array to read bitstring data from
      * @param offset bit position to read from
      * @param len number of bits to read
@@ -75,7 +78,7 @@ public final class BitString implements Serializable {
      * @throws IllegalArgumentException if {@code bitLength <= 0}, or if {@code data} is larger than the minimum number of bytes that it
      * takes to retain {@code bitLength} (e.g. if you're retaining 12 bits, you need 2 bytes or less -- {@code 12/8 + (12%8 == 0 ? 0 : 1)})
      */
-    public static BitString create(byte[] data, int offset, int len) {
+    public static BitString createLogicalOrder(byte[] data, int offset, int len) {
         Validate.notNull(data);
         Validate.isTrue(offset >= 0);
         Validate.isTrue(len >= 0);
@@ -91,7 +94,66 @@ public final class BitString implements Serializable {
             int nextOffset = Math.min(currOffset + 8, end);
             int currLen = nextOffset - currOffset;
             
-            byte b = readBitsFromByteArray(data, currOffset, currLen);
+            byte b = readBitsFromByteArrayInLogicalOrder(data, currOffset, currLen);
+            arr[arrIdx] = b;
+
+            arrIdx++;
+            currOffset = nextOffset;
+        }
+        
+        return new BitString(arr, len);
+    }
+
+    /**
+     * Constructs a {@link BitString} from a byte array. Bits from input array are read in read-order (the order you would read a bytes in
+     * a byte array). So for example, the input array {@code [0x04, 0xFB]} with offset of 2 and length of 10 would result in bitstring
+     * {@code 0001 0011 11}.
+     * <p>
+     * Read-order representation {@code [0x01, 0xFB]}, where bits are ordered from right-to-left...
+     * <pre>
+     * Byte    0                 1
+     * Bit     7 6 5 4 3 2 1 0   7 6 5 4 3 2 1 0
+     *         ---------------------------------
+     *         0 0 0 0 0 1 0 0   1 1 1 1 1 0 1 1
+     *         0       4         F       B
+     *             ^                   ^
+     *             |                   |
+     *          offset             offset+len
+     * </pre>
+     * Logical-order representation {@code [0x01, 0xFB]}, where bits are ordered from left-to-right ...
+     * <pre>
+     * Byte    0                 1
+     * Bit     0 1 2 3 4 5 6 7   0 1 2 3 4 5 6 7
+     *         ---------------------------------
+     *         0 0 1 0 0 0 0 0   1 1 0 1 1 1 1 1
+     *               4       0         B       F
+     * </pre>
+     * The read-order representation is the way bits are read in.
+     * @param data array to read bitstring data from
+     * @param offset bit position to read from
+     * @param len number of bits to read
+     * @return created bitstring
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code bitLength <= 0}, or if {@code data} is larger than the minimum number of bytes that it
+     * takes to retain {@code bitLength} (e.g. if you're retaining 12 bits, you need 2 bytes or less -- {@code 12/8 + (12%8 == 0 ? 0 : 1)})
+     */
+    public static BitString createReadOrder(byte[] data, int offset, int len) {
+        Validate.notNull(data);
+        Validate.isTrue(offset >= 0);
+        Validate.isTrue(len >= 0);
+        Validate.isTrue(offset + len <= data.length * 8);
+        
+        int arrLen = calculateRequiredByteArraySize(len);
+        int arrIdx = 0;
+        byte[] arr = new byte[arrLen];
+        
+        int end = offset + len;
+        int currOffset = offset;
+        while (currOffset < end) {
+            int nextOffset = Math.min(currOffset + 8, end);
+            int currLen = nextOffset - currOffset;
+            
+            byte b = readBitsFromByteArrayInReadOrder(data, currOffset, currLen);
             arr[arrIdx] = b;
 
             arrIdx++;
@@ -101,7 +163,8 @@ public final class BitString implements Serializable {
         return new BitString(arr, len);
     }
     
-    private static byte readBitsFromByteArray(byte[] container, int offset, int len) {
+    // Why work on longs? It may be more efficient to have the byte[] containing the bitstring be a long[].
+    private static byte readBitsFromByteArrayInLogicalOrder(byte[] container, int offset, int len) {
         Validate.isTrue(len <= 8);
         Validate.isTrue(offset + len <= container.length * 8);
         
@@ -116,13 +179,50 @@ public final class BitString implements Serializable {
         if (len <= lenOfBitsRemainingInByte) {
             ret = (byte) (isolateBitsToBottom(container[idx], bitOffset, len) & 0xFFL);
         } else {
+            long byte1 = container[idx] & 0xFFL;
+            long byte2 = container[idx + 1] & 0xFFL;
             int byte1BitOffset = bitOffset;
             int byte1BitLen = Math.min(8 - bitOffset, len);
             int byte2BitOffset = 0;
             int byte2BitLen = len - byte1BitLen;
             
-            long portion1 = isolateBitsToBottom(container[idx], byte1BitOffset, byte1BitLen);
-            long portion2 = isolateBitsToBottom(container[idx + 1], byte2BitOffset, byte2BitLen);
+            long portion1 = isolateBitsToBottom(byte1, byte1BitOffset, byte1BitLen);
+            long portion2 = isolateBitsToBottom(byte2, byte2BitOffset, byte2BitLen);
+            
+            long combined = (portion1 << byte2BitLen) | portion2;
+            
+            ret = (byte) (combined & 0xFF);
+        }
+        
+        return ret;
+    }
+    
+    // Why work on longs? It may be more efficient to have the byte[] containing the bitstring be a long[].
+    private static byte readBitsFromByteArrayInReadOrder(byte[] container, int offset, int len) {
+        Validate.isTrue(len <= 8);
+        Validate.isTrue(offset + len <= container.length * 8);
+        
+        int byteOffset = offset / 8;
+        int bitOffset = offset % 8;
+        
+        int idx = byteOffset;
+        
+        int lenOfBitsRemainingInByte = 8 - bitOffset;
+        
+        byte ret;
+        if (len <= lenOfBitsRemainingInByte) {
+            long byte1 = Long.reverse(container[idx] & 0xFFL) >>> 56;
+            ret = (byte) (isolateBitsToBottom(byte1, bitOffset, len) & 0xFFL);
+        } else {
+            long byte1 = Long.reverse(container[idx] & 0xFFL) >>> 56;
+            long byte2 = Long.reverse(container[idx + 1] & 0xFFL) >>> 56;
+            int byte1BitOffset = bitOffset;
+            int byte1BitLen = Math.min(8 - bitOffset, len);
+            int byte2BitOffset = 0;
+            int byte2BitLen = len - byte1BitLen;
+            
+            long portion1 = isolateBitsToBottom(byte1, byte1BitOffset, byte1BitLen);
+            long portion2 = isolateBitsToBottom(byte2, byte2BitOffset, byte2BitLen);
             
             long combined = (portion1 << byte2BitLen) | portion2;
             
@@ -146,7 +246,7 @@ public final class BitString implements Serializable {
     
     /**
      * Constructs a {@link BitString} from a long. Equivalent to converting the input long to a big-endian representation and passing it to
-     * {@link #create(byte[], int, int) }.
+     * {@link #createLogicalOrder(byte[], int, int) }.
      * @param data long to read bitstring
      * @param offset bit position to read from
      * @param len number of bits to read
@@ -160,7 +260,7 @@ public final class BitString implements Serializable {
             bytes[i] = (byte) (data >>> shiftAmount);
         }
         
-        return create(bytes, offset, len);
+        return createLogicalOrder(bytes, offset, len);
     }
     
     private static int calculateRequiredByteArraySize(int bitLength) {

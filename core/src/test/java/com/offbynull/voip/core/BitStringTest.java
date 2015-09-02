@@ -1,6 +1,5 @@
 package com.offbynull.voip.core;
 
-import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -16,29 +15,35 @@ public class BitStringTest {
     @Test
     public void mustCreateTheSameBitStringUsingAllConstructors() {
         BitString bitString1 = BitString.createFromNumber(0x1FFFF00000000000L, 0, 32);
-        BitString bitString2 = BitString.create(new byte[] { 0x1F, (byte) 0xFF, (byte) 0xF0, 0x00 }, 0, 32);
+        BitString bitString2 = BitString.createLogicalOrder(new byte[] { (byte) 0x1F, (byte) 0xFF, (byte) 0xF0, 0x00 }, 0, 32);
+        BitString bitString3 = BitString.createReadOrder(new byte[] { (byte) 0xF8, (byte) 0xFF, (byte) 0x0F, 0x00 }, 0, 32);
         
         assertEquals(bitString1, bitString2);
+        assertEquals(bitString1, bitString3);
+        assertEquals(bitString2, bitString3);
     }
 
     @Test
-    public void mustIgnoreUnusedBitsWhenConstructing() {
+    public void mustCreateTheSameBitStringUsingAllConstructorsWhenUnaligned() {
         BitString bitString1 = BitString.createFromNumber(0xABCD8CF000000000L, 4, 8);
-        BitString bitString2 = BitString.create(new byte[] { (byte) 0xAD, (byte) 0xC8, (byte) 0x0F }, 0, 8);
+        BitString bitString2 = BitString.createLogicalOrder(new byte[] { (byte) 0xAB, (byte) 0xCD, (byte) 0x0F }, 4, 8);
+        BitString bitString3 = BitString.createReadOrder(new byte[] { (byte) 0xD5, (byte) 0xB3, (byte) 0x0F }, 4, 8);
         
         assertEquals(bitString1, bitString2);
+        assertEquals(bitString1, bitString3);
+        assertEquals(bitString2, bitString3);
     }
 
     @Test
     public void mustFailWhenConstructingWhenOffsetOutOfBounds() {
         expectedException.expect(IllegalArgumentException.class);
-        BitString.create(new byte[] { (byte) 0x00, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF }, 32, 0);
+        BitString.createLogicalOrder(new byte[] { (byte) 0x00, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF }, 32, 0);
     }
 
     @Test
     public void mustFailWhenConstructingWhenLengthOutOfBounds() {
         expectedException.expect(IllegalArgumentException.class);
-        BitString.create(new byte[] { (byte) 0x00, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF }, 0, 33);
+        BitString.createLogicalOrder(new byte[] { (byte) 0x00, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF }, 0, 33);
     }
     
     @Test
