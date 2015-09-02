@@ -67,7 +67,7 @@ public final class BitString implements Serializable {
      *               4       0         B       F
      *             ^                   ^
      *             |                   |
-     *          offset             offset+len
+     *          offset (2)        offset+len (2+10)
      * </pre>
      * The logical-order representation is the way bits are read in.
      * @param data array to read bitstring data from
@@ -118,7 +118,7 @@ public final class BitString implements Serializable {
      *         0       4         F       B
      *             ^                   ^
      *             |                   |
-     *          offset             offset+len
+     *          offset (2)        offset+len (2+10)
      * </pre>
      * Logical-order representation {@code [0x01, 0xFB]}, where bits are ordered from left-to-right ...
      * <pre>
@@ -241,26 +241,6 @@ public final class BitString implements Serializable {
         long mask = (1L << len) - 1L;
         
         return (data >>> offset) & mask;
-    }
-    
-    
-    /**
-     * Constructs a {@link BitString} from a long. Equivalent to converting the input long to a big-endian representation and passing it to
-     * {@link #createLogicalOrder(byte[], int, int) }.
-     * @param data long to read bitstring
-     * @param offset bit position to read from
-     * @param len number of bits to read
-     * @return created bitstring
-     * @throws IllegalArgumentException if {@code 64 < bitLength < 1}
-     */
-    public static BitString createFromNumber(long data, int offset, int len) {
-        byte[] bytes = new byte[8];
-        for (int i = 0; i < 8; i++) {
-            int shiftAmount = 56 - (i * 8);
-            bytes[i] = (byte) (data >>> shiftAmount);
-        }
-        
-        return createLogicalOrder(bytes, offset, len);
     }
     
     private static int calculateRequiredByteArraySize(int bitLength) {
