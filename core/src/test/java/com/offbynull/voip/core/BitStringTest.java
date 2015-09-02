@@ -14,29 +14,35 @@ public class BitStringTest {
 
     @Test
     public void mustCreateTheSameBitStringUsingAllConstructors() {
-        BitString bitString1 = BitString.createFromLong(0x1FFFF00000000000L, 32);
-        BitString bitString2 = BitString.create(new byte[] { 0x1F, (byte) 0xFF, (byte) 0xF0 }, 32);
+        BitString bitString1 = BitString.createFromNumber(0x1FFFF00000000000L, 0, 32);
+        BitString bitString2 = BitString.create(new byte[] { 0x1F, (byte) 0xFF, (byte) 0xF0, 0x00 }, 0, 32);
         
         assertEquals(bitString1, bitString2);
     }
 
     @Test
     public void mustIgnoreUnusedBitsWhenConstructing() {
-        BitString bitString1 = BitString.createFromLong(0xFFFF8C0000000000L, 18);
-        BitString bitString2 = BitString.create(new byte[] { (byte) 0xFF, (byte) 0xFF, (byte) 0xBF }, 18);
+        BitString bitString1 = BitString.createFromNumber(0xABCD8CF000000000L, 4, 8);
+        BitString bitString2 = BitString.create(new byte[] { (byte) 0xAD, (byte) 0xC8, (byte) 0x0F }, 0, 8);
         
         assertEquals(bitString1, bitString2);
     }
 
     @Test
-    public void mustFailWhenConstructingTooLargeBitString() {
+    public void mustFailWhenConstructingWhenOffsetOutOfBounds() {
         expectedException.expect(IllegalArgumentException.class);
-        BitString.create(new byte[] { (byte) 0x00, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF }, 18);
+        BitString.create(new byte[] { (byte) 0x00, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF }, 32, 0);
+    }
+
+    @Test
+    public void mustFailWhenConstructingWhenLengthOutOfBounds() {
+        expectedException.expect(IllegalArgumentException.class);
+        BitString.create(new byte[] { (byte) 0x00, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF }, 0, 33);
     }
     
     @Test
     public void mustGetBits() {
-        BitString bitString = BitString.createFromLong(0x3C5A000000000000L, 16);
+        BitString bitString = BitString.createFromNumber(0x3C5A000000000000L, 0, 16);
 
         // 3
         assertFalse(bitString.getBit(0));
@@ -65,7 +71,7 @@ public class BitStringTest {
 
     @Test
     public void mustSetBits() {
-        BitString bitString = BitString.createFromLong(0, 16);
+        BitString bitString = BitString.createFromNumber(0x0000000000000000L, 48, 16);
 
         // 3
         bitString = bitString.setBit(0, false);
@@ -91,12 +97,12 @@ public class BitStringTest {
         bitString = bitString.setBit(14, true);
         bitString = bitString.setBit(15, false);
         
-        assertEquals(BitString.createFromLong(0x3C5A000000000000L, 16), bitString);
+        assertEquals(BitString.createFromNumber(0x0000000000003C5AL, 48, 16), bitString);
     }
     
     @Test
     public void mustFlipBits() {
-        BitString bitString = BitString.createFromLong(0x3C5A000000000000L, 16);
+        BitString bitString = BitString.createFromNumber(0x3C5AL, 48, 16);
 
         // 3
         bitString = bitString.flipBit(0);
@@ -122,15 +128,15 @@ public class BitStringTest {
         bitString = bitString.flipBit(14);
         bitString = bitString.flipBit(15);
         
-        assertEquals(BitString.createFromLong(0xC3A5000000000000L, 16), bitString);
+        assertEquals(BitString.createFromNumber(0xC3A5L, 48, 16), bitString);
     }
     
     @Test
-    public void mustIdentifyCommonPrefixLengthOnUnaligned() {
-        BitString baseBitString = BitString.createFromLong(0xA2F0000000000000L, 12);
-        BitString noMatchBitString = BitString.createFromLong(0x0000000000000000L, 12);
-        BitString partialMatchBitString = BitString.createFromLong(0xA300000000000000L, 12);
-        BitString fullMatchBitString = BitString.createFromLong(0xA2F0000000000000L, 12);
+    public void mustIdentifyCommonPrefixLength() {
+        BitString baseBitString = BitString.createFromNumber(0x000000000000A2F0L, 48, 12);
+        BitString noMatchBitString = BitString.createFromNumber(0x0000000000000000L, 48, 12);
+        BitString partialMatchBitString = BitString.createFromNumber(0x000000000000A300L, 48, 12);
+        BitString fullMatchBitString = BitString.createFromNumber(0x000000000000A2F0L, 48, 12);
         
         assertEquals(0, baseBitString.getSharedPrefixLength(noMatchBitString));
         assertEquals(7, baseBitString.getSharedPrefixLength(partialMatchBitString));
@@ -138,11 +144,11 @@ public class BitStringTest {
     }
 
     @Test
-    public void mustIdentifyCommonPrefixLengthOnUnalignedAndSmallerSizes() {
-        BitString baseBitString = BitString.createFromLong(0xA2F0000000000000L, 12);
-        BitString noMatchBitString = BitString.createFromLong(0x0000000000000000L, 1);
-        BitString partialMatchBitString1 = BitString.createFromLong(0xA300000000000000L, 9);
-        BitString partialMatchBitString2 = BitString.createFromLong(0xA2C0000000000000L, 9);
+    public void mustIdentifyCommonPrefixLengthOnSmallerSizes() {
+        BitString baseBitString = BitString.createFromNumber(0x000000000000A2F0L, 48, 12);
+        BitString noMatchBitString = BitString.createFromNumber(0x0000000000000000L, 48, 1);
+        BitString partialMatchBitString1 = BitString.createFromNumber(0x000000000000A300L, 48, 9);
+        BitString partialMatchBitString2 = BitString.createFromNumber(0x000000000000A2C0L, 48, 9);
         
         assertEquals(0, baseBitString.getSharedPrefixLength(noMatchBitString));
         assertEquals(7, baseBitString.getSharedPrefixLength(partialMatchBitString1));
@@ -150,26 +156,14 @@ public class BitStringTest {
     }
 
     @Test
-    public void mustIdentifyCommonPrefixLengthOnUnalignedAndLargerSizes() {
-        BitString baseBitString = BitString.createFromLong(0xA2F0000000000000L, 12);
-        BitString noMatchBitString = BitString.createFromLong(0x0000000000000000L, 16);
-        BitString partialMatchBitString1 = BitString.createFromLong(0xA300000000000000L, 16);
-        BitString partialMatchBitString2 = BitString.createFromLong(0xA2C0000000000000L, 16);
+    public void mustIdentifyCommonPrefixLengthOnLargerSizes() {
+        BitString baseBitString = BitString.createFromNumber(0x000000000000A2F0L, 48, 12);
+        BitString noMatchBitString = BitString.createFromNumber(0x0000000000000000L, 48, 16);
+        BitString partialMatchBitString1 = BitString.createFromNumber(0x000000000000A300L, 48, 16);
+        BitString partialMatchBitString2 = BitString.createFromNumber(0x000000000000A220L, 48, 16);
         
         assertEquals(0, baseBitString.getSharedPrefixLength(noMatchBitString));
         assertEquals(7, baseBitString.getSharedPrefixLength(partialMatchBitString1));
         assertEquals(10, baseBitString.getSharedPrefixLength(partialMatchBitString2));
-    }
-
-    @Test
-    public void mustIdentifyCommonPrefixLengthOnAligned() {
-        BitString baseBitString = BitString.createFromLong(0xABCD000000000000L, 32);
-        BitString noMatchBitString = BitString.createFromLong(0x0000000000000000L, 32);
-        BitString partialMatchBitString = BitString.createFromLong(0xABCDFFFF00000000L, 32);
-        BitString fullMatchBitString = BitString.createFromLong(0xABCD000000000000L, 32);
-        
-        assertEquals(0, baseBitString.getSharedPrefixLength(noMatchBitString));
-        assertEquals(16, baseBitString.getSharedPrefixLength(partialMatchBitString));
-        assertEquals(32, baseBitString.getSharedPrefixLength(fullMatchBitString));
     }
 }

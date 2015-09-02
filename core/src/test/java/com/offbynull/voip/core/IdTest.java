@@ -14,7 +14,7 @@ public class IdTest {
 
     @Test
     public void mustCreateTheSameIdUsingAllConstructors() {
-        Id id1 = Id.createFromLong(0x1FFFF00000000000L, 32);
+        Id id1 = Id.createFromTopBitsOfLong(0x1FFFF00000000000L, 32);
         Id id2 = Id.create(new byte[] { 0x1F, (byte) 0xFF, (byte) 0xF0 }, 32);
         
         assertEquals(id1, id2);
@@ -22,7 +22,7 @@ public class IdTest {
 
     @Test
     public void mustIgnoreUnusedBitsWhenConstructing() {
-        Id id1 = Id.createFromLong(0xFFFF800000000000L, 18);
+        Id id1 = Id.createFromTopBitsOfLong(0xFFFF800000000000L, 18);
         Id id2 = Id.create(new byte[] { (byte) 0xFD, (byte) 0xFF, (byte) 0xFF }, 18);
         
         assertEquals(id1, id2);
@@ -36,7 +36,7 @@ public class IdTest {
     
     @Test
     public void mustGetBits() {
-        Id id = Id.createFromLong(0x3C5AL, 16);
+        Id id = Id.createFromTopBitsOfLong(0x3C5AL, 16);
 
         // 3
         assertFalse(id.getBit(0));
@@ -65,7 +65,7 @@ public class IdTest {
 
     @Test
     public void mustSetBits() {
-        Id id = Id.createFromLong(0, 16);
+        Id id = Id.createFromTopBitsOfLong(0, 16);
 
         // 3
         id = id.setBit(0, false);
@@ -91,12 +91,12 @@ public class IdTest {
         id = id.setBit(14, true);
         id = id.setBit(15, false);
         
-        assertEquals(Id.createFromLong(0x3C5AL, 16), id);
+        assertEquals(Id.createFromTopBitsOfLong(0x3C5AL, 16), id);
     }
     
     @Test
     public void mustFlipBits() {
-        Id id = Id.createFromLong(0x3C5AL, 16);
+        Id id = Id.createFromTopBitsOfLong(0x3C5AL, 16);
 
         // 3
         id = id.flipBit(0);
@@ -122,15 +122,15 @@ public class IdTest {
         id = id.flipBit(14);
         id = id.flipBit(15);
         
-        assertEquals(Id.createFromLong(0xC3A5L, 16), id);
+        assertEquals(Id.createFromTopBitsOfLong(0xC3A5L, 16), id);
     }
     
     @Test
     public void mustIdentifyCommonPrefixLengthOnUnaligned() {
-        Id baseId = Id.createFromLong(0xA2F, 12);
-        Id noMatchId = Id.createFromLong(0x000, 12);
-        Id partialMatchId = Id.createFromLong(0xA30, 12);
-        Id fullMatchId = Id.createFromLong(0xA2F, 12);
+        Id baseId = Id.createFromTopBitsOfLong(0xA2F, 12);
+        Id noMatchId = Id.createFromTopBitsOfLong(0x000, 12);
+        Id partialMatchId = Id.createFromTopBitsOfLong(0xA30, 12);
+        Id fullMatchId = Id.createFromTopBitsOfLong(0xA2F, 12);
         
         assertEquals(0, baseId.getSharedPrefixLength(noMatchId));
         assertEquals(7, baseId.getSharedPrefixLength(partialMatchId));
@@ -139,10 +139,10 @@ public class IdTest {
 
     @Test
     public void mustIdentifyCommonPrefixLengthOnAligned() {
-        Id baseId = Id.createFromLong(0xABCD0000L, 32);
-        Id noMatchId = Id.createFromLong(0x00000000L, 32);
-        Id partialMatchId = Id.createFromLong(0xABCDFFFFL, 32);
-        Id fullMatchId = Id.createFromLong(0xABCD0000L, 32);
+        Id baseId = Id.createFromTopBitsOfLong(0xABCD0000L, 32);
+        Id noMatchId = Id.createFromTopBitsOfLong(0x00000000L, 32);
+        Id partialMatchId = Id.createFromTopBitsOfLong(0xABCDFFFFL, 32);
+        Id fullMatchId = Id.createFromTopBitsOfLong(0xABCD0000L, 32);
         
         assertEquals(0, baseId.getSharedPrefixLength(noMatchId));
         assertEquals(16, baseId.getSharedPrefixLength(partialMatchId));

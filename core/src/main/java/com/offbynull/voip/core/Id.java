@@ -17,7 +17,6 @@
 package com.offbynull.voip.core;
 
 import java.io.Serializable;
-import java.util.Arrays;
 import java.util.Objects;
 import org.apache.commons.lang3.Validate;
 
@@ -51,21 +50,21 @@ public final class Id implements Serializable {
         Validate.notNull(data);
         Validate.isTrue(bitLength > 0);
         
-        return new Id(BitString.create(data, bitLength));
+        return new Id(null);
     }
     
     /**
      * Constructs an {@link Id} from a long.
      * @param data id value
-     * @param bitLength number of total bits allowed in the id (must be between 0 and 63 inclusive)
+     * @param len number of total bits allowed in the id (must be between 0 and 63 inclusive)
      * @return created id
      * @throws IllegalArgumentException if {@code 64 < bitLength < 1}
      */
-    public static Id createFromLong(long data, int bitLength) {
-        Validate.isTrue(bitLength > 0);
-        Validate.isTrue(bitLength < 64);
+    public static Id createFromTopBitsOfLong(long data, int len) {
+        Validate.isTrue(len > 0);
+        Validate.isTrue(len < 64);
         
-        return new Id(BitString.createFromLong(data, bitLength));
+        return new Id(BitString.createFromNumber(data, 0, len));
     }
 
     /**

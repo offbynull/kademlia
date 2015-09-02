@@ -9,16 +9,16 @@ import org.junit.rules.ExpectedException;
 public class BucketTest {
     
     
-    private static final Id BASE_ID = Id.createFromLong(0x12340000L, 32);
+    private static final Id BASE_ID = Id.createFromTopBitsOfLong(0x12340000L, 32);
     
-    private static final Node NODE_0000 = new Node(Id.createFromLong(0x12340000L, 32), "1");
-    private static final Node NODE_0100 = new Node(Id.createFromLong(0x12344000L, 32), "2");
-    private static final Node NODE_1000 = new Node(Id.createFromLong(0x12348000L, 32), "3");
-    private static final Node NODE_1100 = new Node(Id.createFromLong(0x1234C000L, 32), "4");
-    private static final Node NODE_1111 = new Node(Id.createFromLong(0x1234F000L, 32), "5");
+    private static final Node NODE_0000 = new Node(Id.createFromTopBitsOfLong(0x12340000L, 32), "1");
+    private static final Node NODE_0100 = new Node(Id.createFromTopBitsOfLong(0x12344000L, 32), "2");
+    private static final Node NODE_1000 = new Node(Id.createFromTopBitsOfLong(0x12348000L, 32), "3");
+    private static final Node NODE_1100 = new Node(Id.createFromTopBitsOfLong(0x1234C000L, 32), "4");
+    private static final Node NODE_1111 = new Node(Id.createFromTopBitsOfLong(0x1234F000L, 32), "5");
     
-    private static final Node NODE_SHORT_PREFIX = new Node(Id.createFromLong(0x123FFFFFL, 32), "6");
-    private static final Node NODE_LONG_PREFIX = new Node(Id.createFromLong(0x1234F000L, 32), "6");
+    private static final Node NODE_SHORT_PREFIX = new Node(Id.createFromTopBitsOfLong(0x123FFFFFL, 32), "6");
+    private static final Node NODE_LONG_PREFIX = new Node(Id.createFromTopBitsOfLong(0x1234F000L, 32), "6");
     
     private static final Instant BASE_TIME = Instant.ofEpochMilli(0L);
     

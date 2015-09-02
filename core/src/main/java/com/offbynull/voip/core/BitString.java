@@ -18,7 +18,6 @@ package com.offbynull.voip.core;
 
 import java.io.Serializable;
 import java.util.Arrays;
-import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.Validate;
 
 /**
@@ -29,8 +28,8 @@ import org.apache.commons.lang3.Validate;
  */
 public final class BitString implements Serializable {
     private static final long serialVersionUID = 1L;
-
-    private final byte[] data;
+    
+    private final byte[] data; // treated as an array of bit starting from bit 0
     private final int bitLength;
     
     // make sure that whatever you pass in as data is a copy / not-shared.
@@ -46,54 +45,122 @@ public final class BitString implements Serializable {
     }
 
     /**
-     * Constructs a {@link BitString} from a byte array.
-     * @param data bitstring value
-     * @param bitLength number of bits in this bitstring
+     * Constructs a {@link BitString} from a byte array. Input array is treated as an array of bit starting from bit 0. This seems
+     * counter-intuitive because an array of bytes is represented from left-to-right (byte 0 is leftmost) while an array of bits is
+     * represented from right-to-left (bit 0 is the right-most). So for example, the input array {@code [0x04, 0xFB]} with offset of 2 and
+     * length of 12 would result in bitstring {@code 1000 0011 0111}.
+     * <p>
+     * Normal representation {@code [0x01, 0xFB]}, where bits are ordered from right-to-left...
+     * <pre>
+     * Byte    0                 1
+     * Bit     7 6 5 4 3 2 1 0   7 6 5 4 3 2 1 0
+     *         ---------------------------------
+     *         0 0 0 0 0 1 0 0   1 1 1 1 1 0 1 1
+     *         0       4         F       B
+     * </pre>
+     * Flipped representation {@code [0x01, 0xFB]}, where bits are ordered from left-to-right ...
+     * <pre>
+     * Byte    0                 1
+     * Bit     0 1 2 3 4 5 6 7   0 1 2 3 4 5 6 7
+     *         ---------------------------------
+     *         0 0 1 0 0 0 0 0   1 1 0 1 1 1 1 1
+     *               4       0         B       F
+     * </pre>
+     * The flipped representation is the way you should be thinking when you're creating a bitstring from a byte array.
+     * @param data array to read bitstring data from
+     * @param offset bit position to read from
+     * @param len number of bits to read
      * @return created bitstring
      * @throws NullPointerException if any argument is {@code null}
      * @throws IllegalArgumentException if {@code bitLength <= 0}, or if {@code data} is larger than the minimum number of bytes that it
      * takes to retain {@code bitLength} (e.g. if you're retaining 12 bits, you need 2 bytes or less -- {@code 12/8 + (12%8 == 0 ? 0 : 1)})
      */
-    public static BitString create(byte[] data, int bitLength) {
+    public static BitString create(byte[] data, int offset, int len) {
         Validate.notNull(data);
-        Validate.isTrue(bitLength > 0);
+        Validate.isTrue(offset >= 0);
+        Validate.isTrue(len >= 0);
+        Validate.isTrue(offset + len <= data.length * 8);
         
-        int length = calculateRequiredByteArraySize(bitLength);
-        Validate.isTrue(data.length <= length);
+        int arrLen = calculateRequiredByteArraySize(len);
+        int arrIdx = 0;
+        byte[] arr = new byte[arrLen];
         
-        // Create copy. Copy is of size length. If data is less than length, extra 0's are added as prefix.
-        byte[] dataCopy = new byte[length];
-        System.arraycopy(data, 0, dataCopy, 0, data.length);
+        int end = offset + len;
+        int currOffset = offset;
+        while (currOffset < end) {
+            int nextOffset = Math.min(currOffset + 8, end);
+            int currLen = nextOffset - currOffset;
+            
+            byte b = readBitsFromByteArray(data, currOffset, currLen);
+            arr[arrIdx] = b;
+
+            arrIdx++;
+            currOffset = nextOffset;
+        }
         
-        clearUnusedTailBits(bitLength, dataCopy);
-        return new BitString(dataCopy, bitLength);
+        return new BitString(arr, len);
+    }
+    
+    private static byte readBitsFromByteArray(byte[] container, int offset, int len) {
+        Validate.isTrue(len <= 8);
+        Validate.isTrue(offset + len <= container.length * 8);
+        
+        int byteOffset = offset / 8;
+        int bitOffset = offset % 8;
+        
+        int idx = byteOffset;
+        
+        int lenOfBitsRemainingInByte = 8 - bitOffset;
+        
+        byte ret;
+        if (len <= lenOfBitsRemainingInByte) {
+            ret = (byte) (isolateBitsToBottom(container[idx], bitOffset, len) & 0xFFL);
+        } else {
+            int byte1BitOffset = bitOffset;
+            int byte1BitLen = Math.min(8 - bitOffset, len);
+            int byte2BitOffset = 0;
+            int byte2BitLen = len - byte1BitLen;
+            
+            long portion1 = isolateBitsToBottom(container[idx], byte1BitOffset, byte1BitLen);
+            long portion2 = isolateBitsToBottom(container[idx + 1], byte2BitOffset, byte2BitLen);
+            
+            long combined = (portion1 << byte2BitLen) | portion2;
+            
+            ret = (byte) (combined & 0xFF);
+        }
+        
+        return ret;
+    }
+
+    // Why work on longs? It may be more efficient to have the byte[] containing the bitstring be a long[].
+    private static long isolateBitsToBottom(long data, int offset, int len) {
+        Validate.isTrue(offset >= 0);
+        Validate.isTrue(len >= 0);
+        Validate.isTrue(offset + len <= 64);
+        
+        long mask = (1L << len) - 1L;
+        
+        return (data >>> offset) & mask;
     }
     
     
     /**
-     * Constructs a {@link BitString} from a long. Long is read in big-endian format.
-     * <p>
-     * For example, {@code createFromLong(0xA700000000000000L, 5)} would create a bitstring of {@code 1010 1}.
-     * @param data bitstring value
-     * @param bitLength number of total bits allowed in the bitstring, starting from the top of bit of {@code data}
+     * Constructs a {@link BitString} from a long. Equivalent to converting the input long to a big-endian representation and passing it to
+     * {@link #create(byte[], int, int) }.
+     * @param data long to read bitstring
+     * @param offset bit position to read from
+     * @param len number of bits to read
      * @return created bitstring
      * @throws IllegalArgumentException if {@code 64 < bitLength < 1}
      */
-    public static BitString createFromLong(long data, int bitLength) {
-        Validate.isTrue(bitLength > 0);
-        Validate.isTrue(bitLength < 64);
-        
-        int length = calculateRequiredByteArraySize(bitLength);
-        
-        byte[] bytes = new byte[length];
-        for (int i = 0; i < length; i++) {
-            int insertIntoIdx = i;
-            int shiftRightAmount = 56 - (i * 8);
-            bytes[insertIntoIdx] = (byte) (data >>> shiftRightAmount);
+    public static BitString createFromNumber(long data, int offset, int len) {
+        byte[] bytes = new byte[8];
+        for (int i = 0; i < 8; i++) {
+            int shiftAmount = 56 - (i * 8);
+            bytes[i] = (byte) (data >>> shiftAmount);
         }
         
-        clearUnusedTailBits(bitLength, bytes);
-        return new BitString(bytes, bitLength);
+        return create(bytes, offset, len);
     }
     
     private static int calculateRequiredByteArraySize(int bitLength) {
@@ -106,49 +173,6 @@ public final class BitString implements Serializable {
         
         return byteLength;
     }
-
-    private static void clearUnusedTailBits(int bitLength, byte[] container) {
-        // Clear unused top bits
-        int partialBitCount = bitLength % 8;
-        if (partialBitCount != 0) {
-            // e.g. partialBitCount == 3, then clearBitMask 1..1 1000 0000b -> 1..1 1110 0000b -> 0..0 1110 0000b
-            int lastIdx = container.length - 1;
-            int clearBitMask = (0xFFFFFF80 >> (partialBitCount - 1)) & 0xFF;
-            container[lastIdx] = (byte) (container[lastIdx] & clearBitMask);
-        }
-    }
-
-    // UNTESTED, but is this even required?
-//    /**
-//     * XOR this bitstring with another bitstring and return the result as a new bitstring. The bit length of the bitstrings must match.
-//     * @param other other bitstring to XOR against
-//     * @return new bitstring that is {@code this ^ other}
-//     * @throws NullPointerException if any argument is {@code null}
-//     * @throws IllegalArgumentException if the limit from {@code this} doesn't match the limit from {@code other}
-//     */
-//    public BitString xor(BitString other) {
-//        Validate.notNull(other);
-//        Validate.isTrue(bitLength == other.bitLength);
-//
-//        byte[] xoredData = new byte[data.length]; // this and other have data field of same size if bitLength is same... checked above
-//        
-//        for (int i = 0; i < xoredData.length; i++) {
-//            xoredData[i] = (byte) ((xoredData[i] ^ other.data[i]) & 0xFF); // is 0xFF nessecary? -- yes due to byte to int upcast?
-//        }
-//        
-//        clearUnusedTopBits(bitLength, xoredData);
-//        BitString xored = new BitString(xoredData, bitLength);
-//
-//        return xored;
-//    }
-
-    // UNTESTED, but is this even required?
-//    public boolean startsWith(BitString other) {
-//        Validate.notNull(other);
-//        
-//        int sharedPrefixLength = getSharedPrefixLength(other);
-//        return sharedPrefixLength == other.bitLength;
-//    }
     
     /**
      * Get the number of bits that are the same between this bitstring and another bitstring.
@@ -195,75 +219,175 @@ public final class BitString implements Serializable {
     }
     
     /**
-     * Get bit from this bitstring. Bit 0 is the left-most bit, bit 1 the second left-most bit, etc. For example, bitstring 3C...
-     * <pre>
-     * 3    C
-     * 0011 1100
-     * |  | |  |
-     * 0  3 4  7
-     * </pre>
-     * @param index index of bit
+     * Get bit from this bitstring. Bit 0 is the left-most bit.
+     * @param offset offset of bit
      * @return {@code true} if bit is 1, {@code false} if bit is 0
      * @throws IllegalArgumentException if {@code index < 0} or if {@code index > bitLength}
      */
-    public boolean getBit(int index) {
-        Validate.isTrue(index >= 0);
-        Validate.isTrue(index < bitLength);
+    public boolean getBit(int offset) {
+        Validate.isTrue(offset >= 0);
+        Validate.isTrue(offset < bitLength);
         
-        int bitPos = index % 8;
-        int bytePos = index / 8;
+        int bitPos = offset % 8;
+        int bytePos = offset / 8;
         
-        int bitMask = 1 << (7 - bitPos);
+        int bitMask = 1 << bitPos;
         return (data[bytePos] & bitMask) != 0;
     }
 
     /**
-     * Set bit within a copy of this bitstring. Bit 0 is the left-most bit, bit 1 the second left-most bit, etc. For example, bitstring
-     * 3C...
-     * <pre>
-     * 3    C
-     * 0011 1100
-     * |  | |  |
-     * 0  3 4  7
-     * </pre>
-     * @param index index of bit
+     * Set bit within a copy of this bitstring. Bit 0 is the left-most bit.
+     * @param offset offset of bit
      * @param bit {@code true} if bit is 1, {@code false} if bit is 0
      * @return new ID that has bit set
      * @throws IllegalArgumentException if {@code index < 0} or if {@code index > bitLength}
      */
-    public BitString setBit(int index, boolean bit) {
-        Validate.isTrue(index >= 0);
-        Validate.isTrue(index < bitLength);
+    public BitString setBit(int offset, boolean bit) {
+        Validate.isTrue(offset >= 0);
+        Validate.isTrue(offset < bitLength);
         
         byte[] dataCopy = Arrays.copyOf(data, data.length);
         
-        int bitPos = index % 8;
-        int bytePos = index / 8;
+        int bitPos = offset % 8;
+        int bytePos = offset / 8;
         
         if (bit) {
-            int bitMask = 1 << (7 - bitPos);
+            int bitMask = 1 << bitPos;
             dataCopy[bytePos] |= bitMask;
         } else {
-            int bitMask = ~(1 << (7 - bitPos));
+            int bitMask = ~(1 << bitPos);
             dataCopy[bytePos] &= bitMask;
         }
         
-        clearUnusedTailBits(bitLength, dataCopy); // not nessecary but just incase
         return new BitString(dataCopy, bitLength);
     }
 
     /**
-     * Flip bit within a copy of this bitstring.
-     * @param index index of bit
+     * Flip bit within a copy of this bitstring. Bit 0 is the left-most bit.
+     * @param offset offset of bit
      * @return new bitstring that has bit flipped
      * @throws IllegalArgumentException if {@code index < 0} or if {@code index > bitLength}
      */
-    public BitString flipBit(int index) {
-        Validate.isTrue(index >= 0);
-        Validate.isTrue(index < bitLength);
+    public BitString flipBit(int offset) {
+        Validate.isTrue(offset >= 0);
+        Validate.isTrue(offset < bitLength);
         
-        boolean bit = getBit(index);
-        return setBit(index, !bit);
+        boolean bit = getBit(offset);
+        return setBit(offset, !bit);
+    }
+
+    /**
+     * Get multiple bits from this bitstring. Bit 0 is the left-most bit.
+     * @param offset offset of bit within this bitstring to read from
+     * @param len number of bits to get
+     * @return bits starting from {@code offset} to {@code offset + len} from this bitstring
+     * @throws IllegalArgumentException if {@code index < 0} or if {@code index > bitLength} or {@code index + other.bitLength > bitLength}
+     */
+    public BitString getBits(int offset, int len) {
+        Validate.isTrue(offset >= 0);
+        Validate.isTrue(offset <= this.bitLength);
+        int end = offset + len;
+        Validate.isTrue(end <= this.bitLength);
+        
+        int lenAsBytes = calculateRequiredByteArraySize(len);
+        byte[] dataCopy = new byte[lenAsBytes];
+        
+        // TODO: You can make this much more efficient
+        for (int i = 0; i < len; i++) {
+            int readIdx = offset + i;
+            int readBitPos = readIdx % 8;
+            int readBytePos = readIdx / 8;
+
+            int readBitMask = 1 << readBitPos;
+            boolean bit = (data[readBytePos] & readBitMask) != 0;
+            
+            int writeIdx = i;
+            int writeBitPos = writeIdx % 8;
+            int writeBytePos = writeIdx / 8;
+            
+            if (bit) {
+                int bitMask = 1 << writeBitPos;
+                dataCopy[writeBytePos] |= bitMask;
+            } else {
+                int bitMask = ~(1 << writeBitPos);
+                dataCopy[writeBytePos] &= bitMask;
+            }
+        }
+        
+        return new BitString(dataCopy, len);
+    }
+
+    /**
+     * Get multiple bits from this bitstring as a long. Bit 0 is the left-most bit.
+     * @param offset offset of bit within this bitstring to read from
+     * @param len number of bits to get
+     * @return bits starting from {@code offset} to {@code offset + len} from this bitstring, inside of a long
+     * @throws IllegalArgumentException if {@code index < 0} or if {@code index > bitLength} or if * {@code index + len > bitLength} or if
+     * {@code len > 64}
+     */
+    public long getBitsAsLong(int offset, int len) {
+        Validate.isTrue(offset >= 0);
+        Validate.isTrue(offset <= this.bitLength);
+        int end = offset + len;
+        Validate.isTrue(end <= this.bitLength);
+        Validate.isTrue(len <= 64);
+        
+        long dataCopy = 0;
+        
+        // TODO: You can make this much more efficient
+        for (int i = 0; i < len; i++) {
+            int readIdx = offset + i;
+            int readBitPos = readIdx % 8;
+            int readBytePos = readIdx / 8;
+
+            int readBitMask = 1 << readBitPos;
+            boolean bit = (data[readBytePos] & readBitMask) != 0;
+            
+            int writeBitPos = i;
+            
+            if (bit) {
+                long bitMask = 1 << writeBitPos;
+                dataCopy |= bitMask;
+            } else {
+                long bitMask = ~(1 << writeBitPos);
+                dataCopy &= bitMask;
+            }
+        }
+        
+        return dataCopy;
+    }
+    
+    /**
+     * Set multiple bits within a copy of this bitstring. Bit 0 is the left-most bit.
+     * @param offset offset of bit within this bitstring to write to
+     * @param other bits to set
+     * @return new bitstring that has bit set
+     * @throws IllegalArgumentException if {@code index < 0} or if {@code index > bitLength} or {@code index + other.bitLength > bitLength}
+     */
+    public BitString setBits(int offset, BitString other) {
+        Validate.notNull(other);
+        Validate.isTrue(offset >= 0);
+        Validate.isTrue(offset <= bitLength);
+        int end = offset + other.bitLength;
+        Validate.isTrue(end <= bitLength);
+        
+        byte[] dataCopy = Arrays.copyOf(data, data.length);
+        
+        // TODO: You can make this much more efficient
+        for (int i = offset; i < end; i++)  {
+            int bitPos = offset % 8;
+            int bytePos = offset / 8;
+
+            if (other.getBit(i)) {
+                int bitMask = 1 << bitPos;
+                dataCopy[bytePos] |= bitMask;
+            } else {
+                int bitMask = ~(1 << bitPos);
+                dataCopy[bytePos] &= bitMask;
+            }
+        }
+        
+        return new BitString(dataCopy, bitLength);
     }
 
     /**
@@ -310,6 +434,10 @@ public final class BitString implements Serializable {
 
     @Override
     public String toString() {
-        return "BitString{" + "data=" + Hex.encodeHexString(data) + ", bitLength=" + bitLength + '}';
+        StringBuilder sb = new StringBuilder(bitLength);
+        for (int i = 0; i < bitLength; i++) {
+            sb.append(getBit(i) == true ? 1 : 0);
+        }
+        return sb.toString();
     }
 }
