@@ -23,6 +23,9 @@ import org.apache.commons.lang3.Validate;
 /**
  * Kademlia ID. Size of ID is configurable (in bits).
  * <p>
+ * This class is very similar to {@link BitString}, with the main difference being that if a method takes in other IDs, they ensure that
+ * those IDs have matching lengths.
+ * <p>
  * Class is immutable.
  * @author Kasra Faghihi
  */
@@ -38,7 +41,8 @@ public final class Id implements Serializable {
     }
 
     /**
-     * Constructs an {@link Id} from a byte array.
+     * Constructs an {@link Id} from a byte array. Input byte array is read in read-order
+     * (see {@link BitString#createReadOrder(byte[], int, int)}).
      * @param data id value
      * @param bitLength number of bits in this id
      * @return created id
@@ -50,25 +54,48 @@ public final class Id implements Serializable {
         Validate.notNull(data);
         Validate.isTrue(bitLength > 0);
         
-        return new Id(null);
-    }
-    
-    /**
-     * Constructs an {@link Id} from a long.
-     * @param data id value
-     * @param len number of total bits allowed in the id (must be between 0 and 63 inclusive)
-     * @return created id
-     * @throws IllegalArgumentException if {@code 64 < bitLength < 1}
-     */
-    public static Id createFromTopBitsOfLong(long data, int len) {
-        Validate.isTrue(len > 0);
-        Validate.isTrue(len < 64);
-        
-        return new Id(BitString.createFromNumber(data, 0, len));
+        return new Id(BitString.createReadOrder(data, 0, bitLength));
     }
 
     /**
-     * Get the number of bits that are the same between this ID and another ID
+     * Constructs an {@link Id} from a long. Input long is read in read-order, meaning that bits are read in from left-to-right. In addition
+     * to that, the last bit is always at bit 0 of the long. So for example, creating an id from the long {@code 0xABCDL} with a bitlength
+     * of 12 would result in the bit string {@code 10 1011 1100 1101}.
+     * <pre>
+     * Bit     15 14 13 12   11 10 09 08   07 06 05 04   03 02 01 00
+     *         ------------------------------------------------------
+     *         1  0  1  0    1  0  1  1    1  1  0  0    1  1  0  1
+     *         A             B             C             D
+     *               ^                                            ^
+     *               |                                            | 
+     *             start                                         end
+     * </pre>
+     * @param data id value
+     * @param bitLength number of bits in this id
+     * @return created id
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code bitLength <= 0}, or if {@code data} is larger than the minimum number of bytes that it
+     * takes to retain {@code bitLength} (e.g. if you're retaining 12 bits, you need 2 bytes or less -- {@code 12/8 + (12%8 == 0 ? 0 : 1)})
+     */
+    public static Id createFromNumber(long data, int bitLength) {
+        Validate.notNull(data);
+        Validate.isTrue(bitLength > 0);
+
+        data = data << (64 - bitLength);
+        return new Id(BitString.createReadOrder(toBytes(data), 0, bitLength));
+    }
+
+    private static byte[] toBytes(long data) { // returns in big endian format
+        byte[] bytes = new byte[8];
+        for (int i = 0; i < 8; i++) {
+            int shiftAmount = 56 - (i * 8);
+            bytes[i] = (byte) (data >>> shiftAmount);
+        }
+        return bytes;
+    }
+
+    /**
+     * Equivalent to {@link BitString#getSharedPrefixLength(com.offbynull.voip.core.BitString) }.
      * @param other other ID to test against
      * @return number of common prefix bits
      * @throws NullPointerException if any argument is {@code null}
@@ -80,60 +107,41 @@ public final class Id implements Serializable {
 
         return bitString.getSharedPrefixLength(other.bitString);
     }
+
+    /**
+     * Equivalent to {@link BitString#flipBit(int) }.
+     * @param offset offset of bit
+     * @return new id that has bit flipped
+     * @throws IllegalArgumentException if {@code offset < 0} or if {@code offset > bitLength}
+     */
+    public Id flipBit(int offset) {
+        return new Id(bitString.flipBit(offset));
+    }
+
+    /**
+     * Equivalent to {@link BitString#getBitsAsLong(int, int) }.
+     * @param offset offset of bit within this bitstring to read from
+     * @param len number of bits to get
+     * @return bits starting from {@code offset} to {@code offset + len} from this bitstring
+     * @throws IllegalArgumentException if {@code offset < 0} or if {@code offset > bitLength} or {@code offset + other.bitLength > bitLength}
+     */
+    public long getBitsAsLong(int offset, int len) {
+        return bitString.getBitsAsLong(offset, len);
+    }
+
+    /**
+     * Equivalent to {@link BitString#setBits(int, com.offbynull.voip.core.BitString) }.
+     * @param offset offset of bit within this bitstring to write to
+     * @param other bits to set
+     * @param len number of bits to set
+     * @return new id that has bit set
+     * @throws IllegalArgumentException if {@code offset < 0} or if {@code offset > bitLength} or {@code offset + other.bitLength > bitLength}
+     */
+    public Id setBitsAsLong(long other, int offset, int len) {
+        BitString modifiedBitString = bitString.setBits(offset, Id.createFromNumber(other, len).bitString);
+        return new Id(modifiedBitString);
+    }
     
-    /**
-     * Get bit from this ID. Bit 0 is the left-most bit, bit 1 the second left-most bit, etc. For example, ID 0x3C...
-     * <pre>
-     * 3    C
-     * 0011 1100
-     * |  | |  |
-     * 0  3 4  7
-     * </pre>
-     * @param index index of bit
-     * @return {@code true} if bit is 1, {@code false} if bit is 0
-     * @throws IllegalArgumentException if {@code index < 0} or if {@code index > bitLength}
-     */
-    public boolean getBit(int index) {
-        Validate.isTrue(index >= 0);
-        Validate.isTrue(index < bitString.getBitLength());
-        
-        return bitString.getBit(index);
-    }
-
-    /**
-     * Set bit within a copy of this ID. Bit 0 is the left-most bit, bit 1 the second left-most bit, etc. For example, ID 0x3C...
-     * <pre>
-     * 3    C
-     * 0011 1100
-     * |  | |  |
-     * 0  3 4  7
-     * </pre>
-     * @param index index of bit
-     * @param bit {@code true} if bit is 1, {@code false} if bit is 0
-     * @return new ID that has bit set
-     * @throws IllegalArgumentException if {@code index < 0} or if {@code index > bitLength}
-     */
-    public Id setBit(int index, boolean bit) {
-        Validate.isTrue(index >= 0);
-        Validate.isTrue(index < bitString.getBitLength());
-        
-        return new Id(bitString.setBit(index, bit));
-    }
-
-    /**
-     * Flip bit within a copy of this ID.
-     * @param index index of bit
-     * @return new ID that has bit flipped
-     * @throws IllegalArgumentException if {@code index < 0} or if {@code index > bitLength}
-     */
-    public Id flipBit(int index) {
-        Validate.isTrue(index >= 0);
-        Validate.isTrue(index < bitString.getBitLength());
-        
-        boolean bit = getBit(index);
-        return setBit(index, !bit);
-    }
-
     /**
      * Gets the maximum bit length for this ID.
      * @return max bit length for ID
@@ -143,8 +151,7 @@ public final class Id implements Serializable {
     }
 
     /**
-     * Gets a copy of the data for this ID as a bitstring. You can convert this to a BigInteger via
-     * {@code new BigInteger(1, getBitString().getData())}.
+     * Gets a copy of the data for this ID as a bitstring.
      * @return ID as bit string
      */
     public BitString getBitString() {

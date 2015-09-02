@@ -255,7 +255,7 @@ public final class BitString implements Serializable {
     }
     
     /**
-     * Get the number of bits that are the same between this bitstring and another bitstring.
+     * Get the number of bits that are that this bitstring's prefix shares with another bitstring.
      * @param other other bitstring to test against
      * @return number of common prefix bits
      * @throws NullPointerException if any argument is {@code null}
@@ -284,9 +284,9 @@ public final class BitString implements Serializable {
         int otherLastByte = other.data[nextByteIdx] & 0xFF;
       
         int bitMatchCount = 0;
-        for (int i = 7; i >= 0; i--) {
-            int thisBit = thisLastByte >> i;
-            int otherBit = otherLastByte >> i;
+        for (int i = 0; i < 7; i++) {
+            int thisBit = (thisLastByte >> i) & 0x01;
+            int otherBit = (otherLastByte >> i) & 0x01;
             if (thisBit != otherBit) {
                 break;
             }
@@ -299,10 +299,10 @@ public final class BitString implements Serializable {
     }
     
     /**
-     * Get bit from this bitstring. Bit 0 is the left-most bit.
+     * Get bit from this bitstring.
      * @param offset offset of bit
      * @return {@code true} if bit is 1, {@code false} if bit is 0
-     * @throws IllegalArgumentException if {@code index < 0} or if {@code index > bitLength}
+     * @throws IllegalArgumentException if {@code offset < 0} or if {@code offset > bitLength}
      */
     public boolean getBit(int offset) {
         Validate.isTrue(offset >= 0);
@@ -316,11 +316,11 @@ public final class BitString implements Serializable {
     }
 
     /**
-     * Set bit within a copy of this bitstring. Bit 0 is the left-most bit.
+     * Set bit within a copy of this bitstring.
      * @param offset offset of bit
      * @param bit {@code true} if bit is 1, {@code false} if bit is 0
      * @return new ID that has bit set
-     * @throws IllegalArgumentException if {@code index < 0} or if {@code index > bitLength}
+     * @throws IllegalArgumentException if {@code offset < 0} or if {@code offset > bitLength}
      */
     public BitString setBit(int offset, boolean bit) {
         Validate.isTrue(offset >= 0);
@@ -343,10 +343,10 @@ public final class BitString implements Serializable {
     }
 
     /**
-     * Flip bit within a copy of this bitstring. Bit 0 is the left-most bit.
+     * Flip bit within a copy of this bitstring.
      * @param offset offset of bit
      * @return new bitstring that has bit flipped
-     * @throws IllegalArgumentException if {@code index < 0} or if {@code index > bitLength}
+     * @throws IllegalArgumentException if {@code offset < 0} or if {@code offset > bitLength}
      */
     public BitString flipBit(int offset) {
         Validate.isTrue(offset >= 0);
@@ -357,11 +357,11 @@ public final class BitString implements Serializable {
     }
 
     /**
-     * Get multiple bits from this bitstring. Bit 0 is the left-most bit.
+     * Get multiple bits from this bitstring.
      * @param offset offset of bit within this bitstring to read from
      * @param len number of bits to get
      * @return bits starting from {@code offset} to {@code offset + len} from this bitstring
-     * @throws IllegalArgumentException if {@code index < 0} or if {@code index > bitLength} or {@code index + other.bitLength > bitLength}
+     * @throws IllegalArgumentException if {@code offset < 0} or if {@code offset > bitLength} or {@code offset + other.bitLength > bitLength}
      */
     public BitString getBits(int offset, int len) {
         Validate.isTrue(offset >= 0);
@@ -401,11 +401,11 @@ public final class BitString implements Serializable {
      * Get multiple bits from this bitstring as a long.
      * <p>
      * For example {@code BitString.createFromNumber(0x3CFA000000000000L, 0, 16)} will generate the bit string {@code 0011 1100 0101 1111},
-     * which if you called {@code getBitsAsLong(8, 4)} on would generate the long 5L ({@code 5 = 0101}).
+     * which if you called {@code getBitsAsLong(8, 4)} on would generate the long {@code 5L} ({@code 5L = 0x0101L}).
      * @param offset offset of bit within this bitstring to read from
      * @param len number of bits to get
      * @return bits starting from {@code offset} to {@code offset + len} from this bitstring, inside of a long
-     * @throws IllegalArgumentException if {@code index < 0} or if {@code index > bitLength} or if * {@code index + len > bitLength} or if
+     * @throws IllegalArgumentException if {@code offset < 0} or if {@code offset > bitLength} or if * {@code offset + len > bitLength} or if
      * {@code len > 64}
      */
     public long getBitsAsLong(int offset, int len) {
@@ -445,7 +445,7 @@ public final class BitString implements Serializable {
      * @param offset offset of bit within this bitstring to write to
      * @param other bits to set
      * @return new bitstring that has bit set
-     * @throws IllegalArgumentException if {@code index < 0} or if {@code index > bitLength} or {@code index + other.bitLength > bitLength}
+     * @throws IllegalArgumentException if {@code offset < 0} or if {@code offset > bitLength} or {@code offset + other.bitLength > bitLength}
      */
     public BitString setBits(int offset, BitString other) {
         Validate.notNull(other);
@@ -509,7 +509,8 @@ public final class BitString implements Serializable {
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder(bitLength);
+        StringBuilder sb = new StringBuilder(bitLength + 13); //13 = '(' + max characters an int can be when converted to string + ')' + ' '
+        sb.append('(').append(bitLength).append(") ");
         for (int i = 0; i < bitLength; i++) {
             if (i % 4 == 0 && i != 0) {
                 sb.append(' ');

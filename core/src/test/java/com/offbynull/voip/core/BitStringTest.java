@@ -79,8 +79,8 @@ public class BitStringTest {
     public void mustGetGroupsOfBitsAsLong() {
         BitString bitString = BitString.createLogicalOrder(toBytes(0x3CFA000000000000L), 0, 16);
         
-        long expected = 0xC5L;
-        long actual = bitString.getBitsAsLong(4, 8);
+        long expected = 0x5L;
+        long actual = bitString.getBitsAsLong(8, 4);
 
         assertEquals(expected, actual);
     }
@@ -168,8 +168,8 @@ public class BitStringTest {
     @Test
     public void mustIdentifyCommonPrefixLength() {
         BitString baseBitString = BitString.createLogicalOrder(toBytes(0x000000000000A2F0L), 48, 12);
-        BitString noMatchBitString = BitString.createLogicalOrder(toBytes(0x0000000000000000L), 48, 12);
-        BitString partialMatchBitString = BitString.createLogicalOrder(toBytes(0x000000000000A300L), 48, 12);
+        BitString noMatchBitString = BitString.createLogicalOrder(toBytes(0x0000000000000100L), 48, 12);
+        BitString partialMatchBitString = BitString.createLogicalOrder(toBytes(0x0000000000002200L), 48, 12);
         BitString fullMatchBitString = BitString.createLogicalOrder(toBytes(0x000000000000A2F0L), 48, 12);
         
         assertEquals(0, baseBitString.getSharedPrefixLength(noMatchBitString));
@@ -180,8 +180,8 @@ public class BitStringTest {
     @Test
     public void mustIdentifyCommonPrefixLengthOnSmallerSizes() {
         BitString baseBitString = BitString.createLogicalOrder(toBytes(0x000000000000A2F0L), 48, 12);
-        BitString noMatchBitString = BitString.createLogicalOrder(toBytes(0x0000000000000000L), 48, 1);
-        BitString partialMatchBitString1 = BitString.createLogicalOrder(toBytes(0x000000000000A300L), 48, 9);
+        BitString noMatchBitString = BitString.createLogicalOrder(toBytes(0x0000000000000100L), 48, 1);
+        BitString partialMatchBitString1 = BitString.createLogicalOrder(toBytes(0x0000000000002200L), 48, 9);
         BitString partialMatchBitString2 = BitString.createLogicalOrder(toBytes(0x000000000000A2C0L), 48, 9);
         
         assertEquals(0, baseBitString.getSharedPrefixLength(noMatchBitString));
@@ -192,9 +192,9 @@ public class BitStringTest {
     @Test
     public void mustIdentifyCommonPrefixLengthOnLargerSizes() {
         BitString baseBitString = BitString.createLogicalOrder(toBytes(0x000000000000A2F0L), 48, 12);
-        BitString noMatchBitString = BitString.createLogicalOrder(toBytes(0x0000000000000000L), 48, 16);
-        BitString partialMatchBitString1 = BitString.createLogicalOrder(toBytes(0x000000000000A300L), 48, 16);
-        BitString partialMatchBitString2 = BitString.createLogicalOrder(toBytes(0x000000000000A220L), 48, 16);
+        BitString noMatchBitString = BitString.createLogicalOrder(toBytes(0x0000000000000100L), 48, 16);
+        BitString partialMatchBitString1 = BitString.createLogicalOrder(toBytes(0x0000000000002200L), 48, 16);
+        BitString partialMatchBitString2 = BitString.createLogicalOrder(toBytes(0x000000000000A22CL), 48, 16);
         
         assertEquals(0, baseBitString.getSharedPrefixLength(noMatchBitString));
         assertEquals(7, baseBitString.getSharedPrefixLength(partialMatchBitString1));
