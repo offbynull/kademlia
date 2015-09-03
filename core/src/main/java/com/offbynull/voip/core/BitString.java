@@ -441,10 +441,11 @@ public final class BitString implements Serializable {
     }
     
     /**
-     * Set multiple bits within a copy of this bitstring. Bit 0 is the left-most bit.
+     * Set multiple bits within a copy of this bitstring.
      * @param offset offset of bit within this bitstring to write to
      * @param other bits to set
      * @return new bitstring that has bit set
+     * @throws NullPointerException if any argument is {@code null}
      * @throws IllegalArgumentException if {@code offset < 0} or if {@code offset > bitLength} or {@code offset + other.bitLength > bitLength}
      */
     public BitString setBits(int offset, BitString other) {
@@ -471,6 +472,39 @@ public final class BitString implements Serializable {
         }
         
         return new BitString(dataCopy, bitLength);
+    }
+    
+    /**
+     * Append bits to a copy of this bitstring.
+     * @param other bits to append
+     * @return new bitstring that has bit set
+     * @throws NullPointerException if any argument is {@code null}
+     */
+    public BitString appendBits(BitString other) {
+        Validate.notNull(other);
+        
+        int offset = bitLength;
+        int end = offset + other.bitLength;
+        
+        int arrLen = calculateRequiredByteArraySize(end);
+        
+        byte[] dataCopy = Arrays.copyOf(data, arrLen);
+        
+        // TODO: You can make this much more efficient
+        for (int i = offset; i < end; i++)  {
+            int bitPos = i % 8;
+            int bytePos = i / 8;
+
+            if (other.getBit(i - offset)) {
+                int bitMask = 1 << bitPos;
+                dataCopy[bytePos] |= bitMask;
+            } else {
+                int bitMask = ~(1 << bitPos);
+                dataCopy[bytePos] &= bitMask;
+            }
+        }
+        
+        return new BitString(dataCopy, end);
     }
 
     /**

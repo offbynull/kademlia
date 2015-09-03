@@ -31,9 +31,8 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
  * @author Kasra Faghihi
  */
 public final class Bucket {
-    private final Id baseId;
-    private final int commonPrefixSize; // For something to be allowed in this bucket, it needs to share a common prefix of this many bits
-                                        // with baseId field
+    private final BitString prefix;
+    private final int idBitLength;
 
     private final int maxBucketSize; // k -- k is a system-wide replication parameter. k is chosen such that any given k nodes are very
                                      // unlikely to fail within an hour of eachother (for example k = 20)
@@ -42,14 +41,13 @@ public final class Bucket {
     
     private Instant lastUpdateTime;
 
-    public Bucket(Id baseId, int commonPrefixSize, int maxBucketSize) {
-        Validate.notNull(baseId);
-        Validate.isTrue(commonPrefixSize >= 0);
-        Validate.isTrue(commonPrefixSize <= baseId.getBitLength());
+    public Bucket(BitString prefix, int idBitLength, int maxBucketSize) {
+        Validate.notNull(prefix);
+        Validate.isTrue(idBitLength >= prefix.getBitLength());
         Validate.isTrue(maxBucketSize > 0);
         
-        this.baseId = baseId;
-        this.commonPrefixSize = commonPrefixSize;
+        this.prefix = prefix; // truncate to commonPrefixLen bits
+        this.idBitLength = idBitLength;
         this.maxBucketSize = maxBucketSize;
 
         this.entries = new LinkedList<>();
@@ -64,8 +62,8 @@ public final class Bucket {
         Id nodeId = node.getId();
         String nodeLink = node.getLink();
         
-        Validate.isTrue(baseId.getBitLength() == nodeId.getBitLength());
-        Validate.isTrue(baseId.getSharedPrefixLength(nodeId) >= commonPrefixSize);
+        Validate.isTrue(nodeId.getBitLength() == idBitLength);
+        Validate.isTrue(nodeId.getBitString().getSharedPrefixLength(prefix) == prefix.getBitLength());
         
         Validate.isTrue(!time.isBefore(lastUpdateTime)); // time must be >= lastUpdatedTime
         
@@ -112,12 +110,12 @@ public final class Bucket {
         Validate.notNull(replaceId);
         Validate.notNull(newNode);
         
-        Validate.isTrue(replaceId.getBitLength() == baseId.getBitLength());
-        Validate.isTrue(replaceId.getSharedPrefixLength(baseId) >= commonPrefixSize);
-        
-        Validate.isTrue(newNode.getId().getBitLength() == baseId.getBitLength());
-        Validate.isTrue(newNode.getId().getSharedPrefixLength(baseId) >= commonPrefixSize);
-        
+        Validate.isTrue(replaceId.getBitLength() == idBitLength);
+        Validate.isTrue(replaceId.getBitString().getSharedPrefixLength(prefix) == prefix.getBitLength());
+
+        Validate.isTrue(newNode.getId().getBitLength() == idBitLength);
+        Validate.isTrue(newNode.getId().getBitString().getSharedPrefixLength(prefix) == prefix.getBitLength());
+
         Validate.isTrue(!time.isBefore(lastUpdateTime)); // time must be >= lastUpdatedTime
         
         ListIterator<Entry> it = entries.listIterator();
@@ -137,8 +135,8 @@ public final class Bucket {
         Validate.notNull(id);
         Validate.isTrue(count >= 0);
 
-        Validate.isTrue(id.getBitLength() == baseId.getBitLength());
-        Validate.isTrue(id.getSharedPrefixLength(baseId) >= commonPrefixSize);
+        Validate.isTrue(id.getBitLength() == idBitLength);
+        Validate.isTrue(id.getBitString().getSharedPrefixLength(prefix) == prefix.getBitLength());
         
         return entries.stream()
                 .map(x -> new ImmutablePair<>(x, x.getNode().getId().getSharedPrefixLength(id)))
@@ -178,14 +176,15 @@ public final class Bucket {
                                          // new KBucket[1 << 31] -- 1 << 31 is negative
                                          // new KBucket[1 << 30] -- 1 << 30 is positive
         
-        Validate.isTrue(commonPrefixSize + bitCount <= baseId.getBitLength());
+        Validate.isTrue(prefix.getBitLength() + bitCount <= idBitLength);
 
         // Create buckets
         int len = 1 << bitCount;
         Bucket[] newBuckets = new Bucket[len];
         for (int bucketNum = 0; bucketNum < newBuckets.length; bucketNum++) {
-            Id newBucketBaseId = baseId.setBitsAsLong((long) bucketNum, commonPrefixSize, bitCount);
-            newBuckets[bucketNum] = new Bucket(newBucketBaseId, commonPrefixSize + bitCount, maxBucketSize);
+            BitString bucketNumAsBitString = toBitString(bucketNum, bitCount);
+            BitString newBucketPrefix = prefix.appendBits(bucketNumAsBitString);
+            newBuckets[bucketNum] = new Bucket(newBucketPrefix, idBitLength, maxBucketSize);
         }
         
         // Place entries in buckets
@@ -199,7 +198,7 @@ public final class Bucket {
             // If you read 10b, 10 = 2, so this ID will be go to newBucket[2]
             // If you read 11b, 11 = 3, so this ID will be go to newBucket[3]
             Id id = node.getId();
-            int idx = (int) id.getBitsAsLong(commonPrefixSize, bitCount);
+            int idx = (int) id.getBitsAsLong(prefix.getBitLength(), bitCount);
             
             TouchResult res;
             res = newBuckets[idx].touch(entry.getInsertTime(), node); // first call to touch should add with insert time
@@ -211,6 +210,31 @@ public final class Bucket {
         return newBuckets;
     }
 
+    // The int {@code 0xABCD} with a bitlength of 12 would result in the bit string {@code 10 1011 1100 1101}.
+    // Bit     15 14 13 12   11 10 09 08   07 06 05 04   03 02 01 00
+    //         ------------------------------------------------------
+    //         1  0  1  0    1  0  1  1    1  1  0  0    1  1  0  1
+    //         A             B             C             D
+    //               ^                                            ^
+    //               |                                            | 
+    //             start                                         end
+    public static BitString toBitString(int data, int bitLength) {
+        Validate.notNull(data);
+        Validate.isTrue(bitLength > 0);
+
+        data = data << (32 - bitLength);
+        return BitString.createReadOrder(toBytes(data), 0, bitLength);
+    }
+    
+    private static byte[] toBytes(int data) { // returns in big endian format
+        byte[] bytes = new byte[4];
+        for (int i = 0; i < 4; i++) {
+            int shiftAmount = 24 - (i * 4);
+            bytes[i] = (byte) (data >>> shiftAmount);
+        }
+        return bytes;
+    }
+    
     public Instant getLastUpdateTime() {
         return lastUpdateTime;
     }
@@ -229,8 +253,8 @@ public final class Bucket {
 
     @Override
     public String toString() {
-        return "Bucket{" + "baseId=" + baseId + ", commonPrefixSize=" + commonPrefixSize + ", maxBucketSize=" + maxBucketSize
-                + ", entries=" + entries + ", lastUpdateTime=" + lastUpdateTime + '}';
+        return "Bucket{" + "prefix=" + prefix + ", idBitLength=" + idBitLength + ", maxBucketSize=" + maxBucketSize + ", entries=" + entries
+                + ", lastUpdateTime=" + lastUpdateTime + '}';
     }
 
 }

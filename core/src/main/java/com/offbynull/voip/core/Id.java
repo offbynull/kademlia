@@ -41,6 +41,18 @@ public final class Id implements Serializable {
     }
 
     /**
+     * Constructs an {@link Id} from a bit string.
+     * @param data id value
+     * @return created id
+     * @throws NullPointerException if any argument is {@code null}
+     */
+    public static Id create(BitString data) {
+        Validate.notNull(data);
+        
+        return new Id(data);
+    }
+
+    /**
      * Constructs an {@link Id} from a byte array. Input byte array is read in read-order
      * (see {@link BitString#createReadOrder(byte[], int, int)}).
      * @param data id value

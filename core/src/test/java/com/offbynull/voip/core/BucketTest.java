@@ -22,7 +22,7 @@ public class BucketTest {
     
     private static final Instant BASE_TIME = Instant.ofEpochMilli(0L);
     
-    private Bucket fixture = new Bucket(BASE_ID, 16, 4); // bucket for prefix of 16 bits, bucket capacity of 4
+    private Bucket fixture = new Bucket(BASE_ID.getBitString().getBits(0, 16), 32, 4); // bucket for prefix of 16 bits, bucket capacity of 4
     
     @Rule
     public ExpectedException expectedException = ExpectedException.none();

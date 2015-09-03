@@ -124,6 +124,17 @@ public class BitStringTest {
     }
 
     @Test
+    public void mustAppendGroupsOfBits() {
+        BitString bitString = BitString.createLogicalOrder(toBytes(0x3C5A000000000000L), 0, 16);
+        BitString modifier  = BitString.createLogicalOrder(toBytes(0xF000000000000000L), 4, 4);
+        
+        BitString actual = bitString.appendBits(modifier);
+        BitString expected = BitString.createLogicalOrder(toBytes(0x3C5A0F0000000000L), 0, 20);
+
+        assertEquals(expected, actual);
+    }
+
+    @Test
     public void mustSetGroupsOfBitsTo0() {
         BitString bitString = BitString.createLogicalOrder(toBytes(0x3C5A000000000000L), 0, 16);
         BitString modifier  = BitString.createLogicalOrder(toBytes(0x0000000000000000L), 4, 4);
