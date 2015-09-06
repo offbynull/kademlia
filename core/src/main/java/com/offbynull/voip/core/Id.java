@@ -37,6 +37,8 @@ public final class Id implements Serializable {
     // make sure that whatever you pass in as data is a copy / not-shared.
     private Id(BitString bitString) {
         Validate.notNull(bitString);
+        Validate.isTrue(bitString.getBitLength() > 0);
+        
         this.bitString = bitString;
     }
 
@@ -48,6 +50,7 @@ public final class Id implements Serializable {
      */
     public static Id create(BitString data) {
         Validate.notNull(data);
+        Validate.isTrue(data.getBitLength() > 0);
         
         return new Id(data);
     }

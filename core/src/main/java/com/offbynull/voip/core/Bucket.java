@@ -34,21 +34,21 @@ public final class Bucket {
     private final BitString prefix;
     private final int idBitLength;
 
-    private final int maxBucketSize; // k -- k is a system-wide replication parameter. k is chosen such that any given k nodes are very
-                                     // unlikely to fail within an hour of eachother (for example k = 20)
+    private final int maxSize; // k -- k is a system-wide replication parameter. k is chosen such that any given k nodes are very unlikely
+                               // to fail within an hour of eachother (for example k = 20
     
     private final LinkedList<Entry> entries; // Each k-bucket is kept sorted by time last seen
     
     private Instant lastUpdateTime;
 
-    public Bucket(BitString prefix, int idBitLength, int maxBucketSize) {
+    public Bucket(BitString prefix, int idBitLength, int maxSize) {
         Validate.notNull(prefix);
         Validate.isTrue(idBitLength >= prefix.getBitLength());
-        Validate.isTrue(maxBucketSize > 0);
+        Validate.isTrue(maxSize >= 0);
         
-        this.prefix = prefix; // truncate to commonPrefixLen bits
+        this.prefix = prefix;
         this.idBitLength = idBitLength;
-        this.maxBucketSize = maxBucketSize;
+        this.maxSize = maxSize;
 
         this.entries = new LinkedList<>();
         
@@ -94,7 +94,7 @@ public final class Bucket {
         }
         
         // Stop if full
-        if (entries.size() == maxBucketSize) {
+        if (entries.size() == maxSize) {
             return TouchResult.FULL;
         }
         
@@ -166,6 +166,10 @@ public final class Bucket {
         return entries.size();
     }
 
+    public int getMaxSize() {
+        return maxSize;
+    }
+
     // bitCount = 1 is 2 buckets
     // bitCount = 2 is 4 buckets
     // bitCount = 3 is 8 buckets
@@ -173,18 +177,16 @@ public final class Bucket {
         Validate.isTrue(bitCount >= 1);
         Validate.isTrue(bitCount <= 30); // its absurd to check for this, as no one will ever want to split in to 2^30 buckets, but whatever
                                          // we can't have more than 30 bits, because 31 bits will result in an array of neg size...
-                                         // new KBucket[1 << 31] -- 1 << 31 is negative
-                                         // new KBucket[1 << 30] -- 1 << 30 is positive
+                                         // new Bucket[1 << 31] -- 1 << 31 is negative
+                                         // new Bucket[1 << 30] -- 1 << 30 is positive
         
         Validate.isTrue(prefix.getBitLength() + bitCount <= idBitLength);
 
         // Create buckets
-        int len = 1 << bitCount;
-        Bucket[] newBuckets = new Bucket[len];
-        for (int bucketNum = 0; bucketNum < newBuckets.length; bucketNum++) {
-            BitString bucketNumAsBitString = toBitString(bucketNum, bitCount);
-            BitString newBucketPrefix = prefix.appendBits(bucketNumAsBitString);
-            newBuckets[bucketNum] = new Bucket(newBucketPrefix, idBitLength, maxBucketSize);
+        BitString[] newPrefixes = InternalUtils.appendToBitString(prefix, bitCount);
+        Bucket[] newBuckets = new Bucket[newPrefixes.length];
+        for (int i = 0; i < newBuckets.length; i++) {
+            newBuckets[i] = new Bucket(newPrefixes[i], idBitLength, maxSize);
         }
         
         // Place entries in buckets
@@ -210,29 +212,23 @@ public final class Bucket {
         return newBuckets;
     }
 
-    // The int {@code 0xABCD} with a bitlength of 12 would result in the bit string {@code 10 1011 1100 1101}.
-    // Bit     15 14 13 12   11 10 09 08   07 06 05 04   03 02 01 00
-    //         ------------------------------------------------------
-    //         1  0  1  0    1  0  1  1    1  1  0  0    1  1  0  1
-    //         A             B             C             D
-    //               ^                                            ^
-    //               |                                            | 
-    //             start                                         end
-    public static BitString toBitString(int data, int bitLength) {
-        Validate.notNull(data);
-        Validate.isTrue(bitLength > 0);
-
-        data = data << (32 - bitLength);
-        return BitString.createReadOrder(toBytes(data), 0, bitLength);
-    }
-    
-    private static byte[] toBytes(int data) { // returns in big endian format
-        byte[] bytes = new byte[4];
-        for (int i = 0; i < 4; i++) {
-            int shiftAmount = 24 - (i * 4);
-            bytes[i] = (byte) (data >>> shiftAmount);
+    public Bucket resize(int maxSize) {
+        Bucket ret = new Bucket(prefix, idBitLength, maxSize);
+        
+        int end = Math.min(maxSize, entries.size());
+        int start = this.maxSize - end;
+        
+        for (Entry entry : entries.subList(start, end)) {
+            Node node = entry.getNode();
+            
+            TouchResult res;
+            res = ret.touch(entry.getInsertTime(), node); // first call to touch should add with insert time
+            Validate.validState(res == TouchResult.INSERTED); // should always happen, but just in case
+            res = ret.touch(entry.getLastSeenTime(), node); // send call to touch should set laset seen time
+            Validate.validState(res == TouchResult.UPDATED); // should always happen, but just in case
         }
-        return bytes;
+        
+        return ret;
     }
     
     public Instant getLastUpdateTime() {
@@ -253,7 +249,7 @@ public final class Bucket {
 
     @Override
     public String toString() {
-        return "Bucket{" + "prefix=" + prefix + ", idBitLength=" + idBitLength + ", maxBucketSize=" + maxBucketSize + ", entries=" + entries
+        return "Bucket{" + "prefix=" + prefix + ", idBitLength=" + idBitLength + ", maxBucketSize=" + maxSize + ", entries=" + entries
                 + ", lastUpdateTime=" + lastUpdateTime + '}';
     }
 

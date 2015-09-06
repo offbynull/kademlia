@@ -22,28 +22,32 @@ import java.util.LinkedList;
 import org.apache.commons.lang3.Validate;
 
 /**
- * Cache for a Kademlia k-bucket. The cache will hold up to a certain number of nodes
+ * Most-recently seen cache for Kademlia k-buckets. A cache will hold up to a certain number of the most recently seen nodes.
+ * <ul>
+ * <li>Adding a node to a cache that isn't full will add that node as the latest node in the cache.</li>
+ * <li>Adding a node to a cache that is full will add that node as the latest node in the cache, as well as remove the earliest node in the
+ * cache.</li>
+ * <li>Adding a node that already exists in the cache will move that node to the latest node in the cache.</li>
+ * </ul>
  * @author Kasra Faghihi
  */
 public final class Cache {
-    private final Id baseId;
-    private final int commonPrefixSize; // For something to be allowed in this cache, it needs to share a common prefix of this many bits
-                                        // with baseId field
+    private final BitString prefix;
+    private final int idBitLength;
 
+    private final int maxSize;
     private final LinkedList<Entry> entries;
-    private final int maxCacheSize;
     
     private Instant lastUpdateTime;
 
-    public Cache(Id baseId, int commonPrefixSize, int maxCacheSize) {
-        Validate.notNull(baseId);
-        Validate.isTrue(commonPrefixSize >= 0);
-        Validate.isTrue(commonPrefixSize <= baseId.getBitLength());
-        Validate.isTrue(maxCacheSize > 0);
+    public Cache(BitString prefix, int idBitLength, int maxSize) {
+        Validate.notNull(prefix);
+        Validate.isTrue(idBitLength >= prefix.getBitLength());
+        Validate.isTrue(maxSize > 0);
         
-        this.baseId = baseId;
-        this.commonPrefixSize = commonPrefixSize;
-        this.maxCacheSize = maxCacheSize;
+        this.prefix = prefix;
+        this.idBitLength = idBitLength;
+        this.maxSize = maxSize;
 
         this.entries = new LinkedList<>();
         
@@ -57,15 +61,13 @@ public final class Cache {
         Id nodeId = node.getId();
         String nodeLink = node.getLink();
         
-        Validate.isTrue(baseId.getBitLength() == nodeId.getBitLength());
-        Validate.isTrue(baseId.getSharedPrefixLength(nodeId) >= commonPrefixSize);
+        Validate.isTrue(nodeId.getBitLength() == idBitLength);
+        Validate.isTrue(nodeId.getBitString().getSharedPrefixLength(prefix) == prefix.getBitLength());
         
         Validate.isTrue(!time.isBefore(lastUpdateTime)); // time must be >= lastUpdatedTime
-
-        // If not true, this essentially means that this.id and id are equal, so what's the point of having a cache? Validate here?
-        // Validate.isTrue(commonPrefixBitCount < id.getBitLength());
         
-        lastUpdateTime = time;
+        // If not true, this essentially means that this.id and id are equal, so what's the point of having a bucket? Validate here?
+        // Validate.isTrue(commonPrefixBitCount < id.getBitLength());
         
         // Update if already exists
         Iterator<Entry> it = entries.iterator();
@@ -89,7 +91,7 @@ public final class Cache {
             }
         }
         
-        if (entries.size() == maxCacheSize) {
+        if (entries.size() == maxSize) {
             entries.removeFirst();
         }
         
@@ -97,6 +99,75 @@ public final class Cache {
         Entry entry = new Entry(node, time);
         entries.addLast(entry);
         return TouchResult.UPDATED;
+    }
+
+    public Node take() {
+        Entry e = entries.removeLast();
+        if (e == null) {
+            return null;
+        }
+        return e.getNode();
+    }
+    
+    // bitCount = 1 is 2 caches
+    // bitCount = 2 is 4 caches
+    // bitCount = 3 is 8 caches
+    public Cache[] split(int bitCount) {
+        Validate.isTrue(bitCount >= 1);
+        Validate.isTrue(bitCount <= 30); // its absurd to check for this, as no one will ever want to split in to 2^30 cachess, but whatever
+                                         // we can't have more than 30 bits, because 31 bits will result in an array of neg size...
+                                         // new Cache[1 << 31] -- 1 << 31 is negative
+                                         // new Cache[1 << 30] -- 1 << 30 is positive
+        
+        Validate.isTrue(prefix.getBitLength() + bitCount <= idBitLength);
+
+        // Create caches 
+        BitString[] newPrefixes = InternalUtils.appendToBitString(prefix, bitCount);
+        Cache[] newCaches = new Cache[newPrefixes.length];
+        for (int i = 0; i < newCaches.length; i++) {
+            newCaches[i] = new Cache(newPrefixes[i], idBitLength, maxSize);
+        }
+        
+        // Place entries in cache
+        for (Entry entry : entries) {
+            Node node = entry.getNode();
+            
+            // Read bitCount bits starting from prefixBitSize and use that to figure out which cache to copy to
+            // For example, if bitCount is 2 ...
+            // If you read 00b, 00 = 0, so this ID will be go to newCache[0]
+            // If you read 01b, 01 = 1, so this ID will be go to newCache[1]
+            // If you read 10b, 10 = 2, so this ID will be go to newCache[2]
+            // If you read 11b, 11 = 3, so this ID will be go to newCache[3]
+            Id id = node.getId();
+            int idx = (int) id.getBitsAsLong(prefix.getBitLength(), bitCount);
+            
+            TouchResult res;
+            res = newCaches[idx].touch(entry.getInsertTime(), node); // first call to touch should add with insert time
+            Validate.validState(res == TouchResult.INSERTED); // should always happen, but just in case
+            res = newCaches[idx].touch(entry.getLastSeenTime(), node); // send call to touch should set laset seen time
+            Validate.validState(res == TouchResult.UPDATED); // should always happen, but just in case
+        }
+        
+        return newCaches;
+    }
+    
+    public Cache resize(int maxSize) {
+        Cache ret = new Cache(prefix, idBitLength, maxSize);
+        
+        int end = Math.min(maxSize, entries.size());
+        int start = this.maxSize - end;
+        
+        for (Entry entry : entries.subList(start, end)) {
+            Node node = entry.getNode();
+            
+            TouchResult res;
+            res = ret.touch(entry.getInsertTime(), node); // first call to touch should add with insert time
+            Validate.validState(res == TouchResult.INSERTED); // should always happen, but just in case
+            res = ret.touch(entry.getLastSeenTime(), node); // send call to touch should set laset seen time
+            Validate.validState(res == TouchResult.UPDATED); // should always happen, but just in case
+        }
+        
+        return ret;
     }
     
     public enum TouchResult {
