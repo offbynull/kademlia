@@ -26,13 +26,13 @@ public final class NearSet {
     private final Id baseId;
     private final TreeMap<Id, Node> entries;
     
-    private final int maxSize;
+    private int maxSize;
     
     private Instant lastUpdateTime;
 
     public NearSet(Id baseId, int maxSize) {
         Validate.notNull(baseId);
-        Validate.isTrue(maxSize >= 1);
+        Validate.isTrue(maxSize >= 0);
         
         this.baseId = baseId;
         this.maxSize = maxSize;
@@ -76,6 +76,26 @@ public final class NearSet {
         }
     }
     
+    public void resize(int maxSize) {
+        Validate.isTrue(maxSize >= 1);
+        
+        int discardCount = this.maxSize - maxSize;
+        
+        for (int i = 0; i < discardCount; i++) {
+            entries.pollFirstEntry(); // remove largest
+        }
+        
+        this.maxSize = maxSize;
+    }
+    
+    public List<Node> dump() {
+        return new ArrayList<>(entries.values());
+    }
+
+    public Instant getLastUpdateTime() {
+        return lastUpdateTime;
+    }
+    
     public int size() {
         return entries.size();
     }
@@ -84,14 +104,17 @@ public final class NearSet {
         return maxSize;
     }
     
-    public List<Node> dump() {
-        return new ArrayList<>(entries.values());
-    }
-    
     public enum TouchResult {
         INSERTED, // inserted as an entry
-        REPLACED, // replaced an entry with this because id was closer than other ids
+        REPLACED, // replaced an entry with this because id was closer than other ids (note that if maxSize == 0, you'll always get this)
         UPDATED, // entry already existed, so nothing was changed
         IGNORED, // entry with same id already existed, but link is different, so ignoring
     }
+
+    @Override
+    public String toString() {
+        return "NearSet{" + "baseId=" + baseId + ", entries=" + entries + ", maxSize=" + maxSize + ", lastUpdateTime=" + lastUpdateTime
+                + '}';
+    }
+    
 }

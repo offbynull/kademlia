@@ -47,7 +47,7 @@ public final class NearSetTest {
 
     // See "notion of closeness" section in notes for more information on how closeness is calculated
     @Test
-    public void mustProperlyFlipBitsToIdentifyClosestNodeWhenSharedPrefixIsTheSame() {
+    public void mustFlipBitsToIdentifyClosestNodeWhenSharedPrefixIsTheSame() {
         TouchResult res;
         
         res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_111);
@@ -86,5 +86,24 @@ public final class NearSetTest {
         
         expectedException.expect(IllegalArgumentException.class);
         fixture.touch(BASE_TIME.plusMillis(0L), NODE_010);
+    }
+    
+    @Test
+    public void mustRetainClosestNodesWhenResizing() {
+        TouchResult res;
+        
+        res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_011);
+        assertEquals(TouchResult.INSERTED, res);
+        res = fixture.touch(BASE_TIME.plusMillis(2L), NODE_111);
+        assertEquals(TouchResult.INSERTED, res);
+        assertEquals(2, fixture.size());
+        assertEquals(2, fixture.getMaxSize());
+        assertEquals(Arrays.asList(NODE_111, NODE_011), fixture.dump());
+        
+        fixture.resize(1);
+        
+        assertEquals(1, fixture.size());
+        assertEquals(1, fixture.getMaxSize());
+        assertEquals(Arrays.asList(NODE_011), fixture.dump());
     }
 }

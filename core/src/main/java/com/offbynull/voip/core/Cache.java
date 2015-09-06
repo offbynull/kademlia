@@ -35,9 +35,9 @@ public final class Cache {
     private final BitString prefix;
     private final int idBitLength;
 
-    private final int maxSize;
     private final LinkedList<Entry> entries;
     
+    private int maxSize;
     private Instant lastUpdateTime;
 
     public Cache(BitString prefix, int idBitLength, int maxSize) {
@@ -153,23 +153,28 @@ public final class Cache {
         return newCaches;
     }
     
-    public Cache resize(int maxSize) {
-        Cache ret = new Cache(prefix, idBitLength, maxSize);
+    public void resize(int maxSize) {
+        Validate.isTrue(maxSize >= 1);
         
-        int end = Math.min(maxSize, entries.size());
-        int start = this.maxSize - end;
+        int discardCount = this.maxSize - maxSize;
         
-        for (Entry entry : entries.subList(start, end)) {
-            Node node = entry.getNode();
-            
-            TouchResult res;
-            res = ret.touch(entry.getInsertTime(), node); // first call to touch should add with insert time
-            Validate.validState(res == TouchResult.INSERTED); // should always happen, but just in case
-            res = ret.touch(entry.getLastSeenTime(), node); // send call to touch should set laset seen time
-            Validate.validState(res == TouchResult.UPDATED); // should always happen, but just in case
+        for (int i = 0; i < discardCount; i++) {
+            entries.removeFirst(); // remove oldest
         }
         
-        return ret;
+        this.maxSize = maxSize;
+    }
+    
+    public Instant getLastUpdateTime() {
+        return lastUpdateTime;
+    }
+    
+    public int size() {
+        return entries.size();
+    }
+
+    public int getMaxSize() {
+        return maxSize;
     }
     
     public enum TouchResult {

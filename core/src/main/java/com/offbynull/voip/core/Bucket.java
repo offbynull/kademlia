@@ -34,8 +34,8 @@ public final class Bucket {
     private final BitString prefix;
     private final int idBitLength;
 
-    private final int maxSize; // k -- k is a system-wide replication parameter. k is chosen such that any given k nodes are very unlikely
-                               // to fail within an hour of eachother (for example k = 20
+    private int maxSize; // k -- k is a system-wide replication parameter. k is chosen such that any given k nodes are very unlikely
+                         // to fail within an hour of eachother (for example k = 20
     
     private final LinkedList<Entry> entries; // Each k-bucket is kept sorted by time last seen
     
@@ -212,23 +212,16 @@ public final class Bucket {
         return newBuckets;
     }
 
-    public Bucket resize(int maxSize) {
-        Bucket ret = new Bucket(prefix, idBitLength, maxSize);
+    public void resize(int maxSize) {
+        Validate.isTrue(maxSize >= 1);
         
-        int end = Math.min(maxSize, entries.size());
-        int start = this.maxSize - end;
+        int discardCount = this.maxSize - maxSize;
         
-        for (Entry entry : entries.subList(start, end)) {
-            Node node = entry.getNode();
-            
-            TouchResult res;
-            res = ret.touch(entry.getInsertTime(), node); // first call to touch should add with insert time
-            Validate.validState(res == TouchResult.INSERTED); // should always happen, but just in case
-            res = ret.touch(entry.getLastSeenTime(), node); // send call to touch should set laset seen time
-            Validate.validState(res == TouchResult.UPDATED); // should always happen, but just in case
+        for (int i = 0; i < discardCount; i++) {
+            entries.removeFirst(); // remove oldest
         }
         
-        return ret;
+        this.maxSize = maxSize;
     }
     
     public Instant getLastUpdateTime() {
