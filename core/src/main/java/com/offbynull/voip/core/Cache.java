@@ -90,15 +90,17 @@ public final class Cache {
                 return TouchResult.UPDATED;
             }
         }
-        
-        if (entries.size() == maxSize) {
-            entries.removeFirst();
-        }
-        
+
         // Add
         Entry entry = new Entry(node, time);
         entries.addLast(entry);
-        return TouchResult.UPDATED;
+        
+        if (entries.size() > maxSize) {
+            entries.removeFirst();
+            return TouchResult.REPLACED;
+        }
+        
+        return TouchResult.INSERTED;
     }
 
     public Node take() {
@@ -172,6 +174,7 @@ public final class Cache {
     
     public enum TouchResult {
         INSERTED, // inserted as latest entry
+        REPLACED, // cache is full so removed earliest entry and inserted this entry as latest
         UPDATED, // entry moved to latest entry
         IGNORED, // entry with same id already existed, but link is different, so ignoring
     }

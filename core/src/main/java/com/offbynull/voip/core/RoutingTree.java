@@ -32,9 +32,19 @@ public final class RoutingTree {
         
     }
     
+    public void unresponsive(Instant time, Node node) {
+        
+    }
+    
     public enum TouchResult {
-        ADDED_TO_BUCKET,
-        ADDED_TO_CACHE,
+        TOUCHED_BUCKET,
+        TOUCHED_CACHE,
+        IGNORED
+    }
+
+    public enum UnresponsiveResult {
+        CLEARED_BUCKET,
+        CLEARED_CACHE,
         IGNORED
     }
     
