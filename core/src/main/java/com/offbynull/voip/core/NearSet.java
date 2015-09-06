@@ -16,32 +16,43 @@
  */
 package com.offbynull.voip.core;
 
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.TreeMap;
 import org.apache.commons.lang3.Validate;
 
-public final class CloseSet {
+public final class NearSet {
     private final Id baseId;
     private final TreeMap<Id, Node> entries;
     
     private final int maxSize;
+    
+    private Instant lastUpdateTime;
 
-    public CloseSet(Id baseId, int maxSize) {
-        Validate.notNull(baseId);
+    public NearSet(Id baseId, int maxSize) {
         Validate.notNull(baseId);
         Validate.isTrue(maxSize >= 1);
         
         this.baseId = baseId;
-        this.entries = new TreeMap<>(new IdClosenessComparator(baseId));
         this.maxSize = maxSize;
+        
+        this.entries = new TreeMap<>(new IdClosenessComparator(baseId));
+        
+        lastUpdateTime = Instant.MIN;
     }
 
-    public TouchResult touch(Node node) {
+    public TouchResult touch(Instant time, Node node) {
+        Validate.notNull(time);
         Validate.notNull(node);
         
         Id nodeId = node.getId();
         
         Validate.isTrue(nodeId.getBitLength() == baseId.getBitLength());
         Validate.isTrue(!nodeId.equals(baseId));
+        
+        Validate.isTrue(!time.isBefore(lastUpdateTime)); // time must be >= lastUpdatedTime
+        
         
         Node existingNode;
         if ((existingNode = entries.get(nodeId)) != null) {
@@ -50,16 +61,31 @@ public final class CloseSet {
                 return TouchResult.IGNORED;
             }
             
+            lastUpdateTime = time;
             return TouchResult.UPDATED;
         }
         
         entries.put(nodeId, node);
+        lastUpdateTime = time;
+        
         if (entries.size() <= maxSize) {
             return TouchResult.INSERTED;
+        } else {
+            entries.pollFirstEntry(); // remove first entry so we don't exceed maxSize
+            return TouchResult.REPLACED;
         }
-        
-        entries.pollFirstEntry(); // remove first entry so we don't exceed maxSize
-        return TouchResult.REPLACED;
+    }
+    
+    public int size() {
+        return entries.size();
+    }
+
+    public int getMaxSize() {
+        return maxSize;
+    }
+    
+    public List<Node> dump() {
+        return new ArrayList<>(entries.values());
     }
     
     public enum TouchResult {
