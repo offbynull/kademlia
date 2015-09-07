@@ -60,6 +60,59 @@ public class LeastRecentlySeenSetTest {
     }
 
     @Test
+    public void mustNotOverrideExistingNodesIfBucketFullAndTimestampUnchanged() {
+        TouchResult touchRes;
+
+        touchRes = fixture.touch(BASE_TIME.plusMillis(1L), NODE_1100);
+        assertEquals(TouchResult.UPDATED, touchRes);
+
+        touchRes = fixture.touch(BASE_TIME.plusMillis(1L), NODE_1000);
+        assertEquals(TouchResult.UPDATED, touchRes);
+        
+        touchRes = fixture.touch(BASE_TIME.plusMillis(1L), NODE_0100);
+        assertEquals(TouchResult.UPDATED, touchRes);
+        
+        touchRes = fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
+        assertEquals(TouchResult.UPDATED, touchRes);
+        
+        touchRes = fixture.touch(BASE_TIME.plusMillis(1L), NODE_1111);
+        assertEquals(TouchResult.IGNORED, touchRes);
+       
+        assertEquals(NODE_1100, fixture.dump().get(0).getNode());
+        assertEquals(NODE_1000, fixture.dump().get(1).getNode());
+        assertEquals(NODE_0100, fixture.dump().get(2).getNode());
+        assertEquals(NODE_0010, fixture.dump().get(3).getNode());
+        
+        assertEquals(4, fixture.size());
+    }
+
+    @Test
+    public void mustNotOverrideExistingNodesIfBucketFullAndTimestampLater() {
+        TouchResult touchRes;
+
+        touchRes = fixture.touch(BASE_TIME.plusMillis(1L), NODE_1100);
+        assertEquals(TouchResult.UPDATED, touchRes);
+
+        touchRes = fixture.touch(BASE_TIME.plusMillis(1L), NODE_1000);
+        assertEquals(TouchResult.UPDATED, touchRes);
+        
+        touchRes = fixture.touch(BASE_TIME.plusMillis(1L), NODE_0100);
+        assertEquals(TouchResult.UPDATED, touchRes);
+        
+        touchRes = fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
+        assertEquals(TouchResult.UPDATED, touchRes);
+        
+        touchRes = fixture.touch(BASE_TIME.plusMillis(2L), NODE_1111);
+        assertEquals(TouchResult.IGNORED, touchRes);
+       
+        assertEquals(NODE_1100, fixture.dump().get(0).getNode());
+        assertEquals(NODE_1000, fixture.dump().get(1).getNode());
+        assertEquals(NODE_0100, fixture.dump().get(2).getNode());
+        assertEquals(NODE_0010, fixture.dump().get(3).getNode());
+        assertEquals(4, fixture.size());
+    }
+
+    @Test
     public void mustRejectNodeInsertionIfFullAndInFuture() {
         TouchResult touchRes;
         
