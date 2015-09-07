@@ -312,4 +312,16 @@ public class LeastRecentlySeenSetTest {
         
         assertEquals(NODE_1111, fixture.dump().get(0).getNode());
     }
+
+    @Test
+    public void mustRejectTouchesForSameIdButFromDifferentLinks() {
+        TouchResult touchRes;
+        
+        touchRes = fixture.touch(BASE_TIME.plusMillis(1L), NODE_1111);
+        assertEquals(TouchResult.UPDATED, touchRes);
+        touchRes = fixture.touch(BASE_TIME.plusMillis(1L), new Node(NODE_1111.getId(), "fakelink"));
+        assertEquals(TouchResult.CONFLICTED, touchRes);
+        
+        assertEquals(NODE_1111, fixture.dump().get(0).getNode());
+    }
 }

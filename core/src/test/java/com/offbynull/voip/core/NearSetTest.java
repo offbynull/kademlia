@@ -1,5 +1,6 @@
 package com.offbynull.voip.core;
 
+import com.offbynull.voip.core.NearSet.RemoveResult;
 import com.offbynull.voip.core.NearSet.TouchResult;
 import java.time.Instant;
 import java.util.Arrays;
@@ -108,5 +109,58 @@ public final class NearSetTest {
         assertEquals(1, fixture.getMaxSize());
         assertEquals(Arrays.asList(NODE_011),
                 fixture.dump().stream().map(x -> x.getNode()).collect(Collectors.toList()));
+    }
+    
+    @Test
+    public void mustRemoveNodes() {
+        fixture.touch(BASE_TIME.plusMillis(1L), NODE_111);
+        fixture.touch(BASE_TIME.plusMillis(2L), NODE_011);
+        assertEquals(2, fixture.size());
+        
+        RemoveResult res = fixture.remove(NODE_111);
+        
+        assertEquals(RemoveResult.REMOVED, res);
+        assertEquals(1, fixture.size());
+        assertEquals(Arrays.asList(NODE_011),
+                fixture.dump().stream().map(x -> x.getNode()).collect(Collectors.toList()));
+    }
+
+    @Test
+    public void mustRejectRemoveOfMissingNode() {
+        fixture.touch(BASE_TIME.plusMillis(1L), NODE_111);
+        fixture.touch(BASE_TIME.plusMillis(2L), NODE_011);
+        assertEquals(2, fixture.size());
+        
+        RemoveResult res = fixture.remove(NODE_001);
+        
+        assertEquals(RemoveResult.NOT_FOUND, res);
+        assertEquals(2, fixture.size());
+        assertEquals(Arrays.asList(NODE_111, NODE_011),
+                fixture.dump().stream().map(x -> x.getNode()).collect(Collectors.toList()));
+    }
+
+    @Test
+    public void mustRejectRemovesForSameIdButFromDifferentLinks() {
+        TouchResult touchRes;
+        RemoveResult removeRes;
+        
+        touchRes = fixture.touch(BASE_TIME.plusMillis(1L), NODE_111);
+        assertEquals(TouchResult.UPDATED, touchRes);
+        removeRes = fixture.remove(new Node(NODE_111.getId(), "fakelink"));
+        assertEquals(RemoveResult.CONFLICTED, removeRes);
+        
+        assertEquals(NODE_111, fixture.dump().get(0).getNode());
+    }
+
+    @Test
+    public void mustRejectTouchesForSameIdButFromDifferentLinks() {
+        TouchResult touchRes;
+        
+        touchRes = fixture.touch(BASE_TIME.plusMillis(1L), NODE_111);
+        assertEquals(TouchResult.UPDATED, touchRes);
+        touchRes = fixture.touch(BASE_TIME.plusMillis(1L), new Node(NODE_111.getId(), "fakelink"));
+        assertEquals(TouchResult.CONFLICTED, touchRes);
+        
+        assertEquals(NODE_111, fixture.dump().get(0).getNode());
     }
 }
