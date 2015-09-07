@@ -31,7 +31,7 @@ public class BitStringTest {
     @Test
     public void mustFailWhenConstructingWhenOffsetOutOfBounds() {
         expectedException.expect(IllegalArgumentException.class);
-        BitString.createLogicalOrder(new byte[] { (byte) 0x00, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF }, 32, 0);
+        BitString.createLogicalOrder(new byte[] { (byte) 0x00, (byte) 0xFF, (byte) 0xFF, (byte) 0xFF }, 33, 0);
     }
 
     @Test

@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.ListIterator;
 import org.apache.commons.lang3.Validate;
 
 public final class KBucket {
@@ -44,7 +45,7 @@ public final class KBucket {
         Validate.isTrue(nodeId.getBitString().getBits(0, prefix.getBitLength()).equals(prefix)); // ensure prefix matches
 
         Validate.isTrue(!time.isBefore(lastUpdateTime)); // time must be >= lastUpdatedTime
-
+        
         
         LeastRecentlySeenSet.TouchResult bucketTouchRes = bucket.touch(time, node);
         switch (bucketTouchRes) {
@@ -72,7 +73,7 @@ public final class KBucket {
                 throw new IllegalStateException(); // should never happen
         }
     }
-
+    
     public ReplaceResult replace(Instant time, Node node) {
         Validate.notNull(time);
         Validate.notNull(node);
@@ -114,11 +115,13 @@ public final class KBucket {
         return new ArrayList<>(nodes.subList(0, size));
     }
 
+    // bitCount = 0 is 1 buckets
     // bitCount = 1 is 2 buckets
     // bitCount = 2 is 4 buckets
     // bitCount = 3 is 8 buckets
     public KBucket[] split(int bitCount) {
-        Validate.isTrue(bitCount >= 1);
+        Validate.isTrue(bitCount >= 0); // why would anyone want to split in to 1 bucket? the result would just be a copy of this bucket...
+                                        // let through anyway
         Validate.isTrue(bitCount <= 30); // its absurd to check for this, as no one will ever want to split in to 2^30 buckets, but whatever
                                          // we can't have more than 30 bits, because 31 bits will result in an array of neg size...
                                          // new Bucket[1 << 31] -- 1 << 31 is negative
@@ -147,7 +150,8 @@ public final class KBucket {
             newKBuckets[i] = new KBucket(baseId, appendedBitString, maxBucketSize, maxCacheSize);
         }
         
-        // Place entries in buckets
+        
+        // Move from original bucket to new buckets
         for (Entry entry : bucket.dump()) {
             Node node = entry.getNode();
             
@@ -160,34 +164,82 @@ public final class KBucket {
             Id id = node.getId();
             int idx = (int) id.getBitsAsLong(prefix.getBitLength(), bitCount);
             
-            TouchResult res;
-            res = newKBuckets[idx].touch(entry.getLastSeenTime(), node); // send call to touch should set laset seen time
-            Validate.validState(res == TouchResult.UPDATED_BUCKET); // should always happen, but just in case
+            // Touch bucket
+            LeastRecentlySeenSet.TouchResult res;
+            res = newKBuckets[idx].bucket.touch(entry.getLastSeenTime(), node);
+            Validate.validState(res == LeastRecentlySeenSet.TouchResult.UPDATED); // should always happen, but just in case
+            
+            // Update lastUpdateTime if entry's timestamp is greater than the kbucket's timestamp
+            if (entry.getLastSeenTime().isAfter(newKBuckets[idx].lastUpdateTime)) {
+                newKBuckets[idx].lastUpdateTime = entry.getLastSeenTime();
+            }
         }
+
+        
+        // Move from original cache to new cache
+        for (Entry entry : cache.dump()) {
+            Node node = entry.getNode();
+            
+            // Read bitCount bits starting from prefixBitSize and use that to figure out which bucket to copy to
+            // For example, if bitCount is 2 ...
+            // If you read 00b, 00 = 0, so this ID will be go to newBucket[0]
+            // If you read 01b, 01 = 1, so this ID will be go to newBucket[1]
+            // If you read 10b, 10 = 2, so this ID will be go to newBucket[2]
+            // If you read 11b, 11 = 3, so this ID will be go to newBucket[3]
+            Id id = node.getId();
+            int idx = (int) id.getBitsAsLong(prefix.getBitLength(), bitCount);
+            
+            // Touch cache
+            MostRecentlySeenSet.TouchResult res;
+            res = newKBuckets[idx].cache.touch(entry.getLastSeenTime(), node);
+            Validate.validState(res == MostRecentlySeenSet.TouchResult.UPDATED); // should always happen, but just in case
+            
+            // Update lastUpdateTime if entry's timestamp is greater than the kbucket's timestamp
+            if (entry.getLastSeenTime().isAfter(newKBuckets[idx].lastUpdateTime)) {
+                newKBuckets[idx].lastUpdateTime = entry.getLastSeenTime();
+            }
+        }
+        
+        
+        // Now that this is has been split in to multiple kbuckets, each kbucket's bucket may not be as full as possible. Try to move over
+        // nodes from the cache to the bucket
+        for (int i = 0; i < len; i++) {
+            newKBuckets[i].fillMissingBucketSlotsWithCacheItems();
+        }
+        
         
         return newKBuckets;
     }
     
-    public void resizeBucket(int maxSize) {
-        Validate.isTrue(maxSize >= 0);
-        
-        int origMaxSize = bucket.getMaxSize();
-        
-        bucket.resize(maxSize);
-        
-        int unoccupiedBucketSlots = maxSize - origMaxSize;
+    private void fillMissingBucketSlotsWithCacheItems() {
+        int unoccupiedBucketSlots = bucket.getMaxSize() - bucket.size();
         if (unoccupiedBucketSlots <= 0) {
             return;
         }
+        
+        int availableCacheItems = cache.size();
+        if (availableCacheItems == 0) {
+            return;
+        }
+        
+        int moveAmount = Math.min(availableCacheItems, unoccupiedBucketSlots);
 
-        for (int i = 0; i < unoccupiedBucketSlots; i++) {
+        for (int i = 0; i < moveAmount; i++) {
             Entry cacheEntry = cache.take();
             if (cacheEntry == null) {
                 break;
             }
             
             bucket.touch(cacheEntry.getLastSeenTime(), cacheEntry.getNode());
-        }
+        }        
+    }
+    
+    public void resizeBucket(int maxSize) {
+        Validate.isTrue(maxSize >= 0);
+        
+        bucket.resize(maxSize);
+        
+        fillMissingBucketSlotsWithCacheItems();
     }
     
     public void resizeCache(int maxSize) {
@@ -200,7 +252,7 @@ public final class KBucket {
     }
 
     public List<Entry> dumpCache() {
-        return bucket.dump();
+        return cache.dump();
     }
     
     public Instant getLastUpdateTime() {
@@ -217,7 +269,7 @@ public final class KBucket {
     //             start                                         end
     private static BitString toBitString(int data, int bitLength) {
         Validate.notNull(data);
-        Validate.isTrue(bitLength > 0);
+        Validate.isTrue(bitLength >= 0);
 
         data = data << (32 - bitLength);
         return BitString.createReadOrder(toBytes(data), 0, bitLength);

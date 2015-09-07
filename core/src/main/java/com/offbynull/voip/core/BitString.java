@@ -35,7 +35,7 @@ public final class BitString implements Serializable {
     // make sure that whatever you pass in as data is a copy / not-shared.
     private BitString(byte[] data, int bitLength) {
         Validate.notNull(data);
-        Validate.isTrue(bitLength > 0);
+        Validate.isTrue(bitLength >= 0);
         
         int minLength = calculateRequiredByteArraySize(bitLength);
         Validate.isTrue(data.length == minLength);
@@ -244,7 +244,7 @@ public final class BitString implements Serializable {
     }
     
     private static int calculateRequiredByteArraySize(int bitLength) {
-        Validate.inclusiveBetween(1, Integer.MAX_VALUE, bitLength);
+        Validate.inclusiveBetween(0, Integer.MAX_VALUE, bitLength);
         
         int fullByteCount = bitLength / 8;
         int remainingBits = bitLength % 8;
