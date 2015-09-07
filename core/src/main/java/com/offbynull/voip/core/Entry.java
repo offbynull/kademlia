@@ -20,17 +20,15 @@ import java.time.Instant;
 import org.apache.commons.lang3.Validate;
 
 
-final class Entry {
+public final class Entry {
     private final Node node;
-    private final Instant insertTime;
-    private Instant lastSeenTime;
+    private final Instant lastSeenTime;
 
-    public Entry(Node node, Instant insertTime) {
+    public Entry(Node node, Instant lastSeenTime) {
         Validate.notNull(node);
-        Validate.notNull(insertTime);
+        Validate.notNull(lastSeenTime);
         this.node = node;
-        this.lastSeenTime = insertTime;
-        this.insertTime = insertTime;
+        this.lastSeenTime = lastSeenTime;
     }
 
     public Node getNode() {
@@ -39,15 +37,5 @@ final class Entry {
 
     public Instant getLastSeenTime() {
         return lastSeenTime;
-    }
-
-    public Instant getInsertTime() {
-        return insertTime;
-    }
-
-    public void setLastSeenTime(Instant lastSeenTime) {
-        Validate.notNull(lastSeenTime);
-        Validate.isTrue(!this.lastSeenTime.isAfter(lastSeenTime));
-        this.lastSeenTime = lastSeenTime;
     }
 }

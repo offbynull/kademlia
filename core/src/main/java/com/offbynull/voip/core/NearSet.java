@@ -24,11 +24,9 @@ import org.apache.commons.lang3.Validate;
 
 public final class NearSet {
     private final Id baseId;
-    private final TreeMap<Id, Node> entries;
+    private final TreeMap<Id, Entry> entries;
     
     private int maxSize;
-    
-    private Instant lastUpdateTime;
 
     public NearSet(Id baseId, int maxSize) {
         Validate.notNull(baseId);
@@ -38,8 +36,6 @@ public final class NearSet {
         this.maxSize = maxSize;
         
         this.entries = new TreeMap<>(new IdClosenessComparator(baseId));
-        
-        lastUpdateTime = Instant.MIN;
     }
 
     public TouchResult touch(Instant time, Node node) {
@@ -51,29 +47,52 @@ public final class NearSet {
         Validate.isTrue(nodeId.getBitLength() == baseId.getBitLength());
         Validate.isTrue(!nodeId.equals(baseId));
         
-        Validate.isTrue(!time.isBefore(lastUpdateTime)); // time must be >= lastUpdatedTime
+        if (maxSize == 0) {
+            return TouchResult.IGNORED;
+        }
         
-        
-        Node existingNode;
-        if ((existingNode = entries.get(nodeId)) != null) {
-            if (!existingNode.equals(node)) {
+        Entry existingEntry;
+        if ((existingEntry = entries.get(nodeId)) != null) {
+            if (!existingEntry.getNode().equals(node)) {
                 // if ID exists but link for ID is different, ignore
-                return TouchResult.IGNORED;
+                return TouchResult.CONFLICTED;
             }
             
-            lastUpdateTime = time;
+            entries.put(nodeId, new Entry(node, time));
             return TouchResult.UPDATED;
         }
         
-        entries.put(nodeId, node);
-        lastUpdateTime = time;
-        
-        if (entries.size() <= maxSize) {
-            return TouchResult.INSERTED;
-        } else {
+        entries.put(nodeId, new Entry(node, time));
+        if (entries.size() > maxSize) {
             entries.pollFirstEntry(); // remove first entry so we don't exceed maxSize
-            return TouchResult.REPLACED;
         }
+        
+        return TouchResult.UPDATED;
+    }
+    
+    public RemoveResult remove(Node node) {
+        Validate.notNull(node);
+        
+        Id nodeId = node.getId();
+        String nodeLink = node.getLink();
+        
+        Entry entry = entries.get(nodeId);
+        if (entry == null) {
+            return RemoveResult.NOT_FOUND;
+        }
+
+        Id entryId = entry.getNode().getId();
+        String entryLink = entry.getNode().getLink();
+
+        Validate.validState(nodeId.equals(entryId)); // should never happen -- just in case
+        if (!entryLink.equals(nodeLink)) {
+            // if ID exists but link for ID is different
+            return RemoveResult.CONFLICTED;
+        }
+
+        // remove
+        entries.remove(nodeId);
+        return RemoveResult.REMOVED;
     }
     
     public void resize(int maxSize) {
@@ -88,12 +107,8 @@ public final class NearSet {
         this.maxSize = maxSize;
     }
     
-    public List<Node> dump() {
+    public List<Entry> dump() {
         return new ArrayList<>(entries.values());
-    }
-
-    public Instant getLastUpdateTime() {
-        return lastUpdateTime;
     }
     
     public int size() {
@@ -104,17 +119,21 @@ public final class NearSet {
         return maxSize;
     }
     
+    public enum RemoveResult {
+        REMOVED, // removed
+        NOT_FOUND, // id to replace couldn't be found
+        CONFLICTED // entry with same id already existed, but link is different, so ignoring
+    }
+    
     public enum TouchResult {
-        INSERTED, // inserted as an entry
-        REPLACED, // replaced an entry with this because id was closer than other ids (note that if maxSize == 0, you'll always get this)
-        UPDATED, // entry already existed, so nothing was changed
-        IGNORED, // entry with same id already existed, but link is different, so ignoring
+        UPDATED, // entry inserted or updated
+        IGNORED, // set is full and entry's time was too far out to get replace existing (too far in to the past to replace existing)
+        CONFLICTED, // entry with same id already existed, but link is different, so ignoring
     }
 
     @Override
     public String toString() {
-        return "NearSet{" + "baseId=" + baseId + ", entries=" + entries + ", maxSize=" + maxSize + ", lastUpdateTime=" + lastUpdateTime
-                + '}';
+        return "NearSet{" + "baseId=" + baseId + ", entries=" + entries + ", maxSize=" + maxSize + '}';
     }
     
 }

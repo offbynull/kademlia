@@ -3,10 +3,9 @@ package com.offbynull.voip.core;
 import com.offbynull.voip.core.NearSet.TouchResult;
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.stream.Collectors;
 import static org.junit.Assert.assertEquals;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public final class NearSetTest {
     
@@ -23,26 +22,25 @@ public final class NearSetTest {
     
     private final NearSet fixture = new NearSet(NODE_000.getId(), 2);
     
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
-    
     @Test
     public void mustRetainNodesWithTheLargestSharedPrefix() {
         TouchResult res;
         
         res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_111);
-        assertEquals(TouchResult.INSERTED, res);
+        assertEquals(TouchResult.UPDATED, res);
         res = fixture.touch(BASE_TIME.plusMillis(2L), NODE_011);
-        assertEquals(TouchResult.INSERTED, res);
+        assertEquals(TouchResult.UPDATED, res);
         
-        assertEquals(Arrays.asList(NODE_111, NODE_011), fixture.dump());
+        assertEquals(Arrays.asList(NODE_111, NODE_011),
+                fixture.dump().stream().map(x -> x.getNode()).collect(Collectors.toList()));
         
         res = fixture.touch(BASE_TIME.plusMillis(3L), NODE_011);
         assertEquals(TouchResult.UPDATED, res);
         res = fixture.touch(BASE_TIME.plusMillis(4L), NODE_001);
-        assertEquals(TouchResult.REPLACED, res);
+        assertEquals(TouchResult.UPDATED, res);
         
-        assertEquals(Arrays.asList(NODE_011, NODE_001), fixture.dump());
+        assertEquals(Arrays.asList(NODE_011, NODE_001),
+                fixture.dump().stream().map(x -> x.getNode()).collect(Collectors.toList()));
     }
 
     // See "notion of closeness" section in notes for more information on how closeness is calculated
@@ -51,18 +49,20 @@ public final class NearSetTest {
         TouchResult res;
         
         res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_111);
-        assertEquals(TouchResult.INSERTED, res);
+        assertEquals(TouchResult.UPDATED, res);
         res = fixture.touch(BASE_TIME.plusMillis(2L), NODE_110);
-        assertEquals(TouchResult.INSERTED, res);
+        assertEquals(TouchResult.UPDATED, res);
         
-        assertEquals(Arrays.asList(NODE_111, NODE_110), fixture.dump());
+        assertEquals(Arrays.asList(NODE_111, NODE_110), 
+                fixture.dump().stream().map(x -> x.getNode()).collect(Collectors.toList()));
         
         res = fixture.touch(BASE_TIME.plusMillis(3L), NODE_111);
         assertEquals(TouchResult.UPDATED, res);
         res = fixture.touch(BASE_TIME.plusMillis(4L), NODE_100);
-        assertEquals(TouchResult.REPLACED, res);
+        assertEquals(TouchResult.UPDATED, res);
         
-        assertEquals(Arrays.asList(NODE_110, NODE_100), fixture.dump());
+        assertEquals(Arrays.asList(NODE_110, NODE_100),
+                fixture.dump().stream().map(x -> x.getNode()).collect(Collectors.toList()));
     }
 
     @Test
@@ -70,22 +70,23 @@ public final class NearSetTest {
         TouchResult res;
         
         res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_111);
-        assertEquals(TouchResult.INSERTED, res);
+        assertEquals(TouchResult.UPDATED, res);
         res = fixture.touch(BASE_TIME.plusMillis(2L), new Node(NODE_111.getId(), "fakelink"));
-        assertEquals(TouchResult.IGNORED, res);
+        assertEquals(TouchResult.CONFLICTED, res);
         
-        assertEquals(Arrays.asList(NODE_111), fixture.dump());
+        assertEquals(Arrays.asList(NODE_111),
+                fixture.dump().stream().map(x -> x.getNode()).collect(Collectors.toList()));
     }
     
     @Test
-    public void mustFailTouchIfTimeIsBeforeLastTime() {
+    public void mustNotFailTouchIfTimeIsBeforeLastTime() {
         TouchResult touchRes;
         
         touchRes = fixture.touch(BASE_TIME.plusMillis(1L), NODE_001);
-        assertEquals(TouchResult.INSERTED, touchRes);
+        assertEquals(TouchResult.UPDATED, touchRes);
         
-        expectedException.expect(IllegalArgumentException.class);
-        fixture.touch(BASE_TIME.plusMillis(0L), NODE_010);
+        touchRes = fixture.touch(BASE_TIME.plusMillis(0L), NODE_010);
+        assertEquals(TouchResult.UPDATED, touchRes);
     }
     
     @Test
@@ -93,17 +94,19 @@ public final class NearSetTest {
         TouchResult res;
         
         res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_011);
-        assertEquals(TouchResult.INSERTED, res);
+        assertEquals(TouchResult.UPDATED, res);
         res = fixture.touch(BASE_TIME.plusMillis(2L), NODE_111);
-        assertEquals(TouchResult.INSERTED, res);
+        assertEquals(TouchResult.UPDATED, res);
         assertEquals(2, fixture.size());
         assertEquals(2, fixture.getMaxSize());
-        assertEquals(Arrays.asList(NODE_111, NODE_011), fixture.dump());
+        assertEquals(Arrays.asList(NODE_111, NODE_011),
+                fixture.dump().stream().map(x -> x.getNode()).collect(Collectors.toList()));
         
         fixture.resize(1);
         
         assertEquals(1, fixture.size());
         assertEquals(1, fixture.getMaxSize());
-        assertEquals(Arrays.asList(NODE_011), fixture.dump());
+        assertEquals(Arrays.asList(NODE_011),
+                fixture.dump().stream().map(x -> x.getNode()).collect(Collectors.toList()));
     }
 }

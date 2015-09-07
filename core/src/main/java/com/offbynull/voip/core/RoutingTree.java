@@ -7,7 +7,7 @@ import org.apache.commons.lang3.Validate;
 
 public final class RoutingTree {
     private final Id baseId;
-    private final ArrayList<Bucket> buckets;
+    private final ArrayList<KBucket> buckets;
 
     public RoutingTree(Id baseId, int depth, int bucketSize) {
         Validate.notNull(baseId);
@@ -23,7 +23,7 @@ public final class RoutingTree {
         
         for (int i = 0; i < depth; i++) {
             BitString prefix = baseId.getBitString().getBits(0, i);
-            Bucket bucket = new Bucket(prefix, maxDepth, bucketSize);
+            KBucket bucket = new KBucket(baseId, prefix, maxDepth, bucketSize);
             buckets.add(bucket);
         }
     }
@@ -75,32 +75,6 @@ public final class RoutingTree {
 
         public int getCacheSize() {
             return cacheSize;
-        }
-    }
-    
-    private static final class KBucket {
-        private final Bucket bucket;
-        private final Cache cache;
-
-        public KBucket(Id id, int prefixBitLen, int maxBucketSize, int maxCacheSize) {
-            Validate.notNull(id);
-            Validate.isTrue(prefixBitLen >= 0);
-            Validate.isTrue(prefixBitLen <= id.getBitLength());
-            Validate.isTrue(maxBucketSize >= 0);
-            Validate.isTrue(maxCacheSize >= 0);
-            
-            int idBitLength = id.getBitLength();
-            BitString prefix = id.getBitString().getBits(0, prefixBitLen);
-            bucket = new Bucket(prefix, idBitLength, maxBucketSize);
-            cache = new Cache(prefix, idBitLength, maxCacheSize);
-        }
-
-        public Bucket getBucket() {
-            return bucket;
-        }
-
-        public Cache getCache() {
-            return cache;
         }
     }
 }
