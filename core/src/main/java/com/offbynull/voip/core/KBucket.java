@@ -202,14 +202,6 @@ public final class KBucket {
     public List<Entry> dumpCache() {
         return bucket.dump();
     }
-
-    public int bucketSize() {
-        return bucket.size();
-    }
-    
-    public int cacheSize() {
-        return cache.size();
-    }
     
     public Instant getLastUpdateTime() {
         return lastUpdateTime;
