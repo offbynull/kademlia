@@ -16,15 +16,14 @@
  */
 package com.offbynull.voip.core;
 
+import com.offbynull.voip.core.ChangeSet.UpdatedEntry;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Collection;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.TreeMap;
-import org.apache.commons.collections4.list.UnmodifiableList;
 import org.apache.commons.lang3.Validate;
 
 public final class NearSet {
@@ -53,7 +52,7 @@ public final class NearSet {
         Validate.isTrue(!nodeId.equals(baseId));
         
         if (maxSize == 0) {
-            return ChangeSet.EMPTY;
+            return ChangeSet.NO_CHANGE;
         }
         
         List<Entry> added = new ArrayList<>(1);
@@ -65,7 +64,7 @@ public final class NearSet {
         if ((existingEntry = entries.get(nodeId)) != null) {
             if (!existingEntry.getNode().equals(node)) {
                 // if ID exists but link for ID is different, ignore
-                return ChangeSet.EMPTY;
+                return ChangeSet.NO_CHANGE;
             }
             
             updated.add(new UpdatedEntry(node, existingEntry.getLastSeenTime(), newEntry.getLastSeenTime()));
@@ -91,7 +90,7 @@ public final class NearSet {
         
         Entry entry = entries.get(nodeId);
         if (entry == null) {
-            return ChangeSet.EMPTY;
+            return ChangeSet.NO_CHANGE;
         }
 
         Id entryId = entry.getNode().getId();
@@ -100,12 +99,12 @@ public final class NearSet {
         Validate.validState(nodeId.equals(entryId)); // should never happen -- just in case
         if (!entryLink.equals(nodeLink)) {
             // if ID exists but link for ID is different
-            return ChangeSet.EMPTY;
+            return ChangeSet.NO_CHANGE;
         }
 
         // remove
         entries.remove(nodeId);
-        return new ChangeSet(emptyList(), singletonList(entry), emptyList());
+        return ChangeSet.removed(entry);
     }
     
     public ChangeSet resize(int maxSize) {
@@ -121,7 +120,7 @@ public final class NearSet {
         
         this.maxSize = maxSize;
         
-        return new ChangeSet(emptyList(), removed, emptyList());
+        return ChangeSet.removed(removed);
     }
     
     public List<Entry> dump() {
@@ -134,66 +133,6 @@ public final class NearSet {
 
     public int getMaxSize() {
         return maxSize;
-    }
-
-    public static final class ChangeSet { 
-        private static final ChangeSet EMPTY = new ChangeSet(emptyList(), emptyList(), emptyList());
-        private final UnmodifiableList<Entry> removed;
-        private final UnmodifiableList<Entry> added;
-        private final UnmodifiableList<UpdatedEntry> updated;
-        
-        public ChangeSet(Collection<Entry> added, Collection<Entry> removed, Collection<UpdatedEntry> updated) {
-            Validate.notNull(removed);
-            Validate.notNull(added);
-            Validate.notNull(updated);
-            Validate.noNullElements(removed);
-            Validate.noNullElements(added);
-            Validate.noNullElements(updated);
-            this.removed = (UnmodifiableList<Entry>) UnmodifiableList.unmodifiableList(new ArrayList<>(removed));
-            this.added = (UnmodifiableList<Entry>) UnmodifiableList.unmodifiableList(new ArrayList<>(added));
-            this.updated = (UnmodifiableList<UpdatedEntry>) UnmodifiableList.unmodifiableList(new ArrayList<>(updated));
-        }
-
-        public UnmodifiableList<Entry> viewRemoved() {
-            return removed;
-        }
-
-        public UnmodifiableList<Entry> viewAdded() {
-            return added;
-        }
-
-        public UnmodifiableList<UpdatedEntry> viewUpdated() {
-            return updated;
-        }
-    }
-    
-    public static final class UpdatedEntry {
-        private final Node node;
-        private final Instant oldLastSeenTime;
-        private final Instant newLastSeenTime;
-
-        public UpdatedEntry(Node node, Instant oldLastSeenTime, Instant newLastSeenTime) {
-            Validate.notNull(node);
-            Validate.notNull(oldLastSeenTime);
-            Validate.notNull(newLastSeenTime);
-            
-            this.node = node;
-            this.oldLastSeenTime = oldLastSeenTime;
-            this.newLastSeenTime = newLastSeenTime;
-        }
-
-        public Node getNode() {
-            return node;
-        }
-
-        public Instant getOldLastSeenTime() {
-            return oldLastSeenTime;
-        }
-
-        public Instant getNewLastSeenTime() {
-            return newLastSeenTime;
-        }
-        
     }
     
     @Override

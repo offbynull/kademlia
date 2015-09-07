@@ -1,6 +1,6 @@
 package com.offbynull.voip.core;
 
-import com.offbynull.voip.core.NearSet.ChangeSet;
+import com.offbynull.voip.core.ChangeSet;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.HashSet;
