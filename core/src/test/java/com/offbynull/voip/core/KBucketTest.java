@@ -168,7 +168,7 @@ public class KBucketTest {
         fixture.touch(BASE_TIME.plusMillis(6L), NODE_1110);
         fixture.touch(BASE_TIME.plusMillis(7L), NODE_1101);
         
-        expectedException.expect(EntryConflictException.class);
+        expectedException.expect(LinkConflictException.class);
         fixture.touch(BASE_TIME.plusMillis(8L), new Node(NODE_0010.getId(), "fakelink"));
     }
 
@@ -182,7 +182,7 @@ public class KBucketTest {
         fixture.touch(BASE_TIME.plusMillis(6L), NODE_1110);
         fixture.touch(BASE_TIME.plusMillis(7L), NODE_1101);
         
-        expectedException.expect(EntryConflictException.class);
+        expectedException.expect(LinkConflictException.class);
         fixture.touch(BASE_TIME.plusMillis(8L), new Node(NODE_1111.getId(), "fakelink"));
     }
 
@@ -301,6 +301,7 @@ public class KBucketTest {
                 BASE_TIME.plusMillis(5L),
                 BASE_TIME.plusMillis(6L),
                 BASE_TIME.plusMillis(7L));
+        assertEquals(BASE_TIME.plusMillis(7L), fixture.getLastUpdateTime());
     }
 
     @Test
@@ -348,6 +349,7 @@ public class KBucketTest {
                 BASE_TIME.plusMillis(8L),
                 BASE_TIME.plusMillis(9L),
                 BASE_TIME.plusMillis(10L));
+        assertEquals(BASE_TIME.plusMillis(10L), fixture.getLastUpdateTime());
     }
 
     @Test
@@ -376,6 +378,7 @@ public class KBucketTest {
         verifyNodesInEntries(fixture.dumpCache(), NODE_1101);
         verifyTimeInEntries(fixture.dumpCache(),
                 BASE_TIME.plusMillis(7L));
+        assertEquals(BASE_TIME.plusMillis(7L), fixture.getLastUpdateTime());
     }
 
     @Test
@@ -407,6 +410,7 @@ public class KBucketTest {
         verifyTimeInEntries(fixture.dumpCache(),
                 BASE_TIME.plusMillis(5L),
                 BASE_TIME.plusMillis(6L));
+        assertEquals(BASE_TIME.plusMillis(8L), fixture.getLastUpdateTime());
     }
 
     @Test
@@ -436,6 +440,7 @@ public class KBucketTest {
                 BASE_TIME.plusMillis(5L),
                 BASE_TIME.plusMillis(6L),
                 BASE_TIME.plusMillis(7L));
+        assertEquals(BASE_TIME.plusMillis(8L), fixture.getLastUpdateTime());
     }
 
     @Test
@@ -459,6 +464,7 @@ public class KBucketTest {
                 BASE_TIME.plusMillis(4L));
         verifyNodesInEntries(fixture.dumpCache());
         verifyTimeInEntries(fixture.dumpCache());
+        assertEquals(BASE_TIME.plusMillis(8L), fixture.getLastUpdateTime());
     }
     
     @Test

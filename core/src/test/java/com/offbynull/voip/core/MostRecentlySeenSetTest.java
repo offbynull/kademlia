@@ -345,7 +345,7 @@ public final class MostRecentlySeenSetTest {
         verifyChangeSetCounts(res, 1, 0, 0);
         verifyChangeSetAdded(res, NODE_1111);
         
-        expectedException.expect(EntryConflictException.class);
+        expectedException.expect(LinkConflictException.class);
         fixture.remove(new Node(NODE_1111.getId(), "fakelink"));
     }
     
@@ -358,7 +358,7 @@ public final class MostRecentlySeenSetTest {
         verifyChangeSetCounts(res, 1, 0, 0);
         verifyChangeSetAdded(res, NODE_1111);
         
-        expectedException.expect(EntryConflictException.class);
+        expectedException.expect(LinkConflictException.class);
         fixture.touch(BASE_TIME.plusMillis(1L), new Node(NODE_1111.getId(), "fakelink"));
     }
 }

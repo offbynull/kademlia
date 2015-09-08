@@ -40,7 +40,7 @@ public final class NearSet {
         this.entries = new TreeMap<>(new IdClosenessComparator(baseId));
     }
 
-    public ChangeSet touch(Instant time, Node node) throws EntryConflictException {
+    public ChangeSet touch(Instant time, Node node) throws LinkConflictException {
         Validate.notNull(time);
         Validate.notNull(node);
         
@@ -62,7 +62,7 @@ public final class NearSet {
         if ((existingEntry = entries.get(nodeId)) != null) {
             if (!existingEntry.getNode().equals(node)) {
                 // if ID exists but link for ID is different, ignore
-                throw new EntryConflictException(existingEntry);
+                throw new LinkConflictException(existingEntry);
             }
             
             updated.add(new UpdatedEntry(node, existingEntry.getLastSeenTime(), newEntry.getLastSeenTime()));
@@ -80,7 +80,7 @@ public final class NearSet {
         return new ChangeSet(added, removed, updated);
     }
     
-    public ChangeSet remove(Node node) throws EntryConflictException {
+    public ChangeSet remove(Node node) throws LinkConflictException {
         Validate.notNull(node);
         
         Id nodeId = node.getId();
@@ -97,7 +97,7 @@ public final class NearSet {
         Validate.validState(nodeId.equals(entryId)); // should never happen -- just in case
         if (!entryLink.equals(nodeLink)) {
             // if ID exists but link for ID is different
-            throw new EntryConflictException(entry);
+            throw new LinkConflictException(entry);
         }
 
         // remove

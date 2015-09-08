@@ -42,7 +42,7 @@ public final class LeastRecentlySeenSet {
         this.entries = new LinkedList<>();
     }
     
-    public ChangeSet touch(Instant time, Node node) throws EntryConflictException {
+    public ChangeSet touch(Instant time, Node node) throws LinkConflictException {
         Validate.notNull(time);
         Validate.notNull(node);
         
@@ -66,7 +66,7 @@ public final class LeastRecentlySeenSet {
             if (entryId.equals(nodeId)) {
                 if (!entryLink.equals(nodeLink)) {
                     // if ID exists but link for ID is different
-                    throw new EntryConflictException(entry);
+                    throw new LinkConflictException(entry);
                 }
 
                 // remove
@@ -123,7 +123,7 @@ public final class LeastRecentlySeenSet {
         }
     }
 
-    public ChangeSet remove(Node node) throws EntryConflictException {
+    public ChangeSet remove(Node node) throws LinkConflictException {
         Validate.notNull(node);
         
         Id nodeId = node.getId();
@@ -139,7 +139,7 @@ public final class LeastRecentlySeenSet {
             if (entryId.equals(nodeId)) {
                 if (!entryLink.equals(nodeLink)) {
                     // if ID exists but link for ID is different
-                    throw new EntryConflictException(entry);
+                    throw new LinkConflictException(entry);
                 }
 
                 // remove

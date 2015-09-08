@@ -32,7 +32,7 @@ public final class KBucket {
         lastUpdateTime = Instant.MIN;
     }
 
-    public KBucketChangeSet touch(Instant time, Node node) throws EntryConflictException {
+    public KBucketChangeSet touch(Instant time, Node node) throws LinkConflictException {
         Validate.notNull(time);
         Validate.notNull(node);
 
@@ -58,7 +58,7 @@ public final class KBucket {
         return new KBucketChangeSet(bucketTouchRes, cacheTouchRes);
     }
     
-    public KBucketChangeSet replace(Instant time, Node node) throws EntryConflictException {
+    public KBucketChangeSet replace(Instant time, Node node) throws LinkConflictException {
         Validate.notNull(time);
         Validate.notNull(node);
         
@@ -90,7 +90,7 @@ public final class KBucket {
         Entry cacheEntry = cacheRemoveRes.viewRemoved().get(0);
         try {
             bucketTouchRes = bucket.touch(cacheEntry.getLastSeenTime(), cacheEntry.getNode());
-        } catch (EntryConflictException ece) {
+        } catch (LinkConflictException ece) {
             // should never throw EntryConflictException
             throw new IllegalStateException(ece);
         }
@@ -173,7 +173,7 @@ public final class KBucket {
             ChangeSet res;
             try {
                 res = newKBuckets[idx].bucket.touch(entry.getLastSeenTime(), node);
-            } catch (EntryConflictException ece) {
+            } catch (LinkConflictException ece) {
                 // should never happen
                 throw new IllegalStateException(ece);
             }
@@ -203,7 +203,7 @@ public final class KBucket {
             ChangeSet res;
             try {
                 res = newKBuckets[idx].cache.touch(entry.getLastSeenTime(), node);
-            } catch (EntryConflictException ece) {
+            } catch (LinkConflictException ece) {
                 // should never happen
                 throw new IllegalStateException(ece);
             }
@@ -292,7 +292,7 @@ public final class KBucket {
             ChangeSet addRes;
             try {
                 addRes = bucket.touch(entryToMove.getLastSeenTime(), entryToMove.getNode());
-            } catch (EntryConflictException ece) {
+            } catch (LinkConflictException ece) {
                 // This should never happen. The way the logic in this class is written, you should never have an entry with the same id in
                 // the cache and the bucket at the same time. As such, it's impossible to encounter a conflict.
                 throw new IllegalStateException(ece); // sanity check
