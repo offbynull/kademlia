@@ -1,5 +1,11 @@
 package com.offbynull.voip.core;
 
+import static com.offbynull.voip.core.TestUtils.verifyChangeSetAdded;
+import static com.offbynull.voip.core.TestUtils.verifyChangeSetCounts;
+import static com.offbynull.voip.core.TestUtils.verifyChangeSetRemoved;
+import static com.offbynull.voip.core.TestUtils.verifyChangeSetUpdated;
+import static com.offbynull.voip.core.TestUtils.verifyNodesInEntries;
+import static com.offbynull.voip.core.TestUtils.verifyTimeInEntries;
 import java.time.Instant;
 import org.junit.Test;
 import static org.junit.Assert.*;
@@ -33,6 +39,152 @@ public class KBucketTest {
     
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
+
+
+    @Test
+    public void mustPrioritizeOnTouch() throws Throwable {
+        // insert in to bucket first, once bucket is full dump in to cache
+        KBucketChangeSet res;
+        
+        res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
+        verifyChangeSetCounts(res.getBucketChangeSet(), 1, 0, 0);
+        verifyChangeSetAdded(res.getBucketChangeSet(), NODE_0010);
+        verifyChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
+        
+        res = fixture.touch(BASE_TIME.plusMillis(2L), NODE_1000);
+        verifyChangeSetCounts(res.getBucketChangeSet(), 1, 0, 0);
+        verifyChangeSetAdded(res.getBucketChangeSet(), NODE_1000);
+        verifyChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
+        
+        res = fixture.touch(BASE_TIME.plusMillis(3L), NODE_0100);
+        verifyChangeSetCounts(res.getBucketChangeSet(), 1, 0, 0);
+        verifyChangeSetAdded(res.getBucketChangeSet(), NODE_0100);
+        verifyChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
+        
+        res = fixture.touch(BASE_TIME.plusMillis(4L), NODE_1100);
+        verifyChangeSetCounts(res.getBucketChangeSet(), 1, 0, 0);
+        verifyChangeSetAdded(res.getBucketChangeSet(), NODE_1100);
+        verifyChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
+        
+        res = fixture.touch(BASE_TIME.plusMillis(5L), NODE_1111);
+        verifyChangeSetCounts(res.getBucketChangeSet(), 0, 0, 0);
+        verifyChangeSetCounts(res.getCacheChangeSet(), 1, 0, 0);
+        verifyChangeSetAdded(res.getCacheChangeSet(), NODE_1111);
+        
+        res = fixture.touch(BASE_TIME.plusMillis(6L), NODE_1110);
+        verifyChangeSetCounts(res.getBucketChangeSet(), 0, 0, 0);
+        verifyChangeSetCounts(res.getCacheChangeSet(), 1, 0, 0);
+        verifyChangeSetAdded(res.getCacheChangeSet(), NODE_1110);
+        
+        res = fixture.touch(BASE_TIME.plusMillis(7L), NODE_1101);
+        verifyChangeSetCounts(res.getBucketChangeSet(), 0, 0, 0);
+        verifyChangeSetCounts(res.getCacheChangeSet(), 1, 0, 0);
+        verifyChangeSetAdded(res.getCacheChangeSet(), NODE_1101);
+        
+        verifyNodesInEntries(fixture.dumpBucket(), NODE_0010, NODE_1000, NODE_0100, NODE_1100);
+        verifyTimeInEntries(fixture.dumpBucket(),
+                BASE_TIME.plusMillis(1L),
+                BASE_TIME.plusMillis(2L),
+                BASE_TIME.plusMillis(3L),
+                BASE_TIME.plusMillis(4L));
+        verifyNodesInEntries(fixture.dumpCache(), NODE_1111, NODE_1110, NODE_1101);
+        verifyTimeInEntries(fixture.dumpCache(),
+                BASE_TIME.plusMillis(5L),
+                BASE_TIME.plusMillis(6L),
+                BASE_TIME.plusMillis(7L));
+        assertEquals(BASE_TIME.plusMillis(7L), fixture.getLastUpdateTime());
+    }
+
+    @Test
+    public void mustDumpStalestCacheItemOnTouchIfCacheFull() throws Throwable {
+        KBucketChangeSet res;
+        
+        fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
+        fixture.touch(BASE_TIME.plusMillis(2L), NODE_1000);
+        fixture.touch(BASE_TIME.plusMillis(3L), NODE_0100);
+        fixture.touch(BASE_TIME.plusMillis(4L), NODE_1100);
+        fixture.touch(BASE_TIME.plusMillis(5L), NODE_1111);
+        fixture.touch(BASE_TIME.plusMillis(6L), NODE_1110);
+        fixture.touch(BASE_TIME.plusMillis(7L), NODE_1101);
+        
+        res = fixture.touch(BASE_TIME.plusMillis(8L), NODE_1001);
+        verifyChangeSetCounts(res.getBucketChangeSet(), 0, 0, 0);
+        verifyChangeSetCounts(res.getCacheChangeSet(), 1, 1, 0);
+        verifyChangeSetAdded(res.getCacheChangeSet(), NODE_1001);
+        verifyChangeSetRemoved(res.getCacheChangeSet(), NODE_1111);
+        
+        verifyNodesInEntries(fixture.dumpBucket(), NODE_0010, NODE_1000, NODE_0100, NODE_1100);
+        verifyTimeInEntries(fixture.dumpBucket(),
+                BASE_TIME.plusMillis(1L),
+                BASE_TIME.plusMillis(2L),
+                BASE_TIME.plusMillis(3L),
+                BASE_TIME.plusMillis(4L));
+        verifyNodesInEntries(fixture.dumpCache(), NODE_1110, NODE_1101, NODE_1001);
+        verifyTimeInEntries(fixture.dumpCache(),
+                BASE_TIME.plusMillis(6L),
+                BASE_TIME.plusMillis(7L),
+                BASE_TIME.plusMillis(8L));
+        assertEquals(BASE_TIME.plusMillis(8L), fixture.getLastUpdateTime());
+    }
+
+    @Test
+    public void mustUpdateNodeOnTouchIfAlreadyInBucket() throws Throwable {
+        KBucketChangeSet res;
+        
+        fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
+        fixture.touch(BASE_TIME.plusMillis(2L), NODE_1000);
+        fixture.touch(BASE_TIME.plusMillis(3L), NODE_0100);
+        fixture.touch(BASE_TIME.plusMillis(4L), NODE_1100);
+        fixture.touch(BASE_TIME.plusMillis(5L), NODE_1111);
+        fixture.touch(BASE_TIME.plusMillis(6L), NODE_1110);
+        fixture.touch(BASE_TIME.plusMillis(7L), NODE_1101);
+        
+        res = fixture.touch(BASE_TIME.plusMillis(8L), NODE_0010);
+        verifyChangeSetCounts(res.getBucketChangeSet(), 0, 0, 1);
+        verifyChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
+        verifyChangeSetUpdated(res.getBucketChangeSet(), NODE_0010);
+        
+        verifyNodesInEntries(fixture.dumpBucket(), NODE_1000, NODE_0100, NODE_1100, NODE_0010);
+        verifyTimeInEntries(fixture.dumpBucket(),
+                BASE_TIME.plusMillis(2L),
+                BASE_TIME.plusMillis(3L),
+                BASE_TIME.plusMillis(4L),
+                BASE_TIME.plusMillis(8L));
+        verifyNodesInEntries(fixture.dumpCache(), NODE_1111, NODE_1110, NODE_1101);
+        verifyTimeInEntries(fixture.dumpCache(),
+                BASE_TIME.plusMillis(5L),
+                BASE_TIME.plusMillis(6L),
+                BASE_TIME.plusMillis(7L));
+        assertEquals(BASE_TIME.plusMillis(8L), fixture.getLastUpdateTime());
+    }
+
+    @Test
+    public void mustPreventConflictingBucketNodeOnTouch() throws Throwable {
+        fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
+        fixture.touch(BASE_TIME.plusMillis(2L), NODE_1000);
+        fixture.touch(BASE_TIME.plusMillis(3L), NODE_0100);
+        fixture.touch(BASE_TIME.plusMillis(4L), NODE_1100);
+        fixture.touch(BASE_TIME.plusMillis(5L), NODE_1111);
+        fixture.touch(BASE_TIME.plusMillis(6L), NODE_1110);
+        fixture.touch(BASE_TIME.plusMillis(7L), NODE_1101);
+        
+        expectedException.expect(EntryConflictException.class);
+        fixture.touch(BASE_TIME.plusMillis(8L), new Node(NODE_0010.getId(), "fakelink"));
+    }
+
+    @Test
+    public void mustPreventConflictingCacheNodeOnTouch() throws Throwable {
+        fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
+        fixture.touch(BASE_TIME.plusMillis(2L), NODE_1000);
+        fixture.touch(BASE_TIME.plusMillis(3L), NODE_0100);
+        fixture.touch(BASE_TIME.plusMillis(4L), NODE_1100);
+        fixture.touch(BASE_TIME.plusMillis(5L), NODE_1111);
+        fixture.touch(BASE_TIME.plusMillis(6L), NODE_1110);
+        fixture.touch(BASE_TIME.plusMillis(7L), NODE_1101);
+        
+        expectedException.expect(EntryConflictException.class);
+        fixture.touch(BASE_TIME.plusMillis(8L), new Node(NODE_1111.getId(), "fakelink"));
+    }
 
     @Test
     public void mustSplitInTo1Bucket() throws Throwable { // why would anyone want to do this? it's just a copy

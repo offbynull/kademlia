@@ -1,8 +1,8 @@
 package com.offbynull.voip.core;
 
+import java.time.Instant;
 import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.List;
 import java.util.stream.Collectors;
 import static org.junit.Assert.assertEquals;
 
@@ -20,8 +20,8 @@ final class TestUtils {
     public static  void verifyChangeSetAdded(ChangeSet changeSet, Node ... nodes) {
         assertEquals(nodes.length, changeSet.viewAdded().size());
         
-        Set<Node> actual = changeSet.viewAdded().stream().map(x -> x.getNode()).collect(Collectors.toSet());
-        Set<Node> expected = new HashSet<>(Arrays.asList(nodes));
+        List<Node> actual = changeSet.viewAdded().stream().map(x -> x.getNode()).collect(Collectors.toList());
+        List<Node> expected = Arrays.asList(nodes);
         
         assertEquals(expected, actual);
     }
@@ -29,8 +29,8 @@ final class TestUtils {
     public static void verifyChangeSetRemoved(ChangeSet changeSet, Node ... nodes) {
         assertEquals(nodes.length, changeSet.viewRemoved().size());
         
-        Set<Node> actual = changeSet.viewRemoved().stream().map(x -> x.getNode()).collect(Collectors.toSet());
-        Set<Node> expected = new HashSet<>(Arrays.asList(nodes));
+        List<Node> actual = changeSet.viewRemoved().stream().map(x -> x.getNode()).collect(Collectors.toList());
+        List<Node> expected = Arrays.asList(nodes);
         
         assertEquals(expected, actual);
     }
@@ -38,8 +38,26 @@ final class TestUtils {
     public static void verifyChangeSetUpdated(ChangeSet changeSet, Node ... nodes) {
         assertEquals(nodes.length, changeSet.viewUpdated().size());
         
-        Set<Node> actual = changeSet.viewUpdated().stream().map(x -> x.getNode()).collect(Collectors.toSet());
-        Set<Node> expected = new HashSet<>(Arrays.asList(nodes));
+        List<Node> actual = changeSet.viewUpdated().stream().map(x -> x.getNode()).collect(Collectors.toList());
+        List<Node> expected = Arrays.asList(nodes);
+        
+        assertEquals(expected, actual);
+    }
+
+    public static void verifyNodesInEntries(List<Entry> entries, Node ... nodes) {
+        assertEquals(entries.size(), nodes.length);
+        
+        List<Node> actual = entries.stream().map(x -> x.getNode()).collect(Collectors.toList());
+        List<Node> expected = Arrays.asList(nodes);
+        
+        assertEquals(expected, actual);
+    }
+
+    public static void verifyTimeInEntries(List<Entry> entries, Instant ... instants) {
+        assertEquals(entries.size(), instants.length);
+        
+        List<Instant> actual = entries.stream().map(x -> x.getLastSeenTime()).collect(Collectors.toList());
+        List<Instant> expected = Arrays.asList(instants);
         
         assertEquals(expected, actual);
     }

@@ -61,6 +61,15 @@ public final class KBucket {
     public KBucketChangeSet replace(Instant time, Node node) throws EntryConflictException {
         Validate.notNull(time);
         Validate.notNull(node);
+        
+        Id nodeId = node.getId();
+
+        Validate.isTrue(!nodeId.equals(baseId));
+        Validate.isTrue(nodeId.getBitLength() == baseId.getBitLength());
+        
+        Validate.isTrue(nodeId.getBitString().getBits(0, prefix.getBitLength()).equals(prefix)); // ensure prefix matches
+
+        Validate.isTrue(!time.isBefore(lastUpdateTime)); // time must be >= lastUpdatedTime
 
         if (cache.size() == 0 || bucket.size() == bucket.getMaxSize()) {
             return new KBucketChangeSet(ChangeSet.NO_CHANGE, ChangeSet.NO_CHANGE);
