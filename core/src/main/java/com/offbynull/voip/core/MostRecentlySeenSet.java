@@ -167,12 +167,16 @@ public final class MostRecentlySeenSet {
         return ChangeSet.removed(removed);
     }
 
-    public Entry take() {
-        Entry e = entries.removeLast();
-        if (e == null) {
-            return null;
+    public ChangeSet removeMostRecent(int count) {
+        List<Entry> removed = new LinkedList<>();
+        for (int i = 0; i < count; i++) {
+            Entry e = entries.removeLast();
+            if (e == null) {
+                break;
+            }
+            removed.add(e);
         }
-        return e;
+        return ChangeSet.removed(removed);
     }
     
     public List<Entry> dump() {

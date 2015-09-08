@@ -1,6 +1,5 @@
 package com.offbynull.voip.core;
 
-import com.offbynull.voip.core.KBucket.TouchResult;
 import java.time.Instant;
 import org.junit.Test;
 import static org.junit.Assert.*;
@@ -36,14 +35,14 @@ public class KBucketTest {
     public ExpectedException expectedException = ExpectedException.none();
 
     @Test
-    public void mustSplitInTo1Bucket() { // why would anyone want to do this? it's just a copy
-        assertEquals(TouchResult.UPDATED_BUCKET, fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010));
-        assertEquals(TouchResult.UPDATED_BUCKET, fixture.touch(BASE_TIME.plusMillis(2L), NODE_1000));
-        assertEquals(TouchResult.UPDATED_BUCKET, fixture.touch(BASE_TIME.plusMillis(3L), NODE_0100));
-        assertEquals(TouchResult.UPDATED_BUCKET, fixture.touch(BASE_TIME.plusMillis(4L), NODE_1100));
-        assertEquals(TouchResult.UPDATED_CACHE, fixture.touch(BASE_TIME.plusMillis(5L), NODE_1111));
-        assertEquals(TouchResult.UPDATED_CACHE, fixture.touch(BASE_TIME.plusMillis(6L), NODE_1110));
-        assertEquals(TouchResult.UPDATED_CACHE, fixture.touch(BASE_TIME.plusMillis(7L), NODE_1101));
+    public void mustSplitInTo1Bucket() throws Throwable { // why would anyone want to do this? it's just a copy
+        fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
+        fixture.touch(BASE_TIME.plusMillis(2L), NODE_1000);
+        fixture.touch(BASE_TIME.plusMillis(3L), NODE_0100);
+        fixture.touch(BASE_TIME.plusMillis(4L), NODE_1100);
+        fixture.touch(BASE_TIME.plusMillis(5L), NODE_1111);
+        fixture.touch(BASE_TIME.plusMillis(6L), NODE_1110);
+        fixture.touch(BASE_TIME.plusMillis(7L), NODE_1101);
         
         KBucket[] buckets = fixture.split(0);
         
@@ -55,14 +54,14 @@ public class KBucketTest {
     }
 
     @Test
-    public void mustSplitInTo2Buckets() {
-        assertEquals(TouchResult.UPDATED_BUCKET, fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010));
-        assertEquals(TouchResult.UPDATED_BUCKET, fixture.touch(BASE_TIME.plusMillis(2L), NODE_1000));
-        assertEquals(TouchResult.UPDATED_BUCKET, fixture.touch(BASE_TIME.plusMillis(3L), NODE_0100));
-        assertEquals(TouchResult.UPDATED_BUCKET, fixture.touch(BASE_TIME.plusMillis(4L), NODE_1100));
-        assertEquals(TouchResult.UPDATED_CACHE, fixture.touch(BASE_TIME.plusMillis(5L), NODE_1111));
-        assertEquals(TouchResult.UPDATED_CACHE, fixture.touch(BASE_TIME.plusMillis(6L), NODE_1110));
-        assertEquals(TouchResult.UPDATED_CACHE, fixture.touch(BASE_TIME.plusMillis(7L), NODE_1101));
+    public void mustSplitInTo2Buckets() throws Throwable {
+        fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
+        fixture.touch(BASE_TIME.plusMillis(2L), NODE_1000);
+        fixture.touch(BASE_TIME.plusMillis(3L), NODE_0100);
+        fixture.touch(BASE_TIME.plusMillis(4L), NODE_1100);
+        fixture.touch(BASE_TIME.plusMillis(5L), NODE_1111);
+        fixture.touch(BASE_TIME.plusMillis(6L), NODE_1110);
+        fixture.touch(BASE_TIME.plusMillis(7L), NODE_1101);
         
         KBucket[] buckets = fixture.split(1);
         
@@ -84,7 +83,7 @@ public class KBucketTest {
     }
 
     @Test
-    public void mustSplitInTo2BucketsWhereBucket0IsEmpty() {
+    public void mustSplitInTo2BucketsWhereBucket0IsEmpty() throws Throwable {
         fixture.touch(BASE_TIME.plusMillis(0L), NODE_1000);
         fixture.touch(BASE_TIME.plusMillis(1L), NODE_1001);
         fixture.touch(BASE_TIME.plusMillis(2L), NODE_1010);
@@ -117,7 +116,7 @@ public class KBucketTest {
     }
 
     @Test
-    public void mustSplitInTo4Buckets() {
+    public void mustSplitInTo4Buckets() throws Throwable {
         fixture.touch(BASE_TIME.plusMillis(1L), NODE_0001); // goes in to bucket
         fixture.touch(BASE_TIME.plusMillis(2L), NODE_0101);
         fixture.touch(BASE_TIME.plusMillis(3L), NODE_1001);

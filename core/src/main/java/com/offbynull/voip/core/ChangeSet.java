@@ -22,11 +22,12 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import static java.util.Collections.emptyList;
+import java.util.Objects;
 import org.apache.commons.collections4.list.UnmodifiableList;
 import org.apache.commons.lang3.Validate;
 
 public final class ChangeSet {
-    public static final ChangeSet NO_CHANGE = new ChangeSet(Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
+    static final ChangeSet NO_CHANGE = new ChangeSet(Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
     
     private final UnmodifiableList<Entry> removed;
     private final UnmodifiableList<Entry> added;
@@ -91,6 +92,41 @@ public final class ChangeSet {
     public UnmodifiableList<UpdatedEntry> viewUpdated() {
         return updated;
     }
+
+    @Override
+    public int hashCode() {
+        int hash = 3;
+        hash = 47 * hash + Objects.hashCode(this.removed);
+        hash = 47 * hash + Objects.hashCode(this.added);
+        hash = 47 * hash + Objects.hashCode(this.updated);
+        return hash;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final ChangeSet other = (ChangeSet) obj;
+        if (!Objects.equals(this.removed, other.removed)) {
+            return false;
+        }
+        if (!Objects.equals(this.added, other.added)) {
+            return false;
+        }
+        if (!Objects.equals(this.updated, other.updated)) {
+            return false;
+        }
+        return true;
+    }
+
+    @Override
+    public String toString() {
+        return "ChangeSet{" + "removed=" + removed + ", added=" + added + ", updated=" + updated + '}';
+    }
     
     public static final class UpdatedEntry {
         private final Node node;
@@ -117,6 +153,41 @@ public final class ChangeSet {
 
         public Instant getNewLastSeenTime() {
             return newLastSeenTime;
+        }
+
+        @Override
+        public int hashCode() {
+            int hash = 3;
+            hash = 79 * hash + Objects.hashCode(this.node);
+            hash = 79 * hash + Objects.hashCode(this.oldLastSeenTime);
+            hash = 79 * hash + Objects.hashCode(this.newLastSeenTime);
+            return hash;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+            final UpdatedEntry other = (UpdatedEntry) obj;
+            if (!Objects.equals(this.node, other.node)) {
+                return false;
+            }
+            if (!Objects.equals(this.oldLastSeenTime, other.oldLastSeenTime)) {
+                return false;
+            }
+            if (!Objects.equals(this.newLastSeenTime, other.newLastSeenTime)) {
+                return false;
+            }
+            return true;
+        }
+
+        @Override
+        public String toString() {
+            return "UpdatedEntry{" + "node=" + node + ", oldLastSeenTime=" + oldLastSeenTime + ", newLastSeenTime=" + newLastSeenTime + '}';
         }
         
     }
