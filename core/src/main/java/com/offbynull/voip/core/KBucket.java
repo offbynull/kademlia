@@ -71,21 +71,23 @@ public final class KBucket {
 
         Validate.isTrue(!time.isBefore(lastUpdateTime)); // time must be >= lastUpdatedTime
 
-        if (cache.size() == 0 || bucket.size() == bucket.getMaxSize()) {
+        if (cache.size() == 0) {
+            lastUpdateTime = time;
             return new KBucketChangeSet(ChangeSet.NO_CHANGE, ChangeSet.NO_CHANGE);
         }
         
         // Remove
         ChangeSet bucketRemoveRes = bucket.remove(node); // throws EntryConflictException if id is equal but link isn't
         if (bucketRemoveRes.viewRemoved().isEmpty()) {
+            lastUpdateTime = time;
             return new KBucketChangeSet(ChangeSet.NO_CHANGE, ChangeSet.NO_CHANGE);
         }
         
         // Remove latest from cache and add to bucket
-        ChangeSet cacheLatestRes = cache.removeMostRecent(1);
+        ChangeSet cacheRemoveRes = cache.removeMostRecent(1);
         ChangeSet bucketTouchRes;
-        Validate.validState(cacheLatestRes.viewRemoved().size() == 1); // sanity check, should always remove 1 node
-        Entry cacheEntry = cacheLatestRes.viewRemoved().get(0);
+        Validate.validState(cacheRemoveRes.viewRemoved().size() == 1); // sanity check, should always remove 1 node
+        Entry cacheEntry = cacheRemoveRes.viewRemoved().get(0);
         try {
             bucketTouchRes = bucket.touch(cacheEntry.getLastSeenTime(), cacheEntry.getNode());
         } catch (EntryConflictException ece) {
@@ -94,8 +96,10 @@ public final class KBucket {
         }
         Validate.validState(bucketTouchRes.viewAdded().size() == 1); // sanity check, should always add 1 node
         
-        
-        return new KBucketChangeSet(bucketTouchRes, cacheLatestRes);
+        lastUpdateTime = time;
+        return new KBucketChangeSet(
+                new ChangeSet(bucketTouchRes.viewAdded(), bucketRemoveRes.viewRemoved(), Collections.emptyList()),
+                cacheRemoveRes);
     }
     
     public List<Entry> getClosest(Id id, int max) {

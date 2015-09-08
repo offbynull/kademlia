@@ -349,6 +349,117 @@ public class KBucketTest {
                 BASE_TIME.plusMillis(9L),
                 BASE_TIME.plusMillis(10L));
     }
+
+    @Test
+    public void mustTruncateCacheNodesOnOnDecreaseCacheSize() throws Throwable {
+        fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
+        fixture.touch(BASE_TIME.plusMillis(2L), NODE_1000);
+        fixture.touch(BASE_TIME.plusMillis(3L), NODE_0100);
+        fixture.touch(BASE_TIME.plusMillis(4L), NODE_1100);
+        fixture.touch(BASE_TIME.plusMillis(5L), NODE_1111);
+        fixture.touch(BASE_TIME.plusMillis(6L), NODE_1110);
+        fixture.touch(BASE_TIME.plusMillis(7L), NODE_1101);
+        
+        KBucketChangeSet res;
+        res = fixture.resizeCache(1); // 3 to 1 -- you want to discard the earliest entries / keep the latest entries
+        verifyChangeSetCounts(res.getBucketChangeSet(), 0, 0, 0);
+        verifyChangeSetCounts(res.getCacheChangeSet(), 0, 2, 0);
+        verifyChangeSetRemoved(res.getCacheChangeSet(), NODE_1111, NODE_1110);
+        
+        
+        verifyNodesInEntries(fixture.dumpBucket(), NODE_0010, NODE_1000, NODE_0100, NODE_1100);
+        verifyTimeInEntries(fixture.dumpBucket(),
+                BASE_TIME.plusMillis(1L),
+                BASE_TIME.plusMillis(2L),
+                BASE_TIME.plusMillis(3L),
+                BASE_TIME.plusMillis(4L));
+        verifyNodesInEntries(fixture.dumpCache(), NODE_1101);
+        verifyTimeInEntries(fixture.dumpCache(),
+                BASE_TIME.plusMillis(7L));
+    }
+
+    @Test
+    public void mustReplaceBucketNodeWithLatestCacheNode() throws Throwable {
+        fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
+        fixture.touch(BASE_TIME.plusMillis(2L), NODE_1000);
+        fixture.touch(BASE_TIME.plusMillis(3L), NODE_0100);
+        fixture.touch(BASE_TIME.plusMillis(4L), NODE_1100);
+        fixture.touch(BASE_TIME.plusMillis(5L), NODE_1111);
+        fixture.touch(BASE_TIME.plusMillis(6L), NODE_1110);
+        fixture.touch(BASE_TIME.plusMillis(7L), NODE_1101);
+        
+        KBucketChangeSet res;
+        res = fixture.replace(BASE_TIME.plusMillis(8L), NODE_1000);
+        verifyChangeSetCounts(res.getBucketChangeSet(), 1, 1, 0);
+        verifyChangeSetAdded(res.getBucketChangeSet(), NODE_1101);
+        verifyChangeSetRemoved(res.getBucketChangeSet(), NODE_1000);
+        verifyChangeSetCounts(res.getCacheChangeSet(), 0, 1, 0);
+        verifyChangeSetRemoved(res.getCacheChangeSet(), NODE_1101);
+        
+        
+        verifyNodesInEntries(fixture.dumpBucket(), NODE_0010, NODE_0100, NODE_1100, NODE_1101);
+        verifyTimeInEntries(fixture.dumpBucket(),
+                BASE_TIME.plusMillis(1L),
+                BASE_TIME.plusMillis(3L),
+                BASE_TIME.plusMillis(4L),
+                BASE_TIME.plusMillis(7L));
+        verifyNodesInEntries(fixture.dumpCache(), NODE_1111, NODE_1110);
+        verifyTimeInEntries(fixture.dumpCache(),
+                BASE_TIME.plusMillis(5L),
+                BASE_TIME.plusMillis(6L));
+    }
+
+    @Test
+    public void mustReplaceBucketNodeIfNotInBucket() throws Throwable {
+        fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
+        fixture.touch(BASE_TIME.plusMillis(2L), NODE_1000);
+        fixture.touch(BASE_TIME.plusMillis(3L), NODE_0100);
+        fixture.touch(BASE_TIME.plusMillis(4L), NODE_1100);
+        fixture.touch(BASE_TIME.plusMillis(5L), NODE_1111);
+        fixture.touch(BASE_TIME.plusMillis(6L), NODE_1110);
+        fixture.touch(BASE_TIME.plusMillis(7L), NODE_1101);
+        
+        KBucketChangeSet res;
+        res = fixture.replace(BASE_TIME.plusMillis(8L), NODE_1111);
+        verifyChangeSetCounts(res.getBucketChangeSet(), 0, 0, 0);
+        verifyChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
+        
+        
+        verifyNodesInEntries(fixture.dumpBucket(), NODE_0010, NODE_1000, NODE_0100, NODE_1100);
+        verifyTimeInEntries(fixture.dumpBucket(),
+                BASE_TIME.plusMillis(1L),
+                BASE_TIME.plusMillis(2L),
+                BASE_TIME.plusMillis(3L),
+                BASE_TIME.plusMillis(4L));
+        verifyNodesInEntries(fixture.dumpCache(), NODE_1111, NODE_1110, NODE_1101);
+        verifyTimeInEntries(fixture.dumpCache(),
+                BASE_TIME.plusMillis(5L),
+                BASE_TIME.plusMillis(6L),
+                BASE_TIME.plusMillis(7L));
+    }
+
+    @Test
+    public void mustFailToReplaceNodeIfCacheIsEmpty() throws Throwable {
+        fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
+        fixture.touch(BASE_TIME.plusMillis(2L), NODE_1000);
+        fixture.touch(BASE_TIME.plusMillis(3L), NODE_0100);
+        fixture.touch(BASE_TIME.plusMillis(4L), NODE_1100);
+        
+        KBucketChangeSet res;
+        res = fixture.replace(BASE_TIME.plusMillis(8L), NODE_1000);
+        verifyChangeSetCounts(res.getBucketChangeSet(), 0, 0, 0);
+        verifyChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
+        
+        
+        verifyNodesInEntries(fixture.dumpBucket(), NODE_0010, NODE_1000, NODE_0100, NODE_1100);
+        verifyTimeInEntries(fixture.dumpBucket(),
+                BASE_TIME.plusMillis(1L),
+                BASE_TIME.plusMillis(2L),
+                BASE_TIME.plusMillis(3L),
+                BASE_TIME.plusMillis(4L));
+        verifyNodesInEntries(fixture.dumpCache());
+        verifyTimeInEntries(fixture.dumpCache());
+    }
     
     @Test
     public void mustSplitInTo1Bucket() throws Throwable { // why would anyone want to do this? it's just a copy
