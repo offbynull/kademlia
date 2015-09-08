@@ -187,6 +187,170 @@ public class KBucketTest {
     }
 
     @Test
+    public void mustProperlyInsertAfterIncreasingBucketSize() throws Throwable {
+        // insert in to bucket first, once bucket is full dump in to cache
+        KBucketChangeSet res;
+        
+        res = fixture.resizeBucket(6); // 4 to 6
+        verifyChangeSetCounts(res.getBucketChangeSet(), 0, 0, 0);
+        verifyChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
+        
+        res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
+        verifyChangeSetCounts(res.getBucketChangeSet(), 1, 0, 0);
+        verifyChangeSetAdded(res.getBucketChangeSet(), NODE_0010);
+        verifyChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
+        
+        res = fixture.touch(BASE_TIME.plusMillis(2L), NODE_1000);
+        verifyChangeSetCounts(res.getBucketChangeSet(), 1, 0, 0);
+        verifyChangeSetAdded(res.getBucketChangeSet(), NODE_1000);
+        verifyChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
+        
+        res = fixture.touch(BASE_TIME.plusMillis(3L), NODE_0100);
+        verifyChangeSetCounts(res.getBucketChangeSet(), 1, 0, 0);
+        verifyChangeSetAdded(res.getBucketChangeSet(), NODE_0100);
+        verifyChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
+        
+        res = fixture.touch(BASE_TIME.plusMillis(4L), NODE_1100);
+        verifyChangeSetCounts(res.getBucketChangeSet(), 1, 0, 0);
+        verifyChangeSetAdded(res.getBucketChangeSet(), NODE_1100);
+        verifyChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
+        
+        res = fixture.touch(BASE_TIME.plusMillis(5L), NODE_1111);
+        verifyChangeSetCounts(res.getBucketChangeSet(), 1, 0, 0);
+        verifyChangeSetAdded(res.getBucketChangeSet(), NODE_1111);
+        verifyChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
+        
+        res = fixture.touch(BASE_TIME.plusMillis(6L), NODE_1110);
+        verifyChangeSetCounts(res.getBucketChangeSet(), 1, 0, 0);
+        verifyChangeSetAdded(res.getBucketChangeSet(), NODE_1110);
+        verifyChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
+        
+        res = fixture.touch(BASE_TIME.plusMillis(7L), NODE_1101);
+        verifyChangeSetCounts(res.getBucketChangeSet(), 0, 0, 0);
+        verifyChangeSetCounts(res.getCacheChangeSet(), 1, 0, 0);
+        verifyChangeSetAdded(res.getCacheChangeSet(), NODE_1101);
+        
+        verifyNodesInEntries(fixture.dumpBucket(), NODE_0010, NODE_1000, NODE_0100, NODE_1100, NODE_1111, NODE_1110);
+        verifyTimeInEntries(fixture.dumpBucket(),
+                BASE_TIME.plusMillis(1L),
+                BASE_TIME.plusMillis(2L),
+                BASE_TIME.plusMillis(3L),
+                BASE_TIME.plusMillis(4L),
+                BASE_TIME.plusMillis(5L),
+                BASE_TIME.plusMillis(6L));
+        verifyNodesInEntries(fixture.dumpCache(), NODE_1101);
+        verifyTimeInEntries(fixture.dumpCache(),
+                BASE_TIME.plusMillis(7L));
+        assertEquals(BASE_TIME.plusMillis(7L), fixture.getLastUpdateTime());
+    }
+    
+    @Test
+    public void mustMoveFromCacheToBucketOnIncreasingBucketSize() throws Throwable {
+        fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
+        fixture.touch(BASE_TIME.plusMillis(2L), NODE_1000);
+        fixture.touch(BASE_TIME.plusMillis(3L), NODE_0100);
+        fixture.touch(BASE_TIME.plusMillis(4L), NODE_1100);
+        fixture.touch(BASE_TIME.plusMillis(5L), NODE_1111);
+        fixture.touch(BASE_TIME.plusMillis(6L), NODE_1110);
+        fixture.touch(BASE_TIME.plusMillis(7L), NODE_1101);
+        
+        KBucketChangeSet res;
+        res = fixture.resizeBucket(6); // 4 to 6
+        verifyChangeSetCounts(res.getBucketChangeSet(), 2, 0, 0);
+        verifyChangeSetAdded(res.getBucketChangeSet(), NODE_1110, NODE_1101);
+        verifyChangeSetCounts(res.getCacheChangeSet(), 0, 2, 0);
+        verifyChangeSetRemoved(res.getCacheChangeSet(), NODE_1110, NODE_1101);
+        
+        
+        verifyNodesInEntries(fixture.dumpBucket(), NODE_0010, NODE_1000, NODE_0100, NODE_1100, NODE_1110, NODE_1101);
+        verifyTimeInEntries(fixture.dumpBucket(),
+                BASE_TIME.plusMillis(1L),
+                BASE_TIME.plusMillis(2L),
+                BASE_TIME.plusMillis(3L),
+                BASE_TIME.plusMillis(4L),
+                BASE_TIME.plusMillis(6L),
+                BASE_TIME.plusMillis(7L));
+        verifyNodesInEntries(fixture.dumpCache(), NODE_1111);
+        verifyTimeInEntries(fixture.dumpCache(), BASE_TIME.plusMillis(5L));
+        assertEquals(BASE_TIME.plusMillis(7L), fixture.getLastUpdateTime());
+    }
+
+    @Test
+    public void mustDumpStalestBucketNodesOnDecreasingBucketSize() throws Throwable {
+        fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
+        fixture.touch(BASE_TIME.plusMillis(2L), NODE_1000);
+        fixture.touch(BASE_TIME.plusMillis(3L), NODE_0100);
+        fixture.touch(BASE_TIME.plusMillis(4L), NODE_1100);
+        fixture.touch(BASE_TIME.plusMillis(5L), NODE_1111);
+        fixture.touch(BASE_TIME.plusMillis(6L), NODE_1110);
+        fixture.touch(BASE_TIME.plusMillis(7L), NODE_1101);
+        
+        KBucketChangeSet res;
+        res = fixture.resizeBucket(2); // 4 to 2
+        verifyChangeSetCounts(res.getBucketChangeSet(), 0, 2, 0);
+        verifyChangeSetRemoved(res.getBucketChangeSet(), NODE_0010, NODE_1000);
+        verifyChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
+        
+        
+        verifyNodesInEntries(fixture.dumpBucket(), NODE_0100, NODE_1100);
+        verifyTimeInEntries(fixture.dumpBucket(),
+                BASE_TIME.plusMillis(3L),
+                BASE_TIME.plusMillis(4L));
+        verifyNodesInEntries(fixture.dumpCache(), NODE_1111, NODE_1110, NODE_1101);
+        verifyTimeInEntries(fixture.dumpCache(),
+                BASE_TIME.plusMillis(5L),
+                BASE_TIME.plusMillis(6L),
+                BASE_TIME.plusMillis(7L));
+    }
+
+    @Test
+    public void mustAcceptMoreNodesInToCacheOnIncreasingCacheSize() throws Throwable {
+        fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
+        fixture.touch(BASE_TIME.plusMillis(2L), NODE_1000);
+        fixture.touch(BASE_TIME.plusMillis(3L), NODE_0100);
+        fixture.touch(BASE_TIME.plusMillis(4L), NODE_1100);
+        fixture.touch(BASE_TIME.plusMillis(5L), NODE_1111);
+        fixture.touch(BASE_TIME.plusMillis(6L), NODE_1110);
+        fixture.touch(BASE_TIME.plusMillis(7L), NODE_1101);
+        
+        KBucketChangeSet res;
+        res = fixture.resizeCache(6); // 3 to 6
+        verifyChangeSetCounts(res.getBucketChangeSet(), 0, 0, 0);
+        verifyChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
+        
+        res = fixture.touch(BASE_TIME.plusMillis(8L), NODE_0001);
+        verifyChangeSetCounts(res.getBucketChangeSet(), 0, 0, 0);
+        verifyChangeSetCounts(res.getCacheChangeSet(), 1, 0, 0);
+        verifyChangeSetAdded(res.getCacheChangeSet(), NODE_0001);
+        
+        res = fixture.touch(BASE_TIME.plusMillis(9L), NODE_0011);
+        verifyChangeSetCounts(res.getBucketChangeSet(), 0, 0, 0);
+        verifyChangeSetCounts(res.getCacheChangeSet(), 1, 0, 0);
+        verifyChangeSetAdded(res.getCacheChangeSet(), NODE_0011);
+        
+        res = fixture.touch(BASE_TIME.plusMillis(10L), NODE_0111);
+        verifyChangeSetCounts(res.getBucketChangeSet(), 0, 0, 0);
+        verifyChangeSetCounts(res.getCacheChangeSet(), 1, 0, 0);
+        verifyChangeSetAdded(res.getCacheChangeSet(), NODE_0111);
+        
+        
+        verifyNodesInEntries(fixture.dumpBucket(), NODE_0010, NODE_1000, NODE_0100, NODE_1100);
+        verifyTimeInEntries(fixture.dumpBucket(),
+                BASE_TIME.plusMillis(1L),
+                BASE_TIME.plusMillis(2L),
+                BASE_TIME.plusMillis(3L),
+                BASE_TIME.plusMillis(4L));
+        verifyNodesInEntries(fixture.dumpCache(), NODE_1111, NODE_1110, NODE_1101, NODE_0001, NODE_0011, NODE_0111);
+        verifyTimeInEntries(fixture.dumpCache(),
+                BASE_TIME.plusMillis(5L),
+                BASE_TIME.plusMillis(6L),
+                BASE_TIME.plusMillis(7L),
+                BASE_TIME.plusMillis(8L),
+                BASE_TIME.plusMillis(9L),
+                BASE_TIME.plusMillis(10L));
+    }
+    
+    @Test
     public void mustSplitInTo1Bucket() throws Throwable { // why would anyone want to do this? it's just a copy
         fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
         fixture.touch(BASE_TIME.plusMillis(2L), NODE_1000);

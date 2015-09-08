@@ -300,8 +300,8 @@ public final class KBucket {
             Validate.validState(addRes.viewUpdated().isEmpty());
         }
         
-        // show moved as being removed from cache and added to bucket
-        return new KBucketChangeSet(cacheRemoveRes, ChangeSet.added(cacheRemoveRes.viewRemoved()));
+        // show moved as being added to bucket and removed from cache
+        return new KBucketChangeSet(ChangeSet.added(cacheRemoveRes.viewRemoved()), cacheRemoveRes);
     }
     
     // The int {@code 0xABCD} with a bitlength of 12 would result in the bit string {@code 10 1011 1100 1101}.
