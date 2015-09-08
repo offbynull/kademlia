@@ -16,7 +16,7 @@
     
     <modules>
         <module>build-tools</module>
-        <module>core</module>
+        <module>kademlia</module>
     </modules>
     
     <dependencyManagement>
