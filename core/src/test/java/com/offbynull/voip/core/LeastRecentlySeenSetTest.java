@@ -1,10 +1,14 @@
 package com.offbynull.voip.core;
 
-import com.offbynull.voip.core.LeastRecentlySeenSet.RemoveResult;
-import com.offbynull.voip.core.LeastRecentlySeenSet.TouchResult;
+import static com.offbynull.voip.core.TestUtils.verifyChangeSetAdded;
+import static com.offbynull.voip.core.TestUtils.verifyChangeSetCounts;
+import static com.offbynull.voip.core.TestUtils.verifyChangeSetRemoved;
+import static com.offbynull.voip.core.TestUtils.verifyChangeSetUpdated;
 import java.time.Instant;
 import static org.junit.Assert.assertEquals;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 public class LeastRecentlySeenSetTest {
     
@@ -20,16 +24,20 @@ public class LeastRecentlySeenSetTest {
     
     private LeastRecentlySeenSet fixture = new LeastRecentlySeenSet(BASE_ID, 4); // bucket for prefix of 16 bits, bucket capacity of 4
     
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     @Test
-    public void mustInsertNodes() {
-        TouchResult touchRes;
+    public void mustInsertNodes() throws Throwable {
+        ChangeSet res;
         
-        touchRes = fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
-        assertEquals(TouchResult.UPDATED, touchRes);
+        res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
+        verifyChangeSetCounts(res, 1, 0, 0);
+        verifyChangeSetAdded(res, NODE_0010);
         
-        touchRes = fixture.touch(BASE_TIME.plusMillis(2L), NODE_0100);
-        assertEquals(TouchResult.UPDATED, touchRes);
+        res = fixture.touch(BASE_TIME.plusMillis(2L), NODE_0100);
+        verifyChangeSetCounts(res, 1, 0, 0);
+        verifyChangeSetAdded(res, NODE_0100);
         
         assertEquals(NODE_0010, fixture.dump().get(0).getNode());
         assertEquals(NODE_0100, fixture.dump().get(1).getNode());
@@ -37,20 +45,24 @@ public class LeastRecentlySeenSetTest {
     }
 
     @Test
-    public void mustInsertNodesWhenProvidedInBackwardsOrder() {
-        TouchResult touchRes;
+    public void mustInsertNodesWhenProvidedInBackwardsOrder() throws Throwable {
+        ChangeSet res;
 
-        touchRes = fixture.touch(BASE_TIME.plusMillis(4L), NODE_1100);
-        assertEquals(TouchResult.UPDATED, touchRes);
+        res = fixture.touch(BASE_TIME.plusMillis(4L), NODE_1100);
+        verifyChangeSetCounts(res, 1, 0, 0);
+        verifyChangeSetAdded(res, NODE_1100);
 
-        touchRes = fixture.touch(BASE_TIME.plusMillis(3L), NODE_1000);
-        assertEquals(TouchResult.UPDATED, touchRes);
+        res = fixture.touch(BASE_TIME.plusMillis(3L), NODE_1000);
+        verifyChangeSetCounts(res, 1, 0, 0);
+        verifyChangeSetAdded(res, NODE_1000);
         
-        touchRes = fixture.touch(BASE_TIME.plusMillis(2L), NODE_0100);
-        assertEquals(TouchResult.UPDATED, touchRes);
+        res = fixture.touch(BASE_TIME.plusMillis(2L), NODE_0100);
+        verifyChangeSetCounts(res, 1, 0, 0);
+        verifyChangeSetAdded(res, NODE_0100);
         
-        touchRes = fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
-        assertEquals(TouchResult.UPDATED, touchRes);
+        res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
+        verifyChangeSetCounts(res, 1, 0, 0);
+        verifyChangeSetAdded(res, NODE_0010);
        
         assertEquals(NODE_0010, fixture.dump().get(0).getNode());
         assertEquals(NODE_0100, fixture.dump().get(1).getNode());
@@ -60,23 +72,27 @@ public class LeastRecentlySeenSetTest {
     }
 
     @Test
-    public void mustNotOverrideExistingNodesIfBucketFullAndTimestampUnchanged() {
-        TouchResult touchRes;
+    public void mustNotOverrideExistingNodesIfBucketFullAndTimestampUnchanged() throws Throwable {
+        ChangeSet res;
 
-        touchRes = fixture.touch(BASE_TIME.plusMillis(1L), NODE_1100);
-        assertEquals(TouchResult.UPDATED, touchRes);
+        res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_1100);
+        verifyChangeSetCounts(res, 1, 0, 0);
+        verifyChangeSetAdded(res, NODE_1100);
 
-        touchRes = fixture.touch(BASE_TIME.plusMillis(1L), NODE_1000);
-        assertEquals(TouchResult.UPDATED, touchRes);
+        res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_1000);
+        verifyChangeSetCounts(res, 1, 0, 0);
+        verifyChangeSetAdded(res, NODE_1000);
         
-        touchRes = fixture.touch(BASE_TIME.plusMillis(1L), NODE_0100);
-        assertEquals(TouchResult.UPDATED, touchRes);
+        res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_0100);
+        verifyChangeSetCounts(res, 1, 0, 0);
+        verifyChangeSetAdded(res, NODE_0100);
         
-        touchRes = fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
-        assertEquals(TouchResult.UPDATED, touchRes);
+        res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
+        verifyChangeSetCounts(res, 1, 0, 0);
+        verifyChangeSetAdded(res, NODE_0010);
         
-        touchRes = fixture.touch(BASE_TIME.plusMillis(1L), NODE_1111);
-        assertEquals(TouchResult.IGNORED, touchRes);
+        res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_1111);
+        verifyChangeSetCounts(res, 0, 0, 0);
        
         assertEquals(NODE_1100, fixture.dump().get(0).getNode());
         assertEquals(NODE_1000, fixture.dump().get(1).getNode());
@@ -87,23 +103,27 @@ public class LeastRecentlySeenSetTest {
     }
 
     @Test
-    public void mustNotOverrideExistingNodesIfBucketFullAndTimestampLater() {
-        TouchResult touchRes;
+    public void mustNotOverrideExistingNodesIfBucketFullAndTimestampLater() throws Throwable {
+        ChangeSet res;
 
-        touchRes = fixture.touch(BASE_TIME.plusMillis(1L), NODE_1100);
-        assertEquals(TouchResult.UPDATED, touchRes);
+        res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_1100);
+        verifyChangeSetCounts(res, 1, 0, 0);
+        verifyChangeSetAdded(res, NODE_1100);
 
-        touchRes = fixture.touch(BASE_TIME.plusMillis(1L), NODE_1000);
-        assertEquals(TouchResult.UPDATED, touchRes);
+        res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_1000);
+        verifyChangeSetCounts(res, 1, 0, 0);
+        verifyChangeSetAdded(res, NODE_1000);
         
-        touchRes = fixture.touch(BASE_TIME.plusMillis(1L), NODE_0100);
-        assertEquals(TouchResult.UPDATED, touchRes);
+        res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_0100);
+        verifyChangeSetCounts(res, 1, 0, 0);
+        verifyChangeSetAdded(res, NODE_0100);
         
-        touchRes = fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
-        assertEquals(TouchResult.UPDATED, touchRes);
+        res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
+        verifyChangeSetCounts(res, 1, 0, 0);
+        verifyChangeSetAdded(res, NODE_0010);
         
-        touchRes = fixture.touch(BASE_TIME.plusMillis(2L), NODE_1111);
-        assertEquals(TouchResult.IGNORED, touchRes);
+        res = fixture.touch(BASE_TIME.plusMillis(2L), NODE_1111);
+        verifyChangeSetCounts(res, 0, 0, 0);
        
         assertEquals(NODE_1100, fixture.dump().get(0).getNode());
         assertEquals(NODE_1000, fixture.dump().get(1).getNode());
@@ -113,23 +133,27 @@ public class LeastRecentlySeenSetTest {
     }
 
     @Test
-    public void mustRejectNodeInsertionIfFullAndInFuture() {
-        TouchResult touchRes;
+    public void mustRejectNodeInsertionIfFullAndInFuture() throws Throwable {
+        ChangeSet res;
         
-        touchRes = fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
-        assertEquals(TouchResult.UPDATED, touchRes);
+        res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
+        verifyChangeSetCounts(res, 1, 0, 0);
+        verifyChangeSetAdded(res, NODE_0010);
         
-        touchRes = fixture.touch(BASE_TIME.plusMillis(2L), NODE_0100);
-        assertEquals(TouchResult.UPDATED, touchRes);
+        res = fixture.touch(BASE_TIME.plusMillis(2L), NODE_0100);
+        verifyChangeSetCounts(res, 1, 0, 0);
+        verifyChangeSetAdded(res, NODE_0100);
 
-        touchRes = fixture.touch(BASE_TIME.plusMillis(3L), NODE_1000);
-        assertEquals(TouchResult.UPDATED, touchRes);
+        res = fixture.touch(BASE_TIME.plusMillis(3L), NODE_1000);
+        verifyChangeSetCounts(res, 1, 0, 0);
+        verifyChangeSetAdded(res, NODE_1000);
         
-        touchRes = fixture.touch(BASE_TIME.plusMillis(4L), NODE_1100);
-        assertEquals(TouchResult.UPDATED, touchRes);
+        res = fixture.touch(BASE_TIME.plusMillis(4L), NODE_1100);
+        verifyChangeSetCounts(res, 1, 0, 0);
+        verifyChangeSetAdded(res, NODE_1100);
 
-        touchRes = fixture.touch(BASE_TIME.plusMillis(5L), NODE_1111);
-        assertEquals(TouchResult.IGNORED, touchRes);
+        res = fixture.touch(BASE_TIME.plusMillis(5L), NODE_1111);
+        verifyChangeSetCounts(res, 0, 0, 0);
         
         assertEquals(NODE_0010, fixture.dump().get(0).getNode());
         assertEquals(NODE_0100, fixture.dump().get(1).getNode());
@@ -139,57 +163,64 @@ public class LeastRecentlySeenSetTest {
     }
 
     @Test
-    public void mustFailToRemoveNodeIfNotExists() {
-        RemoveResult removeRes;
+    public void mustFailToRemoveNodeIfNotExists() throws Throwable {
+        ChangeSet res;
         
-        removeRes = fixture.remove(NODE_1100);
-        assertEquals(RemoveResult.NOT_FOUND, removeRes);
+        res = fixture.remove(NODE_1100);
+        verifyChangeSetCounts(res, 0, 0, 0);
     }
     
     @Test
-    public void mustRemoveNode() {
-        TouchResult touchRes;
-        RemoveResult removeRes;
+    public void mustRemoveNode() throws Throwable {
+        ChangeSet res;
         
-        touchRes = fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
-        assertEquals(TouchResult.UPDATED, touchRes);
+        res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
+        verifyChangeSetCounts(res, 1, 0, 0);
+        verifyChangeSetAdded(res, NODE_0010);
         
-        touchRes = fixture.touch(BASE_TIME.plusMillis(2L), NODE_0100);
-        assertEquals(TouchResult.UPDATED, touchRes);
+        res = fixture.touch(BASE_TIME.plusMillis(2L), NODE_0100);
+        verifyChangeSetCounts(res, 1, 0, 0);
+        verifyChangeSetAdded(res, NODE_0100);
 
         assertEquals(NODE_0010, fixture.dump().get(0).getNode());
         assertEquals(NODE_0100, fixture.dump().get(1).getNode());
         assertEquals(2, fixture.size());
         
-        removeRes = fixture.remove(NODE_0100);
-        assertEquals(RemoveResult.REMOVED, removeRes);
+        res = fixture.remove(NODE_0100);
+        verifyChangeSetCounts(res, 0, 1, 0);
+        verifyChangeSetRemoved(res, NODE_0100);
         
         assertEquals(NODE_0010, fixture.dump().get(0).getNode());
         assertEquals(1, fixture.size());
     }
     
     @Test
-    public void mustAllowNodeInsertionIfNodeRemoved() {
-        TouchResult touchRes;
-        RemoveResult removeRes;
+    public void mustAllowNodeInsertionIfNodeRemoved() throws Throwable {
+        ChangeSet res;
         
-        touchRes = fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
-        assertEquals(TouchResult.UPDATED, touchRes);
+        res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
+        verifyChangeSetCounts(res, 1, 0, 0);
+        verifyChangeSetAdded(res, NODE_0010);
         
-        touchRes = fixture.touch(BASE_TIME.plusMillis(2L), NODE_0100);
-        assertEquals(TouchResult.UPDATED, touchRes);
+        res = fixture.touch(BASE_TIME.plusMillis(2L), NODE_0100);
+        verifyChangeSetCounts(res, 1, 0, 0);
+        verifyChangeSetAdded(res, NODE_0100);
 
-        touchRes = fixture.touch(BASE_TIME.plusMillis(3L), NODE_1000);
-        assertEquals(TouchResult.UPDATED, touchRes);
+        res = fixture.touch(BASE_TIME.plusMillis(3L), NODE_1000);
+        verifyChangeSetCounts(res, 1, 0, 0);
+        verifyChangeSetAdded(res, NODE_1000);
         
-        touchRes = fixture.touch(BASE_TIME.plusMillis(4L), NODE_1100);
-        assertEquals(TouchResult.UPDATED, touchRes);
+        res = fixture.touch(BASE_TIME.plusMillis(4L), NODE_1100);
+        verifyChangeSetCounts(res, 1, 0, 0);
+        verifyChangeSetAdded(res, NODE_1100);
 
-        removeRes = fixture.remove(NODE_1100);
-        assertEquals(RemoveResult.REMOVED, removeRes);
+        res = fixture.remove(NODE_1100);
+        verifyChangeSetCounts(res, 0, 1, 0);
+        verifyChangeSetRemoved(res, NODE_1100);
 
-        touchRes = fixture.touch(BASE_TIME.plusMillis(5L), NODE_1111);
-        assertEquals(TouchResult.UPDATED, touchRes);
+        res = fixture.touch(BASE_TIME.plusMillis(5L), NODE_1111);
+        verifyChangeSetCounts(res, 1, 0, 0);
+        verifyChangeSetAdded(res, NODE_1111);
         
         assertEquals(NODE_0010, fixture.dump().get(0).getNode());
         assertEquals(NODE_0100, fixture.dump().get(1).getNode());
@@ -199,28 +230,33 @@ public class LeastRecentlySeenSetTest {
     }
 
     @Test
-    public void mustUpdateNode() {
-        TouchResult touchRes;
+    public void mustUpdateNode() throws Throwable {
+        ChangeSet res;
         
         assertEquals(0, fixture.size());
         
-        touchRes = fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
-        assertEquals(TouchResult.UPDATED, touchRes);
+        res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
+        verifyChangeSetCounts(res, 1, 0, 0);
+        verifyChangeSetAdded(res, NODE_0010);
         
-        touchRes = fixture.touch(BASE_TIME.plusMillis(2L), NODE_0100);
-        assertEquals(TouchResult.UPDATED, touchRes);
+        res = fixture.touch(BASE_TIME.plusMillis(2L), NODE_0100);
+        verifyChangeSetCounts(res, 1, 0, 0);
+        verifyChangeSetAdded(res, NODE_0100);
 
-        touchRes = fixture.touch(BASE_TIME.plusMillis(3L), NODE_1000);
-        assertEquals(TouchResult.UPDATED, touchRes);
+        res = fixture.touch(BASE_TIME.plusMillis(3L), NODE_1000);
+        verifyChangeSetCounts(res, 1, 0, 0);
+        verifyChangeSetAdded(res, NODE_1000);
         
-        touchRes = fixture.touch(BASE_TIME.plusMillis(4L), NODE_1100);
-        assertEquals(TouchResult.UPDATED, touchRes);
+        res = fixture.touch(BASE_TIME.plusMillis(4L), NODE_1100);
+        verifyChangeSetCounts(res, 1, 0, 0);
+        verifyChangeSetAdded(res, NODE_1100);
 
-        touchRes = fixture.touch(BASE_TIME.plusMillis(5L), NODE_1111); // must fail, bucket is full and too far in future
-        assertEquals(TouchResult.IGNORED, touchRes);
+        res = fixture.touch(BASE_TIME.plusMillis(5L), NODE_1111); // must fail, bucket is full and too far in future
+        verifyChangeSetCounts(res, 0, 0, 0);
         
-        touchRes = fixture.touch(BASE_TIME.plusMillis(4L), NODE_0010);
-        assertEquals(TouchResult.UPDATED, touchRes);
+        res = fixture.touch(BASE_TIME.plusMillis(4L), NODE_0010);
+        verifyChangeSetCounts(res, 0, 0, 1);
+        verifyChangeSetUpdated(res, NODE_0010);
 
         assertEquals(NODE_0100, fixture.dump().get(0).getNode());
         assertEquals(NODE_1000, fixture.dump().get(1).getNode());
@@ -230,25 +266,29 @@ public class LeastRecentlySeenSetTest {
     }
 
     @Test
-    public void mustNotUpdateNodeIfFullButTimestampIsTheSame() {
-        TouchResult touchRes;
+    public void mustNotUpdateNodeIfFullButTimestampIsTheSame() throws Throwable {
+        ChangeSet res;
         
         assertEquals(0, fixture.size());
         
-        touchRes = fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
-        assertEquals(TouchResult.UPDATED, touchRes);
+        res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
+        verifyChangeSetCounts(res, 1, 0, 0);
+        verifyChangeSetAdded(res, NODE_0010);
         
-        touchRes = fixture.touch(BASE_TIME.plusMillis(2L), NODE_0100);
-        assertEquals(TouchResult.UPDATED, touchRes);
+        res = fixture.touch(BASE_TIME.plusMillis(2L), NODE_0100);
+        verifyChangeSetCounts(res, 1, 0, 0);
+        verifyChangeSetAdded(res, NODE_0100);
 
-        touchRes = fixture.touch(BASE_TIME.plusMillis(3L), NODE_1000);
-        assertEquals(TouchResult.UPDATED, touchRes);
+        res = fixture.touch(BASE_TIME.plusMillis(3L), NODE_1000);
+        verifyChangeSetCounts(res, 1, 0, 0);
+        verifyChangeSetAdded(res, NODE_1000);
         
-        touchRes = fixture.touch(BASE_TIME.plusMillis(4L), NODE_1100);
-        assertEquals(TouchResult.UPDATED, touchRes);
+        res = fixture.touch(BASE_TIME.plusMillis(4L), NODE_1100);
+        verifyChangeSetCounts(res, 1, 0, 0);
+        verifyChangeSetAdded(res, NODE_1100);
         
-        touchRes = fixture.touch(BASE_TIME.plusMillis(4L), NODE_1111);
-        assertEquals(TouchResult.IGNORED, touchRes);
+        res = fixture.touch(BASE_TIME.plusMillis(4L), NODE_1111);
+        verifyChangeSetCounts(res, 0, 0, 0);
 
         assertEquals(NODE_0010, fixture.dump().get(0).getNode());
         assertEquals(NODE_0100, fixture.dump().get(1).getNode());
@@ -258,28 +298,35 @@ public class LeastRecentlySeenSetTest {
     }
 
     @Test
-    public void mustUpdateNodeWhenProvidedInBackwardsOrder() {
-        TouchResult touchRes;
+    public void mustUpdateNodeWhenProvidedInBackwardsOrder() throws Throwable {
+        ChangeSet res;
         
         assertEquals(0, fixture.size());
 
-        touchRes = fixture.touch(BASE_TIME.plusMillis(5L), NODE_1111);
-        assertEquals(TouchResult.UPDATED, touchRes);
+        res = fixture.touch(BASE_TIME.plusMillis(5L), NODE_1111);
+        verifyChangeSetCounts(res, 1, 0, 0);
+        verifyChangeSetAdded(res, NODE_1111);
         
-        touchRes = fixture.touch(BASE_TIME.plusMillis(4L), NODE_1100);
-        assertEquals(TouchResult.UPDATED, touchRes);
+        res = fixture.touch(BASE_TIME.plusMillis(4L), NODE_1100);
+        verifyChangeSetCounts(res, 1, 0, 0);
+        verifyChangeSetAdded(res, NODE_1100);
 
-        touchRes = fixture.touch(BASE_TIME.plusMillis(3L), NODE_1000);
-        assertEquals(TouchResult.UPDATED, touchRes);
+        res = fixture.touch(BASE_TIME.plusMillis(3L), NODE_1000);
+        verifyChangeSetCounts(res, 1, 0, 0);
+        verifyChangeSetAdded(res, NODE_1000);
 
-        touchRes = fixture.touch(BASE_TIME.plusMillis(2L), NODE_0100);
-        assertEquals(TouchResult.UPDATED, touchRes);
+        res = fixture.touch(BASE_TIME.plusMillis(2L), NODE_0100);
+        verifyChangeSetCounts(res, 1, 0, 0);
+        verifyChangeSetAdded(res, NODE_0100);
         
-        touchRes = fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
-        assertEquals(TouchResult.UPDATED, touchRes);
+        res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
+        verifyChangeSetCounts(res, 1, 1, 0);
+        verifyChangeSetAdded(res, NODE_0010);
+        verifyChangeSetRemoved(res, NODE_1111);
         
-        touchRes = fixture.touch(BASE_TIME.plusMillis(4L), NODE_0010);
-        assertEquals(TouchResult.UPDATED, touchRes);
+        res = fixture.touch(BASE_TIME.plusMillis(4L), NODE_0010);
+        verifyChangeSetCounts(res, 0, 0, 1);
+        verifyChangeSetUpdated(res, NODE_0010);
 
         assertEquals(NODE_0100, fixture.dump().get(0).getNode());
         assertEquals(NODE_1000, fixture.dump().get(1).getNode());
@@ -287,41 +334,28 @@ public class LeastRecentlySeenSetTest {
         assertEquals(NODE_0010, fixture.dump().get(3).getNode());
         assertEquals(4, fixture.size());
     }
-    
+
     @Test
-    public void mustRejectMultipleTouchesForSameIdButFromDifferentLinks() {
-        TouchResult res;
+    public void mustRejectRemovesForSameIdButFromDifferentLinks() throws Throwable {
+        ChangeSet res;
         
         res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_1111);
-        assertEquals(TouchResult.UPDATED, res);
-        res = fixture.touch(BASE_TIME.plusMillis(2L), new Node(NODE_1111.getId(), "fakelink"));
-        assertEquals(TouchResult.CONFLICTED, res);
+        verifyChangeSetCounts(res, 1, 0, 0);
+        verifyChangeSetAdded(res, NODE_1111);
         
-        assertEquals(NODE_1111, fixture.dump().get(0).getNode());
+        expectedException.expect(EntryConflictException.class);
+        fixture.remove(new Node(NODE_1111.getId(), "fakelink"));
     }
 
     @Test
-    public void mustRejectRemovesForSameIdButFromDifferentLinks() {
-        TouchResult touchRes;
-        RemoveResult removeRes;
+    public void mustRejectTouchesForSameIdButFromDifferentLinks() throws Throwable {
+        ChangeSet res;
         
-        touchRes = fixture.touch(BASE_TIME.plusMillis(1L), NODE_1111);
-        assertEquals(TouchResult.UPDATED, touchRes);
-        removeRes = fixture.remove(new Node(NODE_1111.getId(), "fakelink"));
-        assertEquals(RemoveResult.CONFLICTED, removeRes);
+        res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_1111);
+        verifyChangeSetCounts(res, 1, 0, 0);
+        verifyChangeSetAdded(res, NODE_1111);
         
-        assertEquals(NODE_1111, fixture.dump().get(0).getNode());
-    }
-
-    @Test
-    public void mustRejectTouchesForSameIdButFromDifferentLinks() {
-        TouchResult touchRes;
-        
-        touchRes = fixture.touch(BASE_TIME.plusMillis(1L), NODE_1111);
-        assertEquals(TouchResult.UPDATED, touchRes);
-        touchRes = fixture.touch(BASE_TIME.plusMillis(1L), new Node(NODE_1111.getId(), "fakelink"));
-        assertEquals(TouchResult.CONFLICTED, touchRes);
-        
-        assertEquals(NODE_1111, fixture.dump().get(0).getNode());
+        expectedException.expect(EntryConflictException.class);
+        fixture.touch(BASE_TIME.plusMillis(1L), new Node(NODE_1111.getId(), "fakelink"));
     }
 }

@@ -19,8 +19,6 @@ package com.offbynull.voip.core;
 import com.offbynull.voip.core.ChangeSet.UpdatedEntry;
 import java.time.Instant;
 import java.util.ArrayList;
-import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.TreeMap;
@@ -42,7 +40,7 @@ public final class NearSet {
         this.entries = new TreeMap<>(new IdClosenessComparator(baseId));
     }
 
-    public ChangeSet touch(Instant time, Node node) {
+    public ChangeSet touch(Instant time, Node node) throws EntryConflictException {
         Validate.notNull(time);
         Validate.notNull(node);
         
@@ -64,7 +62,7 @@ public final class NearSet {
         if ((existingEntry = entries.get(nodeId)) != null) {
             if (!existingEntry.getNode().equals(node)) {
                 // if ID exists but link for ID is different, ignore
-                return ChangeSet.NO_CHANGE;
+                throw new EntryConflictException(existingEntry);
             }
             
             updated.add(new UpdatedEntry(node, existingEntry.getLastSeenTime(), newEntry.getLastSeenTime()));
@@ -82,7 +80,7 @@ public final class NearSet {
         return new ChangeSet(added, removed, updated);
     }
     
-    public ChangeSet remove(Node node) {
+    public ChangeSet remove(Node node) throws EntryConflictException {
         Validate.notNull(node);
         
         Id nodeId = node.getId();
@@ -99,7 +97,7 @@ public final class NearSet {
         Validate.validState(nodeId.equals(entryId)); // should never happen -- just in case
         if (!entryLink.equals(nodeLink)) {
             // if ID exists but link for ID is different
-            return ChangeSet.NO_CHANGE;
+            throw new EntryConflictException(entry);
         }
 
         // remove
@@ -108,7 +106,7 @@ public final class NearSet {
     }
     
     public ChangeSet resize(int maxSize) {
-        Validate.isTrue(maxSize >= 1);
+        Validate.isTrue(maxSize >= 0);
         
         int discardCount = this.maxSize - maxSize;
         

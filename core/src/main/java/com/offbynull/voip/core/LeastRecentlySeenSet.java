@@ -16,8 +16,11 @@
  */
 package com.offbynull.voip.core;
 
+import com.offbynull.voip.core.ChangeSet.UpdatedEntry;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
@@ -39,7 +42,7 @@ public final class LeastRecentlySeenSet {
         this.entries = new LinkedList<>();
     }
     
-    public TouchResult touch(Instant time, Node node) {
+    public ChangeSet touch(Instant time, Node node) throws EntryConflictException {
         Validate.notNull(time);
         Validate.notNull(node);
         
@@ -52,6 +55,7 @@ public final class LeastRecentlySeenSet {
         // TODO: You can make this way more efficient if you used something like MultiTreeSet (guava) and sorted based on entry time
 
         // Remove existing entry
+        Entry oldEntry = null;
         ListIterator<Entry> it = entries.listIterator();
         while (it.hasNext()) {
             Entry entry = it.next();
@@ -62,11 +66,12 @@ public final class LeastRecentlySeenSet {
             if (entryId.equals(nodeId)) {
                 if (!entryLink.equals(nodeLink)) {
                     // if ID exists but link for ID is different
-                    return TouchResult.CONFLICTED;
+                    throw new EntryConflictException(entry);
                 }
 
-                // remove and add to tail (most recently-seen)
+                // remove
                 it.remove();
+                oldEntry = entry;
                 break;
             }
         }
@@ -74,7 +79,6 @@ public final class LeastRecentlySeenSet {
         
         // Add entry
         Entry newEntry = new Entry(node, time);
-        
         it = entries.listIterator();
         boolean added = false;
         while (it.hasNext()) {
@@ -94,20 +98,32 @@ public final class LeastRecentlySeenSet {
 
         
         // Set has become too large, remove the item with the latest time
+        Entry discardedEntry = null;
         if (entries.size() > maxSize) {
             // if the node removed with the latest time is the one we just added, then report that node couldn't be added
-            Entry discardedEntry = entries.removeLast();
-            if (discardedEntry == newEntry) {
-                return TouchResult.IGNORED;
+            discardedEntry = entries.removeLast();
+            if (discardedEntry.equals(newEntry)) {
+                return ChangeSet.NO_CHANGE;
             }
         }
 
         
         // Add successful
-        return TouchResult.UPDATED;
+        if (oldEntry != null) {
+            // updated existing node
+            Validate.validState(discardedEntry == null); // sanity check, must not have discarded anything
+            return ChangeSet.updated(new UpdatedEntry(newEntry.getNode(), oldEntry.getLastSeenTime(), newEntry.getLastSeenTime()));
+        } else {
+            // added new node
+            Validate.validState(oldEntry == null); // sanity check, node being touched must not have already existed
+            Collection<Entry> addedEntries = Collections.singletonList(newEntry);
+            Collection<Entry> removedEntries = discardedEntry == null ? Collections.emptyList() : Collections.singletonList(discardedEntry);
+            Collection<UpdatedEntry> updatedEntries = Collections.emptyList();
+            return new ChangeSet(addedEntries, removedEntries, updatedEntries);
+        }
     }
 
-    public RemoveResult remove(Node node) {
+    public ChangeSet remove(Node node) throws EntryConflictException {
         Validate.notNull(node);
         
         Id nodeId = node.getId();
@@ -123,28 +139,32 @@ public final class LeastRecentlySeenSet {
             if (entryId.equals(nodeId)) {
                 if (!entryLink.equals(nodeLink)) {
                     // if ID exists but link for ID is different
-                    return RemoveResult.CONFLICTED;
+                    throw new EntryConflictException(entry);
                 }
 
                 // remove
                 it.remove();
-                return RemoveResult.REMOVED;
+                return ChangeSet.removed(entry);
             }
         }
         
-        return RemoveResult.NOT_FOUND;
+        return ChangeSet.NO_CHANGE;
     }
     
-    public void resize(int maxSize) {
-        Validate.isTrue(maxSize >= 1);
+    public ChangeSet resize(int maxSize) {
+        Validate.isTrue(maxSize >= 0);
         
         int discardCount = this.maxSize - maxSize;
         
+        List<Entry> removed = new LinkedList<>();
         for (int i = 0; i < discardCount; i++) {
-            entries.removeFirst(); // remove node that hasn't been touched the longest
+            Entry removedEntry = entries.removeFirst(); // remove node that hasn't been touched the longest
+            removed.add(removedEntry);
         }
         
         this.maxSize = maxSize;
+        
+        return ChangeSet.removed(removed);
     }
     
     public List<Entry> dump() {
@@ -157,18 +177,6 @@ public final class LeastRecentlySeenSet {
 
     public int getMaxSize() {
         return maxSize;
-    }
-    
-    public enum RemoveResult {
-        REMOVED, // removed
-        NOT_FOUND, // id to replace couldn't be found
-        CONFLICTED // entry with same id already existed, but link is different, so ignoring
-    }
-    
-    public enum TouchResult {
-        UPDATED, // entry inserted or updated
-        IGNORED, // set is full and entry's time was too far out to get replace existing (too far in to the future to replace existing)
-        CONFLICTED, // entry with same id already existed, but link is different, so ignoring
     }
 
     @Override

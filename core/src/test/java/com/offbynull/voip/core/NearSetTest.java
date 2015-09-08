@@ -1,13 +1,16 @@
 package com.offbynull.voip.core;
 
-import com.offbynull.voip.core.ChangeSet;
+import static com.offbynull.voip.core.TestUtils.verifyChangeSetAdded;
+import static com.offbynull.voip.core.TestUtils.verifyChangeSetCounts;
+import static com.offbynull.voip.core.TestUtils.verifyChangeSetRemoved;
+import static com.offbynull.voip.core.TestUtils.verifyChangeSetUpdated;
 import java.time.Instant;
 import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.stream.Collectors;
 import static org.junit.Assert.assertEquals;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 public final class NearSetTest {
     
@@ -24,8 +27,11 @@ public final class NearSetTest {
     
     private final NearSet fixture = new NearSet(NODE_000.getId(), 2);
     
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
+    
     @Test
-    public void mustRetainNodesWithTheLargestSharedPrefix() {
+    public void mustRetainNodesWithTheLargestSharedPrefix() throws Throwable {
         ChangeSet res;
         
         res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_111);
@@ -54,7 +60,7 @@ public final class NearSetTest {
 
     // See "notion of closeness" section in notes for more information on how closeness is calculated
     @Test
-    public void mustFlipBitsToIdentifyClosestNodeWhenSharedPrefixIsTheSame() {
+    public void mustFlipBitsToIdentifyClosestNodeWhenSharedPrefixIsTheSame() throws Throwable {
         ChangeSet res;
         
         res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_111);
@@ -82,22 +88,19 @@ public final class NearSetTest {
     }
 
     @Test
-    public void mustRejectMultipleTouchesForSameIdButFromDifferentLinks() {
+    public void mustRejectMultipleTouchesForSameIdButFromDifferentLinks() throws Throwable {
         ChangeSet res;
         
         res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_111);
         verifyChangeSetCounts(res, 1, 0, 0);
         verifyChangeSetAdded(res, NODE_111);
         
-        res = fixture.touch(BASE_TIME.plusMillis(2L), new Node(NODE_111.getId(), "fakelink"));
-        verifyChangeSetCounts(res, 0, 0, 0);
-        
-        assertEquals(Arrays.asList(NODE_111),
-                fixture.dump().stream().map(x -> x.getNode()).collect(Collectors.toList()));
+        expectedException.expect(EntryConflictException.class);
+        fixture.touch(BASE_TIME.plusMillis(2L), new Node(NODE_111.getId(), "fakelink"));
     }
     
     @Test
-    public void mustNotFailTouchIfTimeIsBeforeLastTime() {
+    public void mustNotFailTouchIfTimeIsBeforeLastTime() throws Throwable {
         ChangeSet res;
         
         res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_001);
@@ -110,7 +113,7 @@ public final class NearSetTest {
     }
     
     @Test
-    public void mustRetainClosestNodesWhenResizing() {
+    public void mustRetainClosestNodesWhenResizing() throws Throwable {
         ChangeSet res;
         
         res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_011);
@@ -137,7 +140,7 @@ public final class NearSetTest {
     }
     
     @Test
-    public void mustRemoveNodes() {
+    public void mustRemoveNodes() throws Throwable {
         fixture.touch(BASE_TIME.plusMillis(1L), NODE_111);
         fixture.touch(BASE_TIME.plusMillis(2L), NODE_011);
         assertEquals(2, fixture.size());
@@ -152,7 +155,7 @@ public final class NearSetTest {
     }
 
     @Test
-    public void mustRejectRemoveOfMissingNode() {
+    public void mustRejectRemoveOfMissingNode() throws Throwable {
         fixture.touch(BASE_TIME.plusMillis(1L), NODE_111);
         fixture.touch(BASE_TIME.plusMillis(2L), NODE_011);
         assertEquals(2, fixture.size());
@@ -166,63 +169,26 @@ public final class NearSetTest {
     }
 
     @Test
-    public void mustRejectRemovesForSameIdButFromDifferentLinks() {
+    public void mustRejectRemovesForSameIdButFromDifferentLinks() throws Throwable {
         ChangeSet res;
         
         res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_111);
         verifyChangeSetCounts(res, 1, 0, 0);
         verifyChangeSetAdded(res, NODE_111);
         
-        res = fixture.remove(new Node(NODE_111.getId(), "fakelink"));
-        verifyChangeSetCounts(res, 0, 0, 0);
-        
-        assertEquals(NODE_111, fixture.dump().get(0).getNode());
+        expectedException.expect(EntryConflictException.class);
+        fixture.remove(new Node(NODE_111.getId(), "fakelink"));
     }
 
     @Test
-    public void mustRejectTouchesForSameIdButFromDifferentLinks() {
+    public void mustRejectTouchesForSameIdButFromDifferentLinks() throws Throwable {
         ChangeSet res;
         
         res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_111);
         verifyChangeSetCounts(res, 1, 0, 0);
         verifyChangeSetAdded(res, NODE_111);
         
-        res = fixture.touch(BASE_TIME.plusMillis(1L), new Node(NODE_111.getId(), "fakelink"));
-        verifyChangeSetCounts(res, 0, 0, 0);
-        
-        assertEquals(NODE_111, fixture.dump().get(0).getNode());
-    }
-    
-    public void verifyChangeSetCounts(ChangeSet changeSet, int expectedAdded, int expectedRemoved, int expectedUpdated) {
-        assertEquals(expectedAdded, changeSet.viewAdded().size());
-        assertEquals(expectedRemoved, changeSet.viewRemoved().size());
-        assertEquals(expectedUpdated, changeSet.viewUpdated().size());
-    }
-
-    public void verifyChangeSetAdded(ChangeSet changeSet, Node ... nodes) {
-        assertEquals(nodes.length, changeSet.viewAdded().size());
-        
-        Set<Node> actual = changeSet.viewAdded().stream().map(x -> x.getNode()).collect(Collectors.toSet());
-        Set<Node> expected = new HashSet<>(Arrays.asList(nodes));
-        
-        assertEquals(expected, actual);
-    }
-
-    public void verifyChangeSetRemoved(ChangeSet changeSet, Node ... nodes) {
-        assertEquals(nodes.length, changeSet.viewRemoved().size());
-        
-        Set<Node> actual = changeSet.viewRemoved().stream().map(x -> x.getNode()).collect(Collectors.toSet());
-        Set<Node> expected = new HashSet<>(Arrays.asList(nodes));
-        
-        assertEquals(expected, actual);
-    }
-
-    public void verifyChangeSetUpdated(ChangeSet changeSet, Node ... nodes) {
-        assertEquals(nodes.length, changeSet.viewUpdated().size());
-        
-        Set<Node> actual = changeSet.viewUpdated().stream().map(x -> x.getNode()).collect(Collectors.toSet());
-        Set<Node> expected = new HashSet<>(Arrays.asList(nodes));
-        
-        assertEquals(expected, actual);
+        expectedException.expect(EntryConflictException.class);
+        fixture.touch(BASE_TIME.plusMillis(1L), new Node(NODE_111.getId(), "fakelink"));
     }
 }
