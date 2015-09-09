@@ -21,11 +21,11 @@ import java.util.Objects;
 import org.apache.commons.lang3.Validate;
 
 
-public final class Entry {
+public final class Activity {
     private final Node node;
     private final Instant time;
 
-    public Entry(Node node, Instant time) {
+    public Activity(Node node, Instant time) {
         Validate.notNull(node);
         Validate.notNull(time);
         this.node = node;
@@ -56,7 +56,7 @@ public final class Entry {
         if (getClass() != obj.getClass()) {
             return false;
         }
-        final Entry other = (Entry) obj;
+        final Activity other = (Activity) obj;
         if (!Objects.equals(this.node, other.node)) {
             return false;
         }

@@ -1,6 +1,5 @@
 package com.offbynull.voip.kademlia;
 
-import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.commons.lang3.Validate;

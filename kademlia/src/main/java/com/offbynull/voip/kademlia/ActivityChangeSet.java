@@ -27,50 +27,50 @@ import java.util.Set;
 import org.apache.commons.collections4.list.UnmodifiableList;
 import org.apache.commons.lang3.Validate;
 
-public final class EntryChangeSet {
-    static final EntryChangeSet NO_CHANGE = new EntryChangeSet(Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
+public final class ActivityChangeSet {
+    static final ActivityChangeSet NO_CHANGE = new ActivityChangeSet(Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
     
-    private final UnmodifiableList<Entry> removed;
-    private final UnmodifiableList<Entry> added;
-    private final UnmodifiableList<Entry> updated;
+    private final UnmodifiableList<Activity> removed;
+    private final UnmodifiableList<Activity> added;
+    private final UnmodifiableList<Activity> updated;
     
-    public static EntryChangeSet added(Entry ... entries) {
+    public static ActivityChangeSet added(Activity ... entries) {
         Validate.notNull(entries);
         Validate.noNullElements(entries);
         return added(Arrays.asList(entries));
     }
 
-    public static EntryChangeSet added(Collection<Entry> entries) {
+    public static ActivityChangeSet added(Collection<Activity> entries) {
         Validate.notNull(entries);
         Validate.noNullElements(entries);
-        return new EntryChangeSet(entries, emptyList(), emptyList());
+        return new ActivityChangeSet(entries, emptyList(), emptyList());
     }
 
-    public static EntryChangeSet removed(Entry ... entries) {
+    public static ActivityChangeSet removed(Activity ... entries) {
         Validate.notNull(entries);
         Validate.noNullElements(entries);
         return removed(Arrays.asList(entries));
     }
 
-    public static EntryChangeSet removed(Collection<Entry> entries) {
+    public static ActivityChangeSet removed(Collection<Activity> entries) {
         Validate.notNull(entries);
         Validate.noNullElements(entries);
-        return new EntryChangeSet(emptyList(), entries, emptyList());
+        return new ActivityChangeSet(emptyList(), entries, emptyList());
     }
 
-    public static EntryChangeSet updated(Entry ... entries) {
+    public static ActivityChangeSet updated(Activity ... entries) {
         Validate.notNull(entries);
         Validate.noNullElements(entries);
         return updated(Arrays.asList(entries));
     }
 
-    public static EntryChangeSet updated(Collection<Entry> entries) {
+    public static ActivityChangeSet updated(Collection<Activity> entries) {
         Validate.notNull(entries);
         Validate.noNullElements(entries);
-        return new EntryChangeSet(emptyList(), emptyList(), entries);
+        return new ActivityChangeSet(emptyList(), emptyList(), entries);
     }
     
-    public EntryChangeSet(Collection<Entry> added, Collection<Entry> removed, Collection<Entry> updated) {
+    public ActivityChangeSet(Collection<Activity> added, Collection<Activity> removed, Collection<Activity> updated) {
         Validate.notNull(removed);
         Validate.notNull(added);
         Validate.notNull(updated);
@@ -85,20 +85,20 @@ public final class EntryChangeSet {
         updated.stream().map(x -> x.getNode().getId()).forEach(x -> tempSet.add(x));
         Validate.isTrue(tempSet.size() == added.size() + removed.size() + updated.size());
 
-        this.removed = (UnmodifiableList<Entry>) UnmodifiableList.unmodifiableList(new ArrayList<>(removed));
-        this.added = (UnmodifiableList<Entry>) UnmodifiableList.unmodifiableList(new ArrayList<>(added));
-        this.updated = (UnmodifiableList<Entry>) UnmodifiableList.unmodifiableList(new ArrayList<>(updated));
+        this.removed = (UnmodifiableList<Activity>) UnmodifiableList.unmodifiableList(new ArrayList<>(removed));
+        this.added = (UnmodifiableList<Activity>) UnmodifiableList.unmodifiableList(new ArrayList<>(added));
+        this.updated = (UnmodifiableList<Activity>) UnmodifiableList.unmodifiableList(new ArrayList<>(updated));
     }
 
-    public UnmodifiableList<Entry> viewRemoved() {
+    public UnmodifiableList<Activity> viewRemoved() {
         return removed;
     }
 
-    public UnmodifiableList<Entry> viewAdded() {
+    public UnmodifiableList<Activity> viewAdded() {
         return added;
     }
 
-    public UnmodifiableList<Entry> viewUpdated() {
+    public UnmodifiableList<Activity> viewUpdated() {
         return updated;
     }
 
@@ -119,7 +119,7 @@ public final class EntryChangeSet {
         if (getClass() != obj.getClass()) {
             return false;
         }
-        final EntryChangeSet other = (EntryChangeSet) obj;
+        final ActivityChangeSet other = (ActivityChangeSet) obj;
         if (!Objects.equals(this.removed, other.removed)) {
             return false;
         }

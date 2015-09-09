@@ -4,21 +4,21 @@ import java.util.Objects;
 import org.apache.commons.lang3.Validate;
 
 public final class KBucketChangeSet {
-    private final EntryChangeSet bucketChangeSet;
-    private final EntryChangeSet cacheChangeSet;
+    private final ActivityChangeSet bucketChangeSet;
+    private final ActivityChangeSet cacheChangeSet;
 
-    public KBucketChangeSet(EntryChangeSet bucketChangeSet, EntryChangeSet cacheChangeSet) {
+    public KBucketChangeSet(ActivityChangeSet bucketChangeSet, ActivityChangeSet cacheChangeSet) {
         Validate.notNull(bucketChangeSet);
         Validate.notNull(cacheChangeSet);
         this.bucketChangeSet = bucketChangeSet;
         this.cacheChangeSet = cacheChangeSet;
     }
 
-    public EntryChangeSet getBucketChangeSet() {
+    public ActivityChangeSet getBucketChangeSet() {
         return bucketChangeSet;
     }
 
-    public EntryChangeSet getCacheChangeSet() {
+    public ActivityChangeSet getCacheChangeSet() {
         return cacheChangeSet;
     }
 

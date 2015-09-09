@@ -16,7 +16,7 @@ public final class ActivitySet {
     
     private final TreeMap<Instant, HashSet<Node>> touchTimes;
     private final MultiValueMap<Instant, Node> touchTimesDecorator;
-    private final HashMap<Id, Entry> lookupById;
+    private final HashMap<Id, Activity> lookupById;
     private final HashSet<Id> ignoreSet;
     
     private int size;
@@ -32,7 +32,7 @@ public final class ActivitySet {
         ignoreSet = new HashSet<>();
     }
     
-    public NodeChangeSet touch(Instant time, Node node) throws LinkConflictException {
+    public ActivityChangeSet touch(Instant time, Node node) throws LinkConflictException {
         Validate.notNull(time);
         Validate.notNull(node);
         
@@ -43,7 +43,7 @@ public final class ActivitySet {
 
         
         // See if it already exists
-        Entry oldEntry = lookupById.get(id);
+        Activity oldEntry = lookupById.get(id);
         if (oldEntry != null) {
             Node oldNode = oldEntry.getNode();
             
@@ -58,31 +58,33 @@ public final class ActivitySet {
             touchTimesDecorator.removeMapping(oldTimestamp, node);
             
             // Replace entry and insert new timestamp
+            Activity activity = new Activity(node, time);
             touchTimesDecorator.put(time, node);
-            lookupById.put(id, new Entry(node, time));
+            lookupById.put(id, activity);
             
             size++;
             
             // Return that node was updated
-            return NodeChangeSet.updated(node);
+            return ActivityChangeSet.updated(activity);
         } else {
             // Insert items
+            Activity activity = new Activity(node, time);
             touchTimesDecorator.put(time, node);
-            lookupById.put(id, new Entry(node, time));
+            lookupById.put(id, activity);
             
             // Return that node was inserted
-            return NodeChangeSet.added(node);
+            return ActivityChangeSet.added(activity);
         }
     }
 
-    public NodeChangeSet remove(Node node) throws LinkConflictException {
+    public ActivityChangeSet remove(Node node) throws LinkConflictException {
         Validate.notNull(node);
         
         Id id = node.getId();
         
-        Entry existingEntry = lookupById.get(id);
+        Activity existingEntry = lookupById.get(id);
         if (existingEntry == null) {
-            return NodeChangeSet.NO_CHANGE;
+            return ActivityChangeSet.NO_CHANGE;
         }
         
         Node oldNode = existingEntry.getNode();
@@ -100,7 +102,7 @@ public final class ActivitySet {
         size--;
         
         // Return that node was removed
-        return NodeChangeSet.removed(node);
+        return ActivityChangeSet.removed(existingEntry);
     }
     
     public void ignore(Node node) throws LinkConflictException {
@@ -108,7 +110,7 @@ public final class ActivitySet {
         
         Id id = node.getId();
         
-        Entry existingEntry = lookupById.get(id);
+        Activity existingEntry = lookupById.get(id);
         if (existingEntry == null) {
             return;
         }
@@ -129,7 +131,7 @@ public final class ActivitySet {
         
         Id id = node.getId();
         
-        Entry existingEntry = lookupById.get(id);
+        Activity existingEntry = lookupById.get(id);
         if (existingEntry == null) {
             return;
         }
@@ -146,15 +148,16 @@ public final class ActivitySet {
     }
     
     @SuppressWarnings("unchecked")
-    public List<Node> getNodes(Instant maxTime) {
+    public List<Activity> getNodes(Instant maxTime) {
         Validate.notNull(maxTime);
         
         Map<Instant, HashSet<Node>> subMap = touchTimes.headMap(maxTime, true);
         
-        LinkedList<Node> ret = new LinkedList<>();
+        LinkedList<Activity> ret = new LinkedList<>();
         subMap.entrySet().stream()
                 .flatMap(x -> x.getValue().stream())
                 .filter(x -> !ignoreSet.contains(x.getId()))
+                .map(x -> lookupById.get(x.getId()))
                 .forEach(x -> ret.add(x));
         
         return new ArrayList<>(ret);

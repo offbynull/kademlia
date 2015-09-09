@@ -27,7 +27,7 @@ import org.apache.commons.lang3.Validate;
 
 public final class LeastRecentlySeenSet {
     private final Id baseId;
-    private final LinkedList<Entry> entries;
+    private final LinkedList<Activity> entries;
 
     private int maxSize;
 
@@ -41,7 +41,7 @@ public final class LeastRecentlySeenSet {
         this.entries = new LinkedList<>();
     }
     
-    public EntryChangeSet touch(Instant time, Node node) throws LinkConflictException {
+    public ActivityChangeSet touch(Instant time, Node node) throws LinkConflictException {
         Validate.notNull(time);
         Validate.notNull(node);
         
@@ -54,10 +54,10 @@ public final class LeastRecentlySeenSet {
         // TODO: You can make this way more efficient if you used something like MultiTreeSet (guava) and sorted based on entry time
 
         // Remove existing entry
-        Entry oldEntry = null;
-        ListIterator<Entry> it = entries.listIterator();
+        Activity oldEntry = null;
+        ListIterator<Activity> it = entries.listIterator();
         while (it.hasNext()) {
-            Entry entry = it.next();
+            Activity entry = it.next();
 
             Id entryId = entry.getNode().getId();
             String entryLink = entry.getNode().getLink();
@@ -77,11 +77,11 @@ public final class LeastRecentlySeenSet {
 
         
         // Add entry
-        Entry newEntry = new Entry(node, time);
+        Activity newEntry = new Activity(node, time);
         it = entries.listIterator();
         boolean added = false;
         while (it.hasNext()) {
-            Entry entry = it.next();
+            Activity entry = it.next();
 
             if (entry.getTime().isAfter(time)) {
                 it.previous(); // move back 1 space, we want to add to element just before entry
@@ -97,12 +97,12 @@ public final class LeastRecentlySeenSet {
 
         
         // Set has become too large, remove the item with the latest time
-        Entry discardedEntry = null;
+        Activity discardedEntry = null;
         if (entries.size() > maxSize) {
             // if the node removed with the latest time is the one we just added, then report that node couldn't be added
             discardedEntry = entries.removeLast();
             if (discardedEntry.equals(newEntry)) {
-                return EntryChangeSet.NO_CHANGE;
+                return ActivityChangeSet.NO_CHANGE;
             }
         }
 
@@ -112,28 +112,28 @@ public final class LeastRecentlySeenSet {
             Validate.validState(discardedEntry == null); // sanity check, must not have discarded anything
             
             // updated existing node
-            return EntryChangeSet.updated(newEntry);
+            return ActivityChangeSet.updated(newEntry);
         } else {
             // if block above ensures oldEntry is null if we're in this else block, so sanity check below isn't nessecary
             // Validate.validState(oldEntry == null); // sanity check, node being touched must not have already existed
             
             // added new node
-            Collection<Entry> addedEntries = Collections.singletonList(newEntry);
-            Collection<Entry> removedEntries = discardedEntry == null ? Collections.emptyList() : Collections.singletonList(discardedEntry);
-            Collection<Entry> updatedEntries = Collections.emptyList();
-            return new EntryChangeSet(addedEntries, removedEntries, updatedEntries);
+            Collection<Activity> addedEntries = Collections.singletonList(newEntry);
+            Collection<Activity> removedEntries = discardedEntry == null ? Collections.emptyList() : Collections.singletonList(discardedEntry);
+            Collection<Activity> updatedEntries = Collections.emptyList();
+            return new ActivityChangeSet(addedEntries, removedEntries, updatedEntries);
         }
     }
 
-    public EntryChangeSet remove(Node node) throws LinkConflictException {
+    public ActivityChangeSet remove(Node node) throws LinkConflictException {
         Validate.notNull(node);
         
         Id nodeId = node.getId();
         String nodeLink = node.getLink();
         
-        ListIterator<Entry> it = entries.listIterator();
+        ListIterator<Activity> it = entries.listIterator();
         while (it.hasNext()) {
-            Entry entry = it.next();
+            Activity entry = it.next();
 
             Id entryId = entry.getNode().getId();
             String entryLink = entry.getNode().getLink();
@@ -146,30 +146,30 @@ public final class LeastRecentlySeenSet {
 
                 // remove
                 it.remove();
-                return EntryChangeSet.removed(entry);
+                return ActivityChangeSet.removed(entry);
             }
         }
         
-        return EntryChangeSet.NO_CHANGE;
+        return ActivityChangeSet.NO_CHANGE;
     }
     
-    public EntryChangeSet resize(int maxSize) {
+    public ActivityChangeSet resize(int maxSize) {
         Validate.isTrue(maxSize >= 0);
         
         int discardCount = this.maxSize - maxSize;
         
-        List<Entry> removed = new LinkedList<>();
+        List<Activity> removed = new LinkedList<>();
         for (int i = 0; i < discardCount; i++) {
-            Entry removedEntry = entries.removeFirst(); // remove node that hasn't been touched the longest
+            Activity removedEntry = entries.removeFirst(); // remove node that hasn't been touched the longest
             removed.add(removedEntry);
         }
         
         this.maxSize = maxSize;
         
-        return EntryChangeSet.removed(removed);
+        return ActivityChangeSet.removed(removed);
     }
     
-    public List<Entry> dump() {
+    public List<Activity> dump() {
         return new ArrayList<>(entries);
     }
     

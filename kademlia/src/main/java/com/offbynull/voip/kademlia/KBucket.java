@@ -1,7 +1,6 @@
 package com.offbynull.voip.kademlia;
 
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import org.apache.commons.lang3.Validate;
@@ -45,15 +44,15 @@ public final class KBucket {
 
         Validate.isTrue(!time.isBefore(lastUpdateTime)); // time must be >= lastUpdatedTime
         
-        EntryChangeSet bucketTouchRes = bucket.touch(time, node);
+        ActivityChangeSet bucketTouchRes = bucket.touch(time, node);
         Validate.validState(bucketTouchRes.viewRemoved().isEmpty()); // sanity check, should never remove anything when touching bucket
         if (!bucketTouchRes.viewAdded().isEmpty() || !bucketTouchRes.viewUpdated().isEmpty()) {
             // node was added to bucket, or node was already in bucket and was updated
             lastUpdateTime = time;
-            return new KBucketChangeSet(bucketTouchRes, EntryChangeSet.NO_CHANGE);
+            return new KBucketChangeSet(bucketTouchRes, ActivityChangeSet.NO_CHANGE);
         }
 
-        EntryChangeSet cacheTouchRes = cache.touch(time, node);
+        ActivityChangeSet cacheTouchRes = cache.touch(time, node);
         lastUpdateTime = time;
         return new KBucketChangeSet(bucketTouchRes, cacheTouchRes);
     }
@@ -73,21 +72,21 @@ public final class KBucket {
 
         if (cache.size() == 0) {
             lastUpdateTime = time;
-            return new KBucketChangeSet(EntryChangeSet.NO_CHANGE, EntryChangeSet.NO_CHANGE);
+            return new KBucketChangeSet(ActivityChangeSet.NO_CHANGE, ActivityChangeSet.NO_CHANGE);
         }
         
         // Remove
-        EntryChangeSet bucketRemoveRes = bucket.remove(node); // throws EntryConflictException if id is equal but link isn't
+        ActivityChangeSet bucketRemoveRes = bucket.remove(node); // throws EntryConflictException if id is equal but link isn't
         if (bucketRemoveRes.viewRemoved().isEmpty()) {
             lastUpdateTime = time;
-            return new KBucketChangeSet(EntryChangeSet.NO_CHANGE, EntryChangeSet.NO_CHANGE);
+            return new KBucketChangeSet(ActivityChangeSet.NO_CHANGE, ActivityChangeSet.NO_CHANGE);
         }
         
         // Remove latest from cache and add to bucket
-        EntryChangeSet cacheRemoveRes = cache.removeMostRecent(1);
-        EntryChangeSet bucketTouchRes;
+        ActivityChangeSet cacheRemoveRes = cache.removeMostRecent(1);
+        ActivityChangeSet bucketTouchRes;
         Validate.validState(cacheRemoveRes.viewRemoved().size() == 1); // sanity check, should always remove 1 node
-        Entry cacheEntry = cacheRemoveRes.viewRemoved().get(0);
+        Activity cacheEntry = cacheRemoveRes.viewRemoved().get(0);
         try {
             bucketTouchRes = bucket.touch(cacheEntry.getTime(), cacheEntry.getNode());
         } catch (LinkConflictException ece) {
@@ -98,7 +97,7 @@ public final class KBucket {
         
         lastUpdateTime = time;
         return new KBucketChangeSet(
-                new EntryChangeSet(bucketTouchRes.viewAdded(), bucketRemoveRes.viewRemoved(), Collections.emptyList()),
+                new ActivityChangeSet(bucketTouchRes.viewAdded(), bucketRemoveRes.viewRemoved(), Collections.emptyList()),
                 cacheRemoveRes);
     }
 
@@ -139,7 +138,7 @@ public final class KBucket {
         
         
         // Move from original bucket to new buckets
-        for (Entry entry : bucket.dump()) {
+        for (Activity entry : bucket.dump()) {
             Node node = entry.getNode();
             
             // Read bitCount bits starting from prefixBitSize and use that to figure out which bucket to copy to
@@ -152,7 +151,7 @@ public final class KBucket {
             int idx = (int) id.getBitsAsLong(prefix.getBitLength(), bitCount);
             
             // Touch bucket
-            EntryChangeSet res;
+            ActivityChangeSet res;
             try {
                 res = newKBuckets[idx].bucket.touch(entry.getTime(), node);
             } catch (LinkConflictException ece) {
@@ -169,7 +168,7 @@ public final class KBucket {
 
         
         // Move from original cache to new cache
-        for (Entry entry : cache.dump()) {
+        for (Activity entry : cache.dump()) {
             Node node = entry.getNode();
             
             // Read bitCount bits starting from prefixBitSize and use that to figure out which bucket to copy to
@@ -182,7 +181,7 @@ public final class KBucket {
             int idx = (int) id.getBitsAsLong(prefix.getBitLength(), bitCount);
             
             // Touch cache
-            EntryChangeSet res;
+            ActivityChangeSet res;
             try {
                 res = newKBuckets[idx].cache.touch(entry.getTime(), node);
             } catch (LinkConflictException ece) {
@@ -213,17 +212,17 @@ public final class KBucket {
         
         if (maxSize <= bucket.getMaxSize()) {
             // reducing space
-            EntryChangeSet res = bucket.resize(maxSize);
+            ActivityChangeSet res = bucket.resize(maxSize);
             
             // sanity check
             // validate nothing was added or updated -- the only thing that can happen is elements can be removed
             Validate.validState(res.viewAdded().isEmpty());
             Validate.validState(res.viewUpdated().isEmpty());
             
-            return new KBucketChangeSet(res, EntryChangeSet.NO_CHANGE);
+            return new KBucketChangeSet(res, ActivityChangeSet.NO_CHANGE);
         } else {
             // increasing space, so move over stuff from the cache in to new bucket spaces
-            EntryChangeSet res = bucket.resize(maxSize);
+            ActivityChangeSet res = bucket.resize(maxSize);
             
             // sanity check
             // validate nothing changed with elements in the set -- we're only expanding the size of the bucket
@@ -239,15 +238,15 @@ public final class KBucket {
     public KBucketChangeSet resizeCache(int maxSize) {
         Validate.isTrue(maxSize >= 0);
         
-        EntryChangeSet res = cache.resize(maxSize);
-        return new KBucketChangeSet(EntryChangeSet.NO_CHANGE, res);
+        ActivityChangeSet res = cache.resize(maxSize);
+        return new KBucketChangeSet(ActivityChangeSet.NO_CHANGE, res);
     }
 
-    public List<Entry> dumpBucket() {
+    public List<Activity> dumpBucket() {
         return bucket.dump();
     }
 
-    public List<Entry> dumpCache() {
+    public List<Activity> dumpCache() {
         return cache.dump();
     }
     
@@ -259,19 +258,19 @@ public final class KBucket {
         int unoccupiedBucketSlots = bucket.getMaxSize() - bucket.size();
         int availableCacheItems = cache.size();
         if (unoccupiedBucketSlots <= 0 || availableCacheItems == 0) {
-            return new KBucketChangeSet(EntryChangeSet.NO_CHANGE, EntryChangeSet.NO_CHANGE);
+            return new KBucketChangeSet(ActivityChangeSet.NO_CHANGE, ActivityChangeSet.NO_CHANGE);
         }
         
         int moveAmount = Math.min(availableCacheItems, unoccupiedBucketSlots);
         
-        EntryChangeSet cacheRemoveRes = cache.removeMostRecent(moveAmount);
+        ActivityChangeSet cacheRemoveRes = cache.removeMostRecent(moveAmount);
         Validate.validState(cacheRemoveRes.viewAdded().isEmpty());
         Validate.validState(cacheRemoveRes.viewRemoved().size() == moveAmount); // sanity check
         Validate.validState(cacheRemoveRes.viewUpdated().isEmpty());
 
-        for (Entry entryToMove : cacheRemoveRes.viewRemoved()) {
+        for (Activity entryToMove : cacheRemoveRes.viewRemoved()) {
             // move
-            EntryChangeSet addRes;
+            ActivityChangeSet addRes;
             try {
                 addRes = bucket.touch(entryToMove.getTime(), entryToMove.getNode());
             } catch (LinkConflictException ece) {
@@ -287,7 +286,7 @@ public final class KBucket {
         }
         
         // show moved as being added to bucket and removed from cache
-        return new KBucketChangeSet(EntryChangeSet.added(cacheRemoveRes.viewRemoved()), cacheRemoveRes);
+        return new KBucketChangeSet(ActivityChangeSet.added(cacheRemoveRes.viewRemoved()), cacheRemoveRes);
     }
     
     // The int {@code 0xABCD} with a bitlength of 12 would result in the bit string {@code 10 1011 1100 1101}.

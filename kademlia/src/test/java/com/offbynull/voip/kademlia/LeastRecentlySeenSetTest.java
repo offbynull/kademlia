@@ -1,14 +1,9 @@
 package com.offbynull.voip.kademlia;
 
-import com.offbynull.voip.kademlia.EntryChangeSet;
-import com.offbynull.voip.kademlia.Id;
-import com.offbynull.voip.kademlia.LeastRecentlySeenSet;
-import com.offbynull.voip.kademlia.Node;
-import com.offbynull.voip.kademlia.LinkConflictException;
-import static com.offbynull.voip.kademlia.TestUtils.verifyChangeSetAdded;
-import static com.offbynull.voip.kademlia.TestUtils.verifyChangeSetCounts;
-import static com.offbynull.voip.kademlia.TestUtils.verifyChangeSetRemoved;
-import static com.offbynull.voip.kademlia.TestUtils.verifyChangeSetUpdated;
+import static com.offbynull.voip.kademlia.TestUtils.verifyActivityChangeSetAdded;
+import static com.offbynull.voip.kademlia.TestUtils.verifyActivityChangeSetCounts;
+import static com.offbynull.voip.kademlia.TestUtils.verifyActivityChangeSetRemoved;
+import static com.offbynull.voip.kademlia.TestUtils.verifyActivityChangeSetUpdated;
 import java.time.Instant;
 import static org.junit.Assert.assertEquals;
 import org.junit.Rule;
@@ -34,15 +29,15 @@ public class LeastRecentlySeenSetTest {
 
     @Test
     public void mustInsertNodes() throws Throwable {
-        EntryChangeSet res;
+        ActivityChangeSet res;
         
         res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
-        verifyChangeSetCounts(res, 1, 0, 0);
-        verifyChangeSetAdded(res, NODE_0010);
+        verifyActivityChangeSetCounts(res, 1, 0, 0);
+        verifyActivityChangeSetAdded(res, NODE_0010);
         
         res = fixture.touch(BASE_TIME.plusMillis(2L), NODE_0100);
-        verifyChangeSetCounts(res, 1, 0, 0);
-        verifyChangeSetAdded(res, NODE_0100);
+        verifyActivityChangeSetCounts(res, 1, 0, 0);
+        verifyActivityChangeSetAdded(res, NODE_0100);
         
         assertEquals(NODE_0010, fixture.dump().get(0).getNode());
         assertEquals(NODE_0100, fixture.dump().get(1).getNode());
@@ -51,23 +46,23 @@ public class LeastRecentlySeenSetTest {
 
     @Test
     public void mustInsertNodesWhenProvidedInBackwardsOrder() throws Throwable {
-        EntryChangeSet res;
+        ActivityChangeSet res;
 
         res = fixture.touch(BASE_TIME.plusMillis(4L), NODE_1100);
-        verifyChangeSetCounts(res, 1, 0, 0);
-        verifyChangeSetAdded(res, NODE_1100);
+        verifyActivityChangeSetCounts(res, 1, 0, 0);
+        verifyActivityChangeSetAdded(res, NODE_1100);
 
         res = fixture.touch(BASE_TIME.plusMillis(3L), NODE_1000);
-        verifyChangeSetCounts(res, 1, 0, 0);
-        verifyChangeSetAdded(res, NODE_1000);
+        verifyActivityChangeSetCounts(res, 1, 0, 0);
+        verifyActivityChangeSetAdded(res, NODE_1000);
         
         res = fixture.touch(BASE_TIME.plusMillis(2L), NODE_0100);
-        verifyChangeSetCounts(res, 1, 0, 0);
-        verifyChangeSetAdded(res, NODE_0100);
+        verifyActivityChangeSetCounts(res, 1, 0, 0);
+        verifyActivityChangeSetAdded(res, NODE_0100);
         
         res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
-        verifyChangeSetCounts(res, 1, 0, 0);
-        verifyChangeSetAdded(res, NODE_0010);
+        verifyActivityChangeSetCounts(res, 1, 0, 0);
+        verifyActivityChangeSetAdded(res, NODE_0010);
        
         assertEquals(NODE_0010, fixture.dump().get(0).getNode());
         assertEquals(NODE_0100, fixture.dump().get(1).getNode());
@@ -78,26 +73,26 @@ public class LeastRecentlySeenSetTest {
 
     @Test
     public void mustNotOverrideExistingNodesIfBucketFullAndTimestampUnchanged() throws Throwable {
-        EntryChangeSet res;
+        ActivityChangeSet res;
 
         res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_1100);
-        verifyChangeSetCounts(res, 1, 0, 0);
-        verifyChangeSetAdded(res, NODE_1100);
+        verifyActivityChangeSetCounts(res, 1, 0, 0);
+        verifyActivityChangeSetAdded(res, NODE_1100);
 
         res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_1000);
-        verifyChangeSetCounts(res, 1, 0, 0);
-        verifyChangeSetAdded(res, NODE_1000);
+        verifyActivityChangeSetCounts(res, 1, 0, 0);
+        verifyActivityChangeSetAdded(res, NODE_1000);
         
         res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_0100);
-        verifyChangeSetCounts(res, 1, 0, 0);
-        verifyChangeSetAdded(res, NODE_0100);
+        verifyActivityChangeSetCounts(res, 1, 0, 0);
+        verifyActivityChangeSetAdded(res, NODE_0100);
         
         res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
-        verifyChangeSetCounts(res, 1, 0, 0);
-        verifyChangeSetAdded(res, NODE_0010);
+        verifyActivityChangeSetCounts(res, 1, 0, 0);
+        verifyActivityChangeSetAdded(res, NODE_0010);
         
         res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_1111);
-        verifyChangeSetCounts(res, 0, 0, 0);
+        verifyActivityChangeSetCounts(res, 0, 0, 0);
        
         assertEquals(NODE_1100, fixture.dump().get(0).getNode());
         assertEquals(NODE_1000, fixture.dump().get(1).getNode());
@@ -109,26 +104,26 @@ public class LeastRecentlySeenSetTest {
 
     @Test
     public void mustNotOverrideExistingNodesIfBucketFullAndTimestampLater() throws Throwable {
-        EntryChangeSet res;
+        ActivityChangeSet res;
 
         res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_1100);
-        verifyChangeSetCounts(res, 1, 0, 0);
-        verifyChangeSetAdded(res, NODE_1100);
+        verifyActivityChangeSetCounts(res, 1, 0, 0);
+        verifyActivityChangeSetAdded(res, NODE_1100);
 
         res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_1000);
-        verifyChangeSetCounts(res, 1, 0, 0);
-        verifyChangeSetAdded(res, NODE_1000);
+        verifyActivityChangeSetCounts(res, 1, 0, 0);
+        verifyActivityChangeSetAdded(res, NODE_1000);
         
         res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_0100);
-        verifyChangeSetCounts(res, 1, 0, 0);
-        verifyChangeSetAdded(res, NODE_0100);
+        verifyActivityChangeSetCounts(res, 1, 0, 0);
+        verifyActivityChangeSetAdded(res, NODE_0100);
         
         res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
-        verifyChangeSetCounts(res, 1, 0, 0);
-        verifyChangeSetAdded(res, NODE_0010);
+        verifyActivityChangeSetCounts(res, 1, 0, 0);
+        verifyActivityChangeSetAdded(res, NODE_0010);
         
         res = fixture.touch(BASE_TIME.plusMillis(2L), NODE_1111);
-        verifyChangeSetCounts(res, 0, 0, 0);
+        verifyActivityChangeSetCounts(res, 0, 0, 0);
        
         assertEquals(NODE_1100, fixture.dump().get(0).getNode());
         assertEquals(NODE_1000, fixture.dump().get(1).getNode());
@@ -139,26 +134,26 @@ public class LeastRecentlySeenSetTest {
 
     @Test
     public void mustRejectNodeInsertionIfFullAndInFuture() throws Throwable {
-        EntryChangeSet res;
+        ActivityChangeSet res;
         
         res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
-        verifyChangeSetCounts(res, 1, 0, 0);
-        verifyChangeSetAdded(res, NODE_0010);
+        verifyActivityChangeSetCounts(res, 1, 0, 0);
+        verifyActivityChangeSetAdded(res, NODE_0010);
         
         res = fixture.touch(BASE_TIME.plusMillis(2L), NODE_0100);
-        verifyChangeSetCounts(res, 1, 0, 0);
-        verifyChangeSetAdded(res, NODE_0100);
+        verifyActivityChangeSetCounts(res, 1, 0, 0);
+        verifyActivityChangeSetAdded(res, NODE_0100);
 
         res = fixture.touch(BASE_TIME.plusMillis(3L), NODE_1000);
-        verifyChangeSetCounts(res, 1, 0, 0);
-        verifyChangeSetAdded(res, NODE_1000);
+        verifyActivityChangeSetCounts(res, 1, 0, 0);
+        verifyActivityChangeSetAdded(res, NODE_1000);
         
         res = fixture.touch(BASE_TIME.plusMillis(4L), NODE_1100);
-        verifyChangeSetCounts(res, 1, 0, 0);
-        verifyChangeSetAdded(res, NODE_1100);
+        verifyActivityChangeSetCounts(res, 1, 0, 0);
+        verifyActivityChangeSetAdded(res, NODE_1100);
 
         res = fixture.touch(BASE_TIME.plusMillis(5L), NODE_1111);
-        verifyChangeSetCounts(res, 0, 0, 0);
+        verifyActivityChangeSetCounts(res, 0, 0, 0);
         
         assertEquals(NODE_0010, fixture.dump().get(0).getNode());
         assertEquals(NODE_0100, fixture.dump().get(1).getNode());
@@ -169,31 +164,31 @@ public class LeastRecentlySeenSetTest {
 
     @Test
     public void mustFailToRemoveNodeIfNotExists() throws Throwable {
-        EntryChangeSet res;
+        ActivityChangeSet res;
         
         res = fixture.remove(NODE_1100);
-        verifyChangeSetCounts(res, 0, 0, 0);
+        verifyActivityChangeSetCounts(res, 0, 0, 0);
     }
     
     @Test
     public void mustRemoveNode() throws Throwable {
-        EntryChangeSet res;
+        ActivityChangeSet res;
         
         res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
-        verifyChangeSetCounts(res, 1, 0, 0);
-        verifyChangeSetAdded(res, NODE_0010);
+        verifyActivityChangeSetCounts(res, 1, 0, 0);
+        verifyActivityChangeSetAdded(res, NODE_0010);
         
         res = fixture.touch(BASE_TIME.plusMillis(2L), NODE_0100);
-        verifyChangeSetCounts(res, 1, 0, 0);
-        verifyChangeSetAdded(res, NODE_0100);
+        verifyActivityChangeSetCounts(res, 1, 0, 0);
+        verifyActivityChangeSetAdded(res, NODE_0100);
 
         assertEquals(NODE_0010, fixture.dump().get(0).getNode());
         assertEquals(NODE_0100, fixture.dump().get(1).getNode());
         assertEquals(2, fixture.size());
         
         res = fixture.remove(NODE_0100);
-        verifyChangeSetCounts(res, 0, 1, 0);
-        verifyChangeSetRemoved(res, NODE_0100);
+        verifyActivityChangeSetCounts(res, 0, 1, 0);
+        verifyActivityChangeSetRemoved(res, NODE_0100);
         
         assertEquals(NODE_0010, fixture.dump().get(0).getNode());
         assertEquals(1, fixture.size());
@@ -201,31 +196,31 @@ public class LeastRecentlySeenSetTest {
     
     @Test
     public void mustAllowNodeInsertionIfNodeRemoved() throws Throwable {
-        EntryChangeSet res;
+        ActivityChangeSet res;
         
         res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
-        verifyChangeSetCounts(res, 1, 0, 0);
-        verifyChangeSetAdded(res, NODE_0010);
+        verifyActivityChangeSetCounts(res, 1, 0, 0);
+        verifyActivityChangeSetAdded(res, NODE_0010);
         
         res = fixture.touch(BASE_TIME.plusMillis(2L), NODE_0100);
-        verifyChangeSetCounts(res, 1, 0, 0);
-        verifyChangeSetAdded(res, NODE_0100);
+        verifyActivityChangeSetCounts(res, 1, 0, 0);
+        verifyActivityChangeSetAdded(res, NODE_0100);
 
         res = fixture.touch(BASE_TIME.plusMillis(3L), NODE_1000);
-        verifyChangeSetCounts(res, 1, 0, 0);
-        verifyChangeSetAdded(res, NODE_1000);
+        verifyActivityChangeSetCounts(res, 1, 0, 0);
+        verifyActivityChangeSetAdded(res, NODE_1000);
         
         res = fixture.touch(BASE_TIME.plusMillis(4L), NODE_1100);
-        verifyChangeSetCounts(res, 1, 0, 0);
-        verifyChangeSetAdded(res, NODE_1100);
+        verifyActivityChangeSetCounts(res, 1, 0, 0);
+        verifyActivityChangeSetAdded(res, NODE_1100);
 
         res = fixture.remove(NODE_1100);
-        verifyChangeSetCounts(res, 0, 1, 0);
-        verifyChangeSetRemoved(res, NODE_1100);
+        verifyActivityChangeSetCounts(res, 0, 1, 0);
+        verifyActivityChangeSetRemoved(res, NODE_1100);
 
         res = fixture.touch(BASE_TIME.plusMillis(5L), NODE_1111);
-        verifyChangeSetCounts(res, 1, 0, 0);
-        verifyChangeSetAdded(res, NODE_1111);
+        verifyActivityChangeSetCounts(res, 1, 0, 0);
+        verifyActivityChangeSetAdded(res, NODE_1111);
         
         assertEquals(NODE_0010, fixture.dump().get(0).getNode());
         assertEquals(NODE_0100, fixture.dump().get(1).getNode());
@@ -236,32 +231,32 @@ public class LeastRecentlySeenSetTest {
 
     @Test
     public void mustUpdateNode() throws Throwable {
-        EntryChangeSet res;
+        ActivityChangeSet res;
         
         assertEquals(0, fixture.size());
         
         res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
-        verifyChangeSetCounts(res, 1, 0, 0);
-        verifyChangeSetAdded(res, NODE_0010);
+        verifyActivityChangeSetCounts(res, 1, 0, 0);
+        verifyActivityChangeSetAdded(res, NODE_0010);
         
         res = fixture.touch(BASE_TIME.plusMillis(2L), NODE_0100);
-        verifyChangeSetCounts(res, 1, 0, 0);
-        verifyChangeSetAdded(res, NODE_0100);
+        verifyActivityChangeSetCounts(res, 1, 0, 0);
+        verifyActivityChangeSetAdded(res, NODE_0100);
 
         res = fixture.touch(BASE_TIME.plusMillis(3L), NODE_1000);
-        verifyChangeSetCounts(res, 1, 0, 0);
-        verifyChangeSetAdded(res, NODE_1000);
+        verifyActivityChangeSetCounts(res, 1, 0, 0);
+        verifyActivityChangeSetAdded(res, NODE_1000);
         
         res = fixture.touch(BASE_TIME.plusMillis(4L), NODE_1100);
-        verifyChangeSetCounts(res, 1, 0, 0);
-        verifyChangeSetAdded(res, NODE_1100);
+        verifyActivityChangeSetCounts(res, 1, 0, 0);
+        verifyActivityChangeSetAdded(res, NODE_1100);
 
         res = fixture.touch(BASE_TIME.plusMillis(5L), NODE_1111); // must fail, bucket is full and too far in future
-        verifyChangeSetCounts(res, 0, 0, 0);
+        verifyActivityChangeSetCounts(res, 0, 0, 0);
         
         res = fixture.touch(BASE_TIME.plusMillis(4L), NODE_0010);
-        verifyChangeSetCounts(res, 0, 0, 1);
-        verifyChangeSetUpdated(res, NODE_0010);
+        verifyActivityChangeSetCounts(res, 0, 0, 1);
+        verifyActivityChangeSetUpdated(res, NODE_0010);
 
         assertEquals(NODE_0100, fixture.dump().get(0).getNode());
         assertEquals(NODE_1000, fixture.dump().get(1).getNode());
@@ -272,28 +267,28 @@ public class LeastRecentlySeenSetTest {
 
     @Test
     public void mustNotUpdateNodeIfFullButTimestampIsTheSame() throws Throwable {
-        EntryChangeSet res;
+        ActivityChangeSet res;
         
         assertEquals(0, fixture.size());
         
         res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
-        verifyChangeSetCounts(res, 1, 0, 0);
-        verifyChangeSetAdded(res, NODE_0010);
+        verifyActivityChangeSetCounts(res, 1, 0, 0);
+        verifyActivityChangeSetAdded(res, NODE_0010);
         
         res = fixture.touch(BASE_TIME.plusMillis(2L), NODE_0100);
-        verifyChangeSetCounts(res, 1, 0, 0);
-        verifyChangeSetAdded(res, NODE_0100);
+        verifyActivityChangeSetCounts(res, 1, 0, 0);
+        verifyActivityChangeSetAdded(res, NODE_0100);
 
         res = fixture.touch(BASE_TIME.plusMillis(3L), NODE_1000);
-        verifyChangeSetCounts(res, 1, 0, 0);
-        verifyChangeSetAdded(res, NODE_1000);
+        verifyActivityChangeSetCounts(res, 1, 0, 0);
+        verifyActivityChangeSetAdded(res, NODE_1000);
         
         res = fixture.touch(BASE_TIME.plusMillis(4L), NODE_1100);
-        verifyChangeSetCounts(res, 1, 0, 0);
-        verifyChangeSetAdded(res, NODE_1100);
+        verifyActivityChangeSetCounts(res, 1, 0, 0);
+        verifyActivityChangeSetAdded(res, NODE_1100);
         
         res = fixture.touch(BASE_TIME.plusMillis(4L), NODE_1111);
-        verifyChangeSetCounts(res, 0, 0, 0);
+        verifyActivityChangeSetCounts(res, 0, 0, 0);
 
         assertEquals(NODE_0010, fixture.dump().get(0).getNode());
         assertEquals(NODE_0100, fixture.dump().get(1).getNode());
@@ -304,34 +299,34 @@ public class LeastRecentlySeenSetTest {
 
     @Test
     public void mustUpdateNodeWhenProvidedInBackwardsOrder() throws Throwable {
-        EntryChangeSet res;
+        ActivityChangeSet res;
         
         assertEquals(0, fixture.size());
 
         res = fixture.touch(BASE_TIME.plusMillis(5L), NODE_1111);
-        verifyChangeSetCounts(res, 1, 0, 0);
-        verifyChangeSetAdded(res, NODE_1111);
+        verifyActivityChangeSetCounts(res, 1, 0, 0);
+        verifyActivityChangeSetAdded(res, NODE_1111);
         
         res = fixture.touch(BASE_TIME.plusMillis(4L), NODE_1100);
-        verifyChangeSetCounts(res, 1, 0, 0);
-        verifyChangeSetAdded(res, NODE_1100);
+        verifyActivityChangeSetCounts(res, 1, 0, 0);
+        verifyActivityChangeSetAdded(res, NODE_1100);
 
         res = fixture.touch(BASE_TIME.plusMillis(3L), NODE_1000);
-        verifyChangeSetCounts(res, 1, 0, 0);
-        verifyChangeSetAdded(res, NODE_1000);
+        verifyActivityChangeSetCounts(res, 1, 0, 0);
+        verifyActivityChangeSetAdded(res, NODE_1000);
 
         res = fixture.touch(BASE_TIME.plusMillis(2L), NODE_0100);
-        verifyChangeSetCounts(res, 1, 0, 0);
-        verifyChangeSetAdded(res, NODE_0100);
+        verifyActivityChangeSetCounts(res, 1, 0, 0);
+        verifyActivityChangeSetAdded(res, NODE_0100);
         
         res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
-        verifyChangeSetCounts(res, 1, 1, 0);
-        verifyChangeSetAdded(res, NODE_0010);
-        verifyChangeSetRemoved(res, NODE_1111);
+        verifyActivityChangeSetCounts(res, 1, 1, 0);
+        verifyActivityChangeSetAdded(res, NODE_0010);
+        verifyActivityChangeSetRemoved(res, NODE_1111);
         
         res = fixture.touch(BASE_TIME.plusMillis(4L), NODE_0010);
-        verifyChangeSetCounts(res, 0, 0, 1);
-        verifyChangeSetUpdated(res, NODE_0010);
+        verifyActivityChangeSetCounts(res, 0, 0, 1);
+        verifyActivityChangeSetUpdated(res, NODE_0010);
 
         assertEquals(NODE_0100, fixture.dump().get(0).getNode());
         assertEquals(NODE_1000, fixture.dump().get(1).getNode());
@@ -342,11 +337,11 @@ public class LeastRecentlySeenSetTest {
 
     @Test
     public void mustRejectRemovesForSameIdButFromDifferentLinks() throws Throwable {
-        EntryChangeSet res;
+        ActivityChangeSet res;
         
         res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_1111);
-        verifyChangeSetCounts(res, 1, 0, 0);
-        verifyChangeSetAdded(res, NODE_1111);
+        verifyActivityChangeSetCounts(res, 1, 0, 0);
+        verifyActivityChangeSetAdded(res, NODE_1111);
         
         expectedException.expect(LinkConflictException.class);
         fixture.remove(new Node(NODE_1111.getId(), "fakelink"));
@@ -354,11 +349,11 @@ public class LeastRecentlySeenSetTest {
 
     @Test
     public void mustRejectTouchesForSameIdButFromDifferentLinks() throws Throwable {
-        EntryChangeSet res;
+        ActivityChangeSet res;
         
         res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_1111);
-        verifyChangeSetCounts(res, 1, 0, 0);
-        verifyChangeSetAdded(res, NODE_1111);
+        verifyActivityChangeSetCounts(res, 1, 0, 0);
+        verifyActivityChangeSetAdded(res, NODE_1111);
         
         expectedException.expect(LinkConflictException.class);
         fixture.touch(BASE_TIME.plusMillis(1L), new Node(NODE_1111.getId(), "fakelink"));
