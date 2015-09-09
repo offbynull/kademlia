@@ -45,15 +45,15 @@ public final class KBucket {
 
         Validate.isTrue(!time.isBefore(lastUpdateTime)); // time must be >= lastUpdatedTime
         
-        ChangeSet bucketTouchRes = bucket.touch(time, node);
+        EntryChangeSet bucketTouchRes = bucket.touch(time, node);
         Validate.validState(bucketTouchRes.viewRemoved().isEmpty()); // sanity check, should never remove anything when touching bucket
         if (!bucketTouchRes.viewAdded().isEmpty() || !bucketTouchRes.viewUpdated().isEmpty()) {
             // node was added to bucket, or node was already in bucket and was updated
             lastUpdateTime = time;
-            return new KBucketChangeSet(bucketTouchRes, ChangeSet.NO_CHANGE);
+            return new KBucketChangeSet(bucketTouchRes, EntryChangeSet.NO_CHANGE);
         }
 
-        ChangeSet cacheTouchRes = cache.touch(time, node);
+        EntryChangeSet cacheTouchRes = cache.touch(time, node);
         lastUpdateTime = time;
         return new KBucketChangeSet(bucketTouchRes, cacheTouchRes);
     }
@@ -73,19 +73,19 @@ public final class KBucket {
 
         if (cache.size() == 0) {
             lastUpdateTime = time;
-            return new KBucketChangeSet(ChangeSet.NO_CHANGE, ChangeSet.NO_CHANGE);
+            return new KBucketChangeSet(EntryChangeSet.NO_CHANGE, EntryChangeSet.NO_CHANGE);
         }
         
         // Remove
-        ChangeSet bucketRemoveRes = bucket.remove(node); // throws EntryConflictException if id is equal but link isn't
+        EntryChangeSet bucketRemoveRes = bucket.remove(node); // throws EntryConflictException if id is equal but link isn't
         if (bucketRemoveRes.viewRemoved().isEmpty()) {
             lastUpdateTime = time;
-            return new KBucketChangeSet(ChangeSet.NO_CHANGE, ChangeSet.NO_CHANGE);
+            return new KBucketChangeSet(EntryChangeSet.NO_CHANGE, EntryChangeSet.NO_CHANGE);
         }
         
         // Remove latest from cache and add to bucket
-        ChangeSet cacheRemoveRes = cache.removeMostRecent(1);
-        ChangeSet bucketTouchRes;
+        EntryChangeSet cacheRemoveRes = cache.removeMostRecent(1);
+        EntryChangeSet bucketTouchRes;
         Validate.validState(cacheRemoveRes.viewRemoved().size() == 1); // sanity check, should always remove 1 node
         Entry cacheEntry = cacheRemoveRes.viewRemoved().get(0);
         try {
@@ -98,26 +98,8 @@ public final class KBucket {
         
         lastUpdateTime = time;
         return new KBucketChangeSet(
-                new ChangeSet(bucketTouchRes.viewAdded(), bucketRemoveRes.viewRemoved(), Collections.emptyList()),
+                new EntryChangeSet(bucketTouchRes.viewAdded(), bucketRemoveRes.viewRemoved(), Collections.emptyList()),
                 cacheRemoveRes);
-    }
-    
-    public List<Entry> getClosest(Id id, int max) {
-        Validate.notNull(id);
-        Validate.isTrue(max >= 0); // what's this point of calling this method if you want back 0 results??? let it thru anyways
-
-        Validate.isTrue(!id.equals(baseId));
-        Validate.isTrue(id.getBitLength() == baseId.getBitLength());
-        
-        Validate.isTrue(id.getBitString().getBits(0, prefix.getBitLength()).equals(prefix)); // ensure prefix matches
-        
-        List<Entry> nodes = bucket.dump();
-        IdClosenessComparator comparator = new IdClosenessComparator(baseId);
-        Collections.sort(nodes, (x, y) -> comparator.compare(x.getNode().getId(), y.getNode().getId()));
-        
-        int size = Math.min(max, nodes.size());
-        
-        return new ArrayList<>(nodes.subList(0, size));
     }
 
     // bitCount = 0 is 1 buckets
@@ -170,7 +152,7 @@ public final class KBucket {
             int idx = (int) id.getBitsAsLong(prefix.getBitLength(), bitCount);
             
             // Touch bucket
-            ChangeSet res;
+            EntryChangeSet res;
             try {
                 res = newKBuckets[idx].bucket.touch(entry.getLastSeenTime(), node);
             } catch (LinkConflictException ece) {
@@ -200,7 +182,7 @@ public final class KBucket {
             int idx = (int) id.getBitsAsLong(prefix.getBitLength(), bitCount);
             
             // Touch cache
-            ChangeSet res;
+            EntryChangeSet res;
             try {
                 res = newKBuckets[idx].cache.touch(entry.getLastSeenTime(), node);
             } catch (LinkConflictException ece) {
@@ -231,17 +213,17 @@ public final class KBucket {
         
         if (maxSize <= bucket.getMaxSize()) {
             // reducing space
-            ChangeSet res = bucket.resize(maxSize);
+            EntryChangeSet res = bucket.resize(maxSize);
             
             // sanity check
             // validate nothing was added or updated -- the only thing that can happen is elements can be removed
             Validate.validState(res.viewAdded().isEmpty());
             Validate.validState(res.viewUpdated().isEmpty());
             
-            return new KBucketChangeSet(res, ChangeSet.NO_CHANGE);
+            return new KBucketChangeSet(res, EntryChangeSet.NO_CHANGE);
         } else {
             // increasing space, so move over stuff from the cache in to new bucket spaces
-            ChangeSet res = bucket.resize(maxSize);
+            EntryChangeSet res = bucket.resize(maxSize);
             
             // sanity check
             // validate nothing changed with elements in the set -- we're only expanding the size of the bucket
@@ -257,8 +239,8 @@ public final class KBucket {
     public KBucketChangeSet resizeCache(int maxSize) {
         Validate.isTrue(maxSize >= 0);
         
-        ChangeSet res = cache.resize(maxSize);
-        return new KBucketChangeSet(ChangeSet.NO_CHANGE, res);
+        EntryChangeSet res = cache.resize(maxSize);
+        return new KBucketChangeSet(EntryChangeSet.NO_CHANGE, res);
     }
 
     public List<Entry> dumpBucket() {
@@ -277,19 +259,19 @@ public final class KBucket {
         int unoccupiedBucketSlots = bucket.getMaxSize() - bucket.size();
         int availableCacheItems = cache.size();
         if (unoccupiedBucketSlots <= 0 || availableCacheItems == 0) {
-            return new KBucketChangeSet(ChangeSet.NO_CHANGE, ChangeSet.NO_CHANGE);
+            return new KBucketChangeSet(EntryChangeSet.NO_CHANGE, EntryChangeSet.NO_CHANGE);
         }
         
         int moveAmount = Math.min(availableCacheItems, unoccupiedBucketSlots);
         
-        ChangeSet cacheRemoveRes = cache.removeMostRecent(moveAmount);
+        EntryChangeSet cacheRemoveRes = cache.removeMostRecent(moveAmount);
         Validate.validState(cacheRemoveRes.viewAdded().isEmpty());
         Validate.validState(cacheRemoveRes.viewRemoved().size() == moveAmount); // sanity check
         Validate.validState(cacheRemoveRes.viewUpdated().isEmpty());
 
         for (Entry entryToMove : cacheRemoveRes.viewRemoved()) {
             // move
-            ChangeSet addRes;
+            EntryChangeSet addRes;
             try {
                 addRes = bucket.touch(entryToMove.getLastSeenTime(), entryToMove.getNode());
             } catch (LinkConflictException ece) {
@@ -305,7 +287,7 @@ public final class KBucket {
         }
         
         // show moved as being added to bucket and removed from cache
-        return new KBucketChangeSet(ChangeSet.added(cacheRemoveRes.viewRemoved()), cacheRemoveRes);
+        return new KBucketChangeSet(EntryChangeSet.added(cacheRemoveRes.viewRemoved()), cacheRemoveRes);
     }
     
     // The int {@code 0xABCD} with a bitlength of 12 would result in the bit string {@code 10 1011 1100 1101}.

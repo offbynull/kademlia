@@ -22,60 +22,71 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import static java.util.Collections.emptyList;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.apache.commons.collections4.list.UnmodifiableList;
 import org.apache.commons.lang3.Validate;
 
-public final class ChangeSet {
-    static final ChangeSet NO_CHANGE = new ChangeSet(Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
+public final class EntryChangeSet {
+    static final EntryChangeSet NO_CHANGE = new EntryChangeSet(Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
     
     private final UnmodifiableList<Entry> removed;
     private final UnmodifiableList<Entry> added;
     private final UnmodifiableList<UpdatedEntry> updated;
     
-    public static ChangeSet added(Entry ... entries) {
+    public static EntryChangeSet added(Entry ... entries) {
         Validate.notNull(entries);
         Validate.noNullElements(entries);
         return added(Arrays.asList(entries));
     }
 
-    public static ChangeSet added(Collection<Entry> entries) {
+    public static EntryChangeSet added(Collection<Entry> entries) {
         Validate.notNull(entries);
         Validate.noNullElements(entries);
-        return new ChangeSet(entries, emptyList(), emptyList());
+        return new EntryChangeSet(entries, emptyList(), emptyList());
     }
 
-    public static ChangeSet removed(Entry ... entries) {
+    public static EntryChangeSet removed(Entry ... entries) {
         Validate.notNull(entries);
         Validate.noNullElements(entries);
         return removed(Arrays.asList(entries));
     }
 
-    public static ChangeSet removed(Collection<Entry> entries) {
+    public static EntryChangeSet removed(Collection<Entry> entries) {
         Validate.notNull(entries);
         Validate.noNullElements(entries);
-        return new ChangeSet(emptyList(), entries, emptyList());
+        return new EntryChangeSet(emptyList(), entries, emptyList());
     }
 
-    public static ChangeSet updated(UpdatedEntry ... entries) {
+    public static EntryChangeSet updated(UpdatedEntry ... entries) {
         Validate.notNull(entries);
         Validate.noNullElements(entries);
         return updated(Arrays.asList(entries));
     }
 
-    public static ChangeSet updated(Collection<UpdatedEntry> entries) {
+    public static EntryChangeSet updated(Collection<UpdatedEntry> entries) {
         Validate.notNull(entries);
         Validate.noNullElements(entries);
-        return new ChangeSet(emptyList(), emptyList(), entries);
+        return new EntryChangeSet(emptyList(), emptyList(), entries);
     }
     
-    public ChangeSet(Collection<Entry> added, Collection<Entry> removed, Collection<UpdatedEntry> updated) {
+    public EntryChangeSet(Collection<Entry> added, Collection<Entry> removed, Collection<UpdatedEntry> updated) {
         Validate.notNull(removed);
         Validate.notNull(added);
         Validate.notNull(updated);
         Validate.noNullElements(removed);
         Validate.noNullElements(added);
         Validate.noNullElements(updated);
+        
+        // ensure that there aren't any duplicate ids
+        Set<Id> tempSet = new HashSet<>();
+        removed.stream().map(x -> x.getNode().getId()).forEach(x -> tempSet.add(x));
+        added.stream().map(x -> x.getNode().getId()).forEach(x -> tempSet.add(x));
+        updated.stream().map(x -> x.getNode().getId()).forEach(x -> tempSet.add(x));
+        Validate.isTrue(tempSet.size() == added.size() + removed.size() + updated.size());
+
         this.removed = (UnmodifiableList<Entry>) UnmodifiableList.unmodifiableList(new ArrayList<>(removed));
         this.added = (UnmodifiableList<Entry>) UnmodifiableList.unmodifiableList(new ArrayList<>(added));
         this.updated = (UnmodifiableList<UpdatedEntry>) UnmodifiableList.unmodifiableList(new ArrayList<>(updated));
@@ -110,7 +121,7 @@ public final class ChangeSet {
         if (getClass() != obj.getClass()) {
             return false;
         }
-        final ChangeSet other = (ChangeSet) obj;
+        final EntryChangeSet other = (EntryChangeSet) obj;
         if (!Objects.equals(this.removed, other.removed)) {
             return false;
         }

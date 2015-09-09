@@ -16,8 +16,6 @@
  */
 package com.offbynull.voip.kademlia;
 
-import com.offbynull.voip.kademlia.ChangeSet.UpdatedEntry;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -26,7 +24,7 @@ import org.apache.commons.lang3.Validate;
 
 public final class NearSet {
     private final Id baseId;
-    private final TreeMap<Id, Entry> entries;
+    private final TreeMap<Id, Node> nodes;
     
     private int maxSize;
 
@@ -37,11 +35,10 @@ public final class NearSet {
         this.baseId = baseId;
         this.maxSize = maxSize;
         
-        this.entries = new TreeMap<>(new IdClosenessComparator(baseId));
+        this.nodes = new TreeMap<>(new IdClosenessComparator(baseId));
     }
 
-    public ChangeSet touch(Instant time, Node node) throws LinkConflictException {
-        Validate.notNull(time);
+    public NodeChangeSet touch(Node node) throws LinkConflictException {
         Validate.notNull(node);
         
         Id nodeId = node.getId();
@@ -50,83 +47,79 @@ public final class NearSet {
         Validate.isTrue(!nodeId.equals(baseId));
         
         if (maxSize == 0) {
-            return ChangeSet.NO_CHANGE;
+            return NodeChangeSet.NO_CHANGE;
         }
         
-        List<Entry> added = new ArrayList<>(1);
-        List<Entry> removed = new ArrayList<>(1);
-        List<UpdatedEntry> updated = new ArrayList<>(1);
+        List<Node> added = new ArrayList<>(1);
+        List<Node> removed = new ArrayList<>(1);
         
-        Entry newEntry = new Entry(node, time);
-        Entry existingEntry;
-        if ((existingEntry = entries.get(nodeId)) != null) {
-            if (!existingEntry.getNode().equals(node)) {
+        Node existingNode;
+        if ((existingNode = nodes.get(nodeId)) != null) {
+            if (!existingNode.equals(node)) {
                 // if ID exists but link for ID is different, ignore
-                throw new LinkConflictException(existingEntry);
+                throw new LinkConflictException(existingNode);
             }
             
-            updated.add(new UpdatedEntry(node, existingEntry.getLastSeenTime(), newEntry.getLastSeenTime()));
-            entries.put(nodeId, newEntry);
-            return new ChangeSet(added, removed, updated);
+            return NodeChangeSet.NO_CHANGE; // already exists
         }
         
-        added.add(newEntry);
-        entries.put(nodeId, new Entry(node, time));
-        if (entries.size() > maxSize) {
-            Entry oldEntry = entries.pollFirstEntry().getValue(); // remove first entry so we don't exceed maxSize
-            removed.add(oldEntry);
+        added.add(node);
+        nodes.put(nodeId, node);
+        if (nodes.size() > maxSize) {
+            Node oldNode = nodes.pollFirstEntry().getValue(); // remove first node (farthest) so we don't exceed maxSize
+            removed.add(oldNode);
         }
         
-        return new ChangeSet(added, removed, updated);
+        return new NodeChangeSet(added, removed);
     }
     
-    public ChangeSet remove(Node node) throws LinkConflictException {
+    public NodeChangeSet remove(Node node) throws LinkConflictException {
         Validate.notNull(node);
         
         Id nodeId = node.getId();
         String nodeLink = node.getLink();
         
-        Entry entry = entries.get(nodeId);
-        if (entry == null) {
-            return ChangeSet.NO_CHANGE;
+        Node foundNode = nodes.get(nodeId);
+        if (foundNode == null) {
+            return NodeChangeSet.NO_CHANGE;
         }
 
-        Id entryId = entry.getNode().getId();
-        String entryLink = entry.getNode().getLink();
+        Id foundId = foundNode.getId();
+        String foundLink = foundNode.getLink();
 
-        Validate.validState(nodeId.equals(entryId)); // should never happen -- just in case
-        if (!entryLink.equals(nodeLink)) {
+        Validate.validState(nodeId.equals(foundId)); // should never happen -- just in case
+        if (!foundLink.equals(nodeLink)) {
             // if ID exists but link for ID is different
-            throw new LinkConflictException(entry);
+            throw new LinkConflictException(foundNode);
         }
 
         // remove
-        entries.remove(nodeId);
-        return ChangeSet.removed(entry);
+        nodes.remove(nodeId);
+        return NodeChangeSet.removed(foundNode);
     }
     
-    public ChangeSet resize(int maxSize) {
+    public NodeChangeSet resize(int maxSize) {
         Validate.isTrue(maxSize >= 0);
         
         int discardCount = this.maxSize - maxSize;
         
-        List<Entry> removed = new LinkedList<>();
+        List<Node> removed = new LinkedList<>();
         for (int i = 0; i < discardCount; i++) {
-            Entry removedEntry = entries.pollFirstEntry().getValue(); // remove largest
+            Node removedEntry = nodes.pollFirstEntry().getValue(); // remove largest
             removed.add(removedEntry);
         }
         
         this.maxSize = maxSize;
         
-        return ChangeSet.removed(removed);
+        return NodeChangeSet.removed(removed);
     }
     
-    public List<Entry> dump() {
-        return new ArrayList<>(entries.values());
+    public List<Node> dump() {
+        return new ArrayList<>(nodes.values());
     }
     
     public int size() {
-        return entries.size();
+        return nodes.size();
     }
 
     public int getMaxSize() {
@@ -135,7 +128,7 @@ public final class NearSet {
     
     @Override
     public String toString() {
-        return "NearSet{" + "baseId=" + baseId + ", entries=" + entries + ", maxSize=" + maxSize + '}';
+        return "NearSet{" + "baseId=" + baseId + ", entries=" + nodes + ", maxSize=" + maxSize + '}';
     }
     
 }

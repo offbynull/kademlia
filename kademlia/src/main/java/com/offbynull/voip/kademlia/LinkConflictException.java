@@ -5,14 +5,14 @@ import org.apache.commons.lang3.Validate;
 public class LinkConflictException extends Exception {
     private static final long serialVersionUID = 1L;
 
-    private final Entry existingEntry;
+    private final Node existingNode;
 
-    public LinkConflictException(Entry existingEntry) {
-        Validate.notNull(existingEntry);
-        this.existingEntry = existingEntry;
+    public LinkConflictException(Node existingNode) {
+        Validate.notNull(existingNode);
+        this.existingNode = existingNode;
     }
 
-    public Entry getExistingEntry() {
-        return existingEntry;
+    public Node getExistingNode() {
+        return existingNode;
     }
 }

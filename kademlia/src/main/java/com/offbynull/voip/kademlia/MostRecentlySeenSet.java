@@ -16,7 +16,7 @@
  */
 package com.offbynull.voip.kademlia;
 
-import com.offbynull.voip.kademlia.ChangeSet.UpdatedEntry;
+import com.offbynull.voip.kademlia.EntryChangeSet.UpdatedEntry;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -42,7 +42,7 @@ public final class MostRecentlySeenSet {
         this.entries = new LinkedList<>();
     }
   
-    public ChangeSet touch(Instant time, Node node) throws LinkConflictException {
+    public EntryChangeSet touch(Instant time, Node node) throws LinkConflictException {
         Validate.notNull(time);
         Validate.notNull(node);
         
@@ -66,7 +66,7 @@ public final class MostRecentlySeenSet {
             if (entryId.equals(nodeId)) {
                 if (!entryLink.equals(nodeLink)) {
                     // if ID exists but link for ID is different
-                    throw new LinkConflictException(entry);
+                    throw new LinkConflictException(entry.getNode());
                 }
 
                 // remove
@@ -103,7 +103,7 @@ public final class MostRecentlySeenSet {
             // if the node removed with the earliest time is the one we just added, then report that node couldn't be added
             discardedEntry = entries.removeFirst();
             if (discardedEntry.equals(newEntry)) {
-                return ChangeSet.NO_CHANGE;
+                return EntryChangeSet.NO_CHANGE;
             }
         }
 
@@ -113,7 +113,7 @@ public final class MostRecentlySeenSet {
             Validate.validState(discardedEntry == null); // sanity check, must not have discarded anything
             
             // updated existing node
-            return ChangeSet.updated(new UpdatedEntry(newEntry.getNode(), oldEntry.getLastSeenTime(), newEntry.getLastSeenTime()));
+            return EntryChangeSet.updated(new UpdatedEntry(newEntry.getNode(), oldEntry.getLastSeenTime(), newEntry.getLastSeenTime()));
         } else {
             // if block above ensures oldEntry is null if we're in this else block, so sanity check below isn't nessecary
             // Validate.validState(oldEntry == null); // sanity check, node being touched must not have already existed
@@ -122,11 +122,11 @@ public final class MostRecentlySeenSet {
             Collection<Entry> addedEntries = Collections.singletonList(newEntry);
             Collection<Entry> removedEntries = discardedEntry == null ? Collections.emptyList() : Collections.singletonList(discardedEntry);
             Collection<UpdatedEntry> updatedEntries = Collections.emptyList();
-            return new ChangeSet(addedEntries, removedEntries, updatedEntries);
+            return new EntryChangeSet(addedEntries, removedEntries, updatedEntries);
         }
     }
 
-    public ChangeSet remove(Node node) throws LinkConflictException {
+    public EntryChangeSet remove(Node node) throws LinkConflictException {
         Validate.notNull(node);
         
         Id nodeId = node.getId();
@@ -142,19 +142,19 @@ public final class MostRecentlySeenSet {
             if (entryId.equals(nodeId)) {
                 if (!entryLink.equals(nodeLink)) {
                     // if ID exists but link for ID is different
-                    throw new LinkConflictException(entry);
+                    throw new LinkConflictException(entry.getNode());
                 }
 
                 // remove
                 it.remove();
-                return ChangeSet.removed(entry);
+                return EntryChangeSet.removed(entry);
             }
         }
         
-        return ChangeSet.NO_CHANGE;
+        return EntryChangeSet.NO_CHANGE;
     }
 
-    public ChangeSet resize(int maxSize) {
+    public EntryChangeSet resize(int maxSize) {
         Validate.isTrue(maxSize >= 0);
         
         int discardCount = this.maxSize - maxSize;
@@ -167,10 +167,10 @@ public final class MostRecentlySeenSet {
         
         this.maxSize = maxSize;
         
-        return ChangeSet.removed(removed);
+        return EntryChangeSet.removed(removed);
     }
 
-    public ChangeSet removeMostRecent(int count) {
+    public EntryChangeSet removeMostRecent(int count) {
         LinkedList<Entry> removed = new LinkedList<>();
         for (int i = 0; i < count; i++) {
             Entry e = entries.removeLast();
@@ -179,7 +179,7 @@ public final class MostRecentlySeenSet {
             }
             removed.addFirst(e);
         }
-        return ChangeSet.removed(removed);
+        return EntryChangeSet.removed(removed);
     }
     
     public List<Entry> dump() {

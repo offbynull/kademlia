@@ -1,8 +1,5 @@
 package com.offbynull.voip.kademlia;
 
-import com.offbynull.voip.kademlia.Entry;
-import com.offbynull.voip.kademlia.ChangeSet;
-import com.offbynull.voip.kademlia.Node;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
@@ -14,13 +11,36 @@ final class TestUtils {
         // do nothing
     }
     
-    public static void verifyChangeSetCounts(ChangeSet changeSet, int expectedAdded, int expectedRemoved, int expectedUpdated) {
+    public static void verifyNodeChangeSetCounts(NodeChangeSet changeSet, int expectedAdded, int expectedRemoved) {
+        assertEquals(expectedAdded, changeSet.viewAdded().size());
+        assertEquals(expectedRemoved, changeSet.viewRemoved().size());
+    }
+
+    public static  void verifyNodeChangeSetAdded(NodeChangeSet changeSet, Node ... nodes) {
+        assertEquals(nodes.length, changeSet.viewAdded().size());
+        
+        List<Node> actual = changeSet.viewAdded();
+        List<Node> expected = Arrays.asList(nodes);
+        
+        assertEquals(expected, actual);
+    }
+
+    public static void verifyNodeChangeSetRemoved(NodeChangeSet changeSet, Node ... nodes) {
+        assertEquals(nodes.length, changeSet.viewRemoved().size());
+        
+        List<Node> actual = changeSet.viewRemoved();
+        List<Node> expected = Arrays.asList(nodes);
+        
+        assertEquals(expected, actual);
+    }
+    
+    public static void verifyChangeSetCounts(EntryChangeSet changeSet, int expectedAdded, int expectedRemoved, int expectedUpdated) {
         assertEquals(expectedAdded, changeSet.viewAdded().size());
         assertEquals(expectedRemoved, changeSet.viewRemoved().size());
         assertEquals(expectedUpdated, changeSet.viewUpdated().size());
     }
 
-    public static  void verifyChangeSetAdded(ChangeSet changeSet, Node ... nodes) {
+    public static  void verifyChangeSetAdded(EntryChangeSet changeSet, Node ... nodes) {
         assertEquals(nodes.length, changeSet.viewAdded().size());
         
         List<Node> actual = changeSet.viewAdded().stream().map(x -> x.getNode()).collect(Collectors.toList());
@@ -29,7 +49,7 @@ final class TestUtils {
         assertEquals(expected, actual);
     }
 
-    public static void verifyChangeSetRemoved(ChangeSet changeSet, Node ... nodes) {
+    public static void verifyChangeSetRemoved(EntryChangeSet changeSet, Node ... nodes) {
         assertEquals(nodes.length, changeSet.viewRemoved().size());
         
         List<Node> actual = changeSet.viewRemoved().stream().map(x -> x.getNode()).collect(Collectors.toList());
@@ -38,7 +58,7 @@ final class TestUtils {
         assertEquals(expected, actual);
     }
 
-    public static void verifyChangeSetUpdated(ChangeSet changeSet, Node ... nodes) {
+    public static void verifyChangeSetUpdated(EntryChangeSet changeSet, Node ... nodes) {
         assertEquals(nodes.length, changeSet.viewUpdated().size());
         
         List<Node> actual = changeSet.viewUpdated().stream().map(x -> x.getNode()).collect(Collectors.toList());

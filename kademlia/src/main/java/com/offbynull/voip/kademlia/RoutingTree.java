@@ -3,6 +3,8 @@ package com.offbynull.voip.kademlia;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import org.apache.commons.lang3.Validate;
 
 public final class RoutingTree {
@@ -26,6 +28,24 @@ public final class RoutingTree {
             KBucket bucket = new KBucket(baseId, prefix, maxDepth, bucketSize);
             buckets.add(bucket);
         }
+    }
+    
+    public List<Entry> getClosest(Id id, int max) {
+        Validate.notNull(id);
+        Validate.isTrue(max >= 0); // what's this point of calling this method if you want back 0 results??? let it thru anyways
+
+        Validate.isTrue(!id.equals(baseId));
+        Validate.isTrue(id.getBitLength() == baseId.getBitLength());
+        
+        Validate.isTrue(id.getBitString().getBits(0, prefix.getBitLength()).equals(prefix)); // ensure prefix matches
+        
+        List<Entry> nodes = bucket.dump();
+        IdClosenessComparator comparator = new IdClosenessComparator(id);
+        Collections.sort(nodes, (x, y) -> comparator.compare(x.getNode().getId(), y.getNode().getId()));
+        
+        int size = Math.min(max, nodes.size());
+        
+        return new ArrayList<>(nodes.subList(0, size));
     }
     
     public void touch(Instant time, Node node) {

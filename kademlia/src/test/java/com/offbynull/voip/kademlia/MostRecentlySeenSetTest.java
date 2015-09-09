@@ -1,6 +1,6 @@
 package com.offbynull.voip.kademlia;
 
-import com.offbynull.voip.kademlia.ChangeSet;
+import com.offbynull.voip.kademlia.EntryChangeSet;
 import com.offbynull.voip.kademlia.Id;
 import com.offbynull.voip.kademlia.MostRecentlySeenSet;
 import com.offbynull.voip.kademlia.Node;
@@ -34,7 +34,7 @@ public final class MostRecentlySeenSetTest {
 
     @Test
     public void mustInsertNodes() throws Throwable {
-        ChangeSet res;
+        EntryChangeSet res;
         
         res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
         verifyChangeSetCounts(res, 1, 0, 0);
@@ -51,7 +51,7 @@ public final class MostRecentlySeenSetTest {
 
     @Test
     public void mustInsertNodesWhenProvidedInBackwardsOrder() throws Throwable {
-        ChangeSet res;
+        EntryChangeSet res;
 
         res = fixture.touch(BASE_TIME.plusMillis(4L), NODE_1100);
         verifyChangeSetCounts(res, 1, 0, 0);
@@ -78,7 +78,7 @@ public final class MostRecentlySeenSetTest {
 
     @Test
     public void mustNotOverrideExistingNodesIfBucketFullAndTimestampUnchanged() throws Throwable {
-        ChangeSet res;
+        EntryChangeSet res;
 
         res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_1100);
         verifyChangeSetCounts(res, 1, 0, 0);
@@ -111,7 +111,7 @@ public final class MostRecentlySeenSetTest {
 
     @Test
     public void mustNotOverrideExistingNodesIfBucketFullAndTimestampEarlier() throws Throwable {
-        ChangeSet res;
+        EntryChangeSet res;
 
         res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_1100);
         verifyChangeSetCounts(res, 1, 0, 0);
@@ -142,7 +142,7 @@ public final class MostRecentlySeenSetTest {
 
     @Test
     public void mustRejectNodeInsertionIfFullAndInPast() throws Throwable {
-        ChangeSet res;
+        EntryChangeSet res;
         
         res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
         verifyChangeSetCounts(res, 1, 0, 0);
@@ -172,7 +172,7 @@ public final class MostRecentlySeenSetTest {
 
     @Test
     public void mustFailToRemoveNodeIfNotExists() throws Throwable {
-        ChangeSet res;
+        EntryChangeSet res;
         
         res = fixture.remove(NODE_1100);
         verifyChangeSetCounts(res, 0, 0, 0);
@@ -180,7 +180,7 @@ public final class MostRecentlySeenSetTest {
     
     @Test
     public void mustRemoveNode() throws Throwable {
-        ChangeSet res;
+        EntryChangeSet res;
         
         res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
         verifyChangeSetCounts(res, 1, 0, 0);
@@ -204,7 +204,7 @@ public final class MostRecentlySeenSetTest {
     
     @Test
     public void mustAllowNodeInsertionIfNodeRemoved() throws Throwable {
-        ChangeSet res;
+        EntryChangeSet res;
         
         res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
         verifyChangeSetCounts(res, 1, 0, 0);
@@ -239,7 +239,7 @@ public final class MostRecentlySeenSetTest {
 
     @Test
     public void mustUpdateNode() throws Throwable {
-        ChangeSet res;
+        EntryChangeSet res;
         
         assertEquals(0, fixture.size());
         
@@ -275,7 +275,7 @@ public final class MostRecentlySeenSetTest {
 
     @Test
     public void mustNotUpdateNodeIfFullButTimestampIsTheSame() throws Throwable {
-        ChangeSet res;
+        EntryChangeSet res;
         
         assertEquals(0, fixture.size());
         
@@ -307,7 +307,7 @@ public final class MostRecentlySeenSetTest {
     
     @Test
     public void mustUpdateNodeWhenProvidedInBackwardsOrder() throws Throwable {
-        ChangeSet res;
+        EntryChangeSet res;
         
         assertEquals(0, fixture.size());
 
@@ -344,7 +344,7 @@ public final class MostRecentlySeenSetTest {
 
     @Test
     public void mustRejectRemovesForSameIdButFromDifferentLinks() throws Throwable {
-        ChangeSet res;
+        EntryChangeSet res;
         
         res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_1111);
         verifyChangeSetCounts(res, 1, 0, 0);
@@ -357,7 +357,7 @@ public final class MostRecentlySeenSetTest {
 
     @Test
     public void mustRejectTouchesForSameIdButFromDifferentLinks() throws Throwable {
-        ChangeSet res;
+        EntryChangeSet res;
         
         res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_1111);
         verifyChangeSetCounts(res, 1, 0, 0);
