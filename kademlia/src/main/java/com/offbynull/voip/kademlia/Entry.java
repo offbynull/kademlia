@@ -23,28 +23,28 @@ import org.apache.commons.lang3.Validate;
 
 public final class Entry {
     private final Node node;
-    private final Instant lastSeenTime;
+    private final Instant time;
 
-    public Entry(Node node, Instant lastSeenTime) {
+    public Entry(Node node, Instant time) {
         Validate.notNull(node);
-        Validate.notNull(lastSeenTime);
+        Validate.notNull(time);
         this.node = node;
-        this.lastSeenTime = lastSeenTime;
+        this.time = time;
     }
 
     public Node getNode() {
         return node;
     }
 
-    public Instant getLastSeenTime() {
-        return lastSeenTime;
+    public Instant getTime() {
+        return time;
     }
 
     @Override
     public int hashCode() {
         int hash = 3;
         hash = 31 * hash + Objects.hashCode(this.node);
-        hash = 31 * hash + Objects.hashCode(this.lastSeenTime);
+        hash = 31 * hash + Objects.hashCode(this.time);
         return hash;
     }
 
@@ -60,7 +60,7 @@ public final class Entry {
         if (!Objects.equals(this.node, other.node)) {
             return false;
         }
-        if (!Objects.equals(this.lastSeenTime, other.lastSeenTime)) {
+        if (!Objects.equals(this.time, other.time)) {
             return false;
         }
         return true;
@@ -68,7 +68,7 @@ public final class Entry {
 
     @Override
     public String toString() {
-        return "Entry{" + "node=" + node + ", lastSeenTime=" + lastSeenTime + '}';
+        return "Entry{" + "node=" + node + ", lastSeenTime=" + time + '}';
     }
     
 }

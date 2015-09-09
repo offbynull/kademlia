@@ -19,20 +19,19 @@ package com.offbynull.voip.kademlia;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import static java.util.Collections.emptyList;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.apache.commons.collections4.list.UnmodifiableList;
 import org.apache.commons.lang3.Validate;
 
 public final class NodeChangeSet {
-    static final NodeChangeSet NO_CHANGE = new NodeChangeSet(Collections.emptyList(), Collections.emptyList());
+    static final NodeChangeSet NO_CHANGE = new NodeChangeSet(emptyList(), emptyList(), emptyList());
     
     private final UnmodifiableList<Node> removed;
     private final UnmodifiableList<Node> added;
+    private final UnmodifiableList<Node> updated;
     
     public static NodeChangeSet added(Node ... nodes) {
         Validate.notNull(nodes);
@@ -43,7 +42,7 @@ public final class NodeChangeSet {
     public static NodeChangeSet added(Collection<Node> nodes) {
         Validate.notNull(nodes);
         Validate.noNullElements(nodes);
-        return new NodeChangeSet(nodes, emptyList());
+        return new NodeChangeSet(nodes, emptyList(), emptyList());
     }
 
     public static NodeChangeSet removed(Node ... nodes) {
@@ -55,23 +54,39 @@ public final class NodeChangeSet {
     public static NodeChangeSet removed(Collection<Node> nodes) {
         Validate.notNull(nodes);
         Validate.noNullElements(nodes);
-        return new NodeChangeSet(emptyList(), nodes);
+        return new NodeChangeSet(emptyList(), nodes, emptyList());
+    }
+
+    public static NodeChangeSet updated(Node ... nodes) {
+        Validate.notNull(nodes);
+        Validate.noNullElements(nodes);
+        return updated(Arrays.asList(nodes));
+    }
+
+    public static NodeChangeSet updated(Collection<Node> nodes) {
+        Validate.notNull(nodes);
+        Validate.noNullElements(nodes);
+        return new NodeChangeSet(emptyList(), emptyList(), nodes);
     }
     
-    public NodeChangeSet(Collection<Node> added, Collection<Node> removed) {
+    public NodeChangeSet(Collection<Node> added, Collection<Node> removed, Collection<Node> updated) {
         Validate.notNull(removed);
         Validate.notNull(added);
+        Validate.notNull(updated);
         Validate.noNullElements(removed);
         Validate.noNullElements(added);
+        Validate.noNullElements(updated);
         
         // ensure that there aren't any duplicate ids
         Set<Id> tempSet = new HashSet<>();
         removed.stream().map(x -> x.getId()).forEach(x -> tempSet.add(x));
         added.stream().map(x -> x.getId()).forEach(x -> tempSet.add(x));
-        Validate.isTrue(tempSet.size() == added.size() + removed.size());
+        updated.stream().map(x -> x.getId()).forEach(x -> tempSet.add(x));
+        Validate.isTrue(tempSet.size() == added.size() + removed.size() + updated.size());
         
         this.removed = (UnmodifiableList<Node>) UnmodifiableList.unmodifiableList(new ArrayList<>(removed));
         this.added = (UnmodifiableList<Node>) UnmodifiableList.unmodifiableList(new ArrayList<>(added));
+        this.updated = (UnmodifiableList<Node>) UnmodifiableList.unmodifiableList(new ArrayList<>(updated));
     }
 
     public UnmodifiableList<Node> viewRemoved() {
@@ -82,11 +97,16 @@ public final class NodeChangeSet {
         return added;
     }
 
+    public UnmodifiableList<Node> viewUpdated() {
+        return updated;
+    }
+
     @Override
     public int hashCode() {
         int hash = 3;
-        hash = 73 * hash + Objects.hashCode(this.removed);
-        hash = 73 * hash + Objects.hashCode(this.added);
+        hash = 23 * hash + Objects.hashCode(this.removed);
+        hash = 23 * hash + Objects.hashCode(this.added);
+        hash = 23 * hash + Objects.hashCode(this.updated);
         return hash;
     }
 
@@ -105,12 +125,15 @@ public final class NodeChangeSet {
         if (!Objects.equals(this.added, other.added)) {
             return false;
         }
+        if (!Objects.equals(this.updated, other.updated)) {
+            return false;
+        }
         return true;
     }
 
     @Override
     public String toString() {
-        return "NodeChangeSet{" + "removed=" + removed + ", added=" + added + '}';
+        return "NodeChangeSet{" + "removed=" + removed + ", added=" + added + ", updated=" + updated + '}';
     }
 
 }

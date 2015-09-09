@@ -30,7 +30,7 @@ public class InformationSetTest {
         NodeChangeSet res;
         
         res = fixture.put(NODE_001, "key1", "value1");
-        verifyNodeChangeSetCounts(res, 1, 0);
+        verifyNodeChangeSetCounts(res, 1, 0, 0);
         verifyNodeChangeSetAdded(res, NODE_001);
         
         Object value = fixture.get(NODE_001, "key1");
@@ -42,11 +42,11 @@ public class InformationSetTest {
         NodeChangeSet res;
         
         res = fixture.put(NODE_001, "key1", "value1");
-        verifyNodeChangeSetCounts(res, 1, 0);
+        verifyNodeChangeSetCounts(res, 1, 0, 0);
         verifyNodeChangeSetAdded(res, NODE_001);
 
         res = fixture.put(NODE_001, "key1", "value2");
-        verifyNodeChangeSetCounts(res, 0, 0);
+        verifyNodeChangeSetCounts(res, 0, 0, 0);
         
         Object value = fixture.get(NODE_001, "key1");
         assertEquals("value2", value);
@@ -57,11 +57,11 @@ public class InformationSetTest {
         NodeChangeSet res;
         
         res = fixture.put(NODE_001, "key1", "value1");
-        verifyNodeChangeSetCounts(res, 1, 0);
+        verifyNodeChangeSetCounts(res, 1, 0, 0);
         verifyNodeChangeSetAdded(res, NODE_001);
 
         res = fixture.put(NODE_001, "key2", "value2");
-        verifyNodeChangeSetCounts(res, 0, 0);
+        verifyNodeChangeSetCounts(res, 0, 0, 0);
         
         Map<Object, Object> value = fixture.getAll(NODE_001);
         assertEquals(2, value.size());
@@ -74,14 +74,14 @@ public class InformationSetTest {
         NodeChangeSet res;
         
         res = fixture.put(NODE_001, "key1", "value1");
-        verifyNodeChangeSetCounts(res, 1, 0);
+        verifyNodeChangeSetCounts(res, 1, 0, 0);
         verifyNodeChangeSetAdded(res, NODE_001);
         
         Object value = fixture.get(NODE_001, "key1");
         assertEquals("value1", value);
 
         res = fixture.remove(NODE_001, "key1");
-        verifyNodeChangeSetCounts(res, 0, 1);
+        verifyNodeChangeSetCounts(res, 0, 1, 0);
         verifyNodeChangeSetRemoved(res, NODE_001);
         
         value = fixture.get(NODE_001, "key1");
@@ -93,7 +93,7 @@ public class InformationSetTest {
         NodeChangeSet res;
         
         res = fixture.remove(NODE_001, "key1");
-        verifyNodeChangeSetCounts(res, 0, 0);
+        verifyNodeChangeSetCounts(res, 0, 0, 0);
     }
     
     @Test
@@ -101,14 +101,14 @@ public class InformationSetTest {
         NodeChangeSet res;
         
         res = fixture.put(NODE_001, "key1", "value1");
-        verifyNodeChangeSetCounts(res, 1, 0);
+        verifyNodeChangeSetCounts(res, 1, 0, 0);
         verifyNodeChangeSetAdded(res, NODE_001);
 
         res = fixture.put(NODE_001, "key2", "value2");
-        verifyNodeChangeSetCounts(res, 0, 0);
+        verifyNodeChangeSetCounts(res, 0, 0, 0);
         
         res = fixture.removeAll(NODE_001);
-        verifyNodeChangeSetCounts(res, 0, 1);
+        verifyNodeChangeSetCounts(res, 0, 1, 0);
         verifyNodeChangeSetRemoved(res, NODE_001);
         
         Object value;
@@ -125,7 +125,7 @@ public class InformationSetTest {
         NodeChangeSet res;
         
         res = fixture.removeAll(NODE_001);
-        verifyNodeChangeSetCounts(res, 0, 0);
+        verifyNodeChangeSetCounts(res, 0, 0, 0);
     }
 
     @Test

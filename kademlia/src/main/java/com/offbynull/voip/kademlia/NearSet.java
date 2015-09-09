@@ -17,6 +17,7 @@
 package com.offbynull.voip.kademlia;
 
 import java.util.ArrayList;
+import static java.util.Collections.emptyList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.TreeMap;
@@ -70,7 +71,7 @@ public final class NearSet {
             removed.add(oldNode);
         }
         
-        return new NodeChangeSet(added, removed);
+        return new NodeChangeSet(added, removed, emptyList());
     }
     
     public NodeChangeSet remove(Node node) throws LinkConflictException {

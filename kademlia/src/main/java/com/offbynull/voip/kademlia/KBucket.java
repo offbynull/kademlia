@@ -89,7 +89,7 @@ public final class KBucket {
         Validate.validState(cacheRemoveRes.viewRemoved().size() == 1); // sanity check, should always remove 1 node
         Entry cacheEntry = cacheRemoveRes.viewRemoved().get(0);
         try {
-            bucketTouchRes = bucket.touch(cacheEntry.getLastSeenTime(), cacheEntry.getNode());
+            bucketTouchRes = bucket.touch(cacheEntry.getTime(), cacheEntry.getNode());
         } catch (LinkConflictException ece) {
             // should never throw EntryConflictException
             throw new IllegalStateException(ece);
@@ -154,7 +154,7 @@ public final class KBucket {
             // Touch bucket
             EntryChangeSet res;
             try {
-                res = newKBuckets[idx].bucket.touch(entry.getLastSeenTime(), node);
+                res = newKBuckets[idx].bucket.touch(entry.getTime(), node);
             } catch (LinkConflictException ece) {
                 // should never happen
                 throw new IllegalStateException(ece);
@@ -162,8 +162,8 @@ public final class KBucket {
             Validate.validState(!res.viewAdded().isEmpty()); // sanity check, should always add
             
             // Update lastUpdateTime if entry's timestamp is greater than the kbucket's timestamp
-            if (entry.getLastSeenTime().isAfter(newKBuckets[idx].lastUpdateTime)) {
-                newKBuckets[idx].lastUpdateTime = entry.getLastSeenTime();
+            if (entry.getTime().isAfter(newKBuckets[idx].lastUpdateTime)) {
+                newKBuckets[idx].lastUpdateTime = entry.getTime();
             }
         }
 
@@ -184,7 +184,7 @@ public final class KBucket {
             // Touch cache
             EntryChangeSet res;
             try {
-                res = newKBuckets[idx].cache.touch(entry.getLastSeenTime(), node);
+                res = newKBuckets[idx].cache.touch(entry.getTime(), node);
             } catch (LinkConflictException ece) {
                 // should never happen
                 throw new IllegalStateException(ece);
@@ -192,8 +192,8 @@ public final class KBucket {
             Validate.validState(!res.viewAdded().isEmpty()); // sanity check, should always add
             
             // Update lastUpdateTime if entry's timestamp is greater than the kbucket's timestamp
-            if (entry.getLastSeenTime().isAfter(newKBuckets[idx].lastUpdateTime)) {
-                newKBuckets[idx].lastUpdateTime = entry.getLastSeenTime();
+            if (entry.getTime().isAfter(newKBuckets[idx].lastUpdateTime)) {
+                newKBuckets[idx].lastUpdateTime = entry.getTime();
             }
         }
         
@@ -273,7 +273,7 @@ public final class KBucket {
             // move
             EntryChangeSet addRes;
             try {
-                addRes = bucket.touch(entryToMove.getLastSeenTime(), entryToMove.getNode());
+                addRes = bucket.touch(entryToMove.getTime(), entryToMove.getNode());
             } catch (LinkConflictException ece) {
                 // This should never happen. The way the logic in this class is written, you should never have an entry with the same id in
                 // the cache and the bucket at the same time. As such, it's impossible to encounter a conflict.

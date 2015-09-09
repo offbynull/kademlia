@@ -11,9 +11,10 @@ final class TestUtils {
         // do nothing
     }
     
-    public static void verifyNodeChangeSetCounts(NodeChangeSet changeSet, int expectedAdded, int expectedRemoved) {
+    public static void verifyNodeChangeSetCounts(NodeChangeSet changeSet, int expectedAdded, int expectedRemoved, int expectedUpdated) {
         assertEquals(expectedAdded, changeSet.viewAdded().size());
         assertEquals(expectedRemoved, changeSet.viewRemoved().size());
+        assertEquals(expectedUpdated, changeSet.viewUpdated().size());
     }
 
     public static  void verifyNodeChangeSetAdded(NodeChangeSet changeSet, Node ... nodes) {
@@ -29,6 +30,15 @@ final class TestUtils {
         assertEquals(nodes.length, changeSet.viewRemoved().size());
         
         List<Node> actual = changeSet.viewRemoved();
+        List<Node> expected = Arrays.asList(nodes);
+        
+        assertEquals(expected, actual);
+    }
+
+    public static void verifyNodeChangeSetUpdated(NodeChangeSet changeSet, Node ... nodes) {
+        assertEquals(nodes.length, changeSet.viewUpdated().size());
+        
+        List<Node> actual = changeSet.viewUpdated();
         List<Node> expected = Arrays.asList(nodes);
         
         assertEquals(expected, actual);
@@ -79,7 +89,7 @@ final class TestUtils {
     public static void verifyTimeInEntries(List<Entry> entries, Instant ... instants) {
         assertEquals(entries.size(), instants.length);
         
-        List<Instant> actual = entries.stream().map(x -> x.getLastSeenTime()).collect(Collectors.toList());
+        List<Instant> actual = entries.stream().map(x -> x.getTime()).collect(Collectors.toList());
         List<Instant> expected = Arrays.asList(instants);
         
         assertEquals(expected, actual);

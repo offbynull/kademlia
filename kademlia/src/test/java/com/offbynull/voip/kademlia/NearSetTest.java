@@ -30,20 +30,20 @@ public final class NearSetTest {
         NodeChangeSet res;
         
         res = fixture.touch(NODE_111);
-        verifyNodeChangeSetCounts(res, 1, 0);
+        verifyNodeChangeSetCounts(res, 1, 0, 0);
         verifyNodeChangeSetAdded(res, NODE_111);
         
         res = fixture.touch(NODE_011);
-        verifyNodeChangeSetCounts(res, 1, 0);
+        verifyNodeChangeSetCounts(res, 1, 0, 0);
         verifyNodeChangeSetAdded(res, NODE_011);
         
         assertEquals(Arrays.asList(NODE_111, NODE_011), fixture.dump());
         
         res = fixture.touch(NODE_011);
-        verifyNodeChangeSetCounts(res, 0, 0);
+        verifyNodeChangeSetCounts(res, 0, 0, 0);
         
         res = fixture.touch(NODE_001);
-        verifyNodeChangeSetCounts(res, 1, 1);
+        verifyNodeChangeSetCounts(res, 1, 1, 0);
         verifyNodeChangeSetRemoved(res, NODE_111);
         verifyNodeChangeSetAdded(res, NODE_001);
         
@@ -56,20 +56,20 @@ public final class NearSetTest {
         NodeChangeSet res;
         
         res = fixture.touch(NODE_111);
-        verifyNodeChangeSetCounts(res, 1, 0);
+        verifyNodeChangeSetCounts(res, 1, 0, 0);
         verifyNodeChangeSetAdded(res, NODE_111);
         
         res = fixture.touch(NODE_110);
-        verifyNodeChangeSetCounts(res, 1, 0);
+        verifyNodeChangeSetCounts(res, 1, 0, 0);
         verifyNodeChangeSetAdded(res, NODE_110);
         
         assertEquals(Arrays.asList(NODE_111, NODE_110), fixture.dump());
         
         res = fixture.touch(NODE_111);
-        verifyNodeChangeSetCounts(res, 0, 0);
+        verifyNodeChangeSetCounts(res, 0, 0, 0);
         
         res = fixture.touch(NODE_100);
-        verifyNodeChangeSetCounts(res, 1, 1);
+        verifyNodeChangeSetCounts(res, 1, 1, 0);
         verifyNodeChangeSetAdded(res, NODE_100);
         verifyNodeChangeSetRemoved(res, NODE_111);
         
@@ -81,7 +81,7 @@ public final class NearSetTest {
         NodeChangeSet res;
         
         res = fixture.touch(NODE_111);
-        verifyNodeChangeSetCounts(res, 1, 0);
+        verifyNodeChangeSetCounts(res, 1, 0, 0);
         verifyNodeChangeSetAdded(res, NODE_111);
         
         expectedException.expect(LinkConflictException.class);
@@ -93,11 +93,11 @@ public final class NearSetTest {
         NodeChangeSet res;
         
         res = fixture.touch(NODE_001);
-        verifyNodeChangeSetCounts(res, 1, 0);
+        verifyNodeChangeSetCounts(res, 1, 0, 0);
         verifyNodeChangeSetAdded(res, NODE_001);
         
         res = fixture.touch(NODE_010);
-        verifyNodeChangeSetCounts(res, 1, 0);
+        verifyNodeChangeSetCounts(res, 1, 0, 0);
         verifyNodeChangeSetAdded(res, NODE_010);
     }
     
@@ -106,11 +106,11 @@ public final class NearSetTest {
         NodeChangeSet res;
         
         res = fixture.touch(NODE_011);
-        verifyNodeChangeSetCounts(res, 1, 0);
+        verifyNodeChangeSetCounts(res, 1, 0, 0);
         verifyNodeChangeSetAdded(res, NODE_011);
         
         res = fixture.touch(NODE_111);
-        verifyNodeChangeSetCounts(res, 1, 0);
+        verifyNodeChangeSetCounts(res, 1, 0, 0);
         verifyNodeChangeSetAdded(res, NODE_111);
         
         assertEquals(2, fixture.size());
@@ -118,7 +118,7 @@ public final class NearSetTest {
         assertEquals(Arrays.asList(NODE_111, NODE_011), fixture.dump());
         
         res = fixture.resize(1);
-        verifyNodeChangeSetCounts(res, 0, 1);
+        verifyNodeChangeSetCounts(res, 0, 1, 0);
         verifyNodeChangeSetRemoved(res, NODE_111);
         
         assertEquals(1, fixture.size());
@@ -133,7 +133,7 @@ public final class NearSetTest {
         assertEquals(2, fixture.size());
         
         NodeChangeSet res = fixture.remove(NODE_111);
-        verifyNodeChangeSetCounts(res, 0, 1);
+        verifyNodeChangeSetCounts(res, 0, 1, 0);
         verifyNodeChangeSetRemoved(res, NODE_111);
         
         assertEquals(1, fixture.size());
@@ -147,7 +147,7 @@ public final class NearSetTest {
         assertEquals(2, fixture.size());
         
         NodeChangeSet res = fixture.remove(NODE_001);
-        verifyNodeChangeSetCounts(res, 0, 0);
+        verifyNodeChangeSetCounts(res, 0, 0, 0);
         
         assertEquals(2, fixture.size());
         assertEquals(Arrays.asList(NODE_111, NODE_011), fixture.dump());
@@ -158,7 +158,7 @@ public final class NearSetTest {
         NodeChangeSet res;
         
         res = fixture.touch(NODE_111);
-        verifyNodeChangeSetCounts(res, 1, 0);
+        verifyNodeChangeSetCounts(res, 1, 0, 0);
         verifyNodeChangeSetAdded(res, NODE_111);
         
         expectedException.expect(LinkConflictException.class);
@@ -170,7 +170,7 @@ public final class NearSetTest {
         NodeChangeSet res;
         
         res = fixture.touch(NODE_111);
-        verifyNodeChangeSetCounts(res, 1, 0);
+        verifyNodeChangeSetCounts(res, 1, 0, 0);
         verifyNodeChangeSetAdded(res, NODE_111);
         
         expectedException.expect(LinkConflictException.class);

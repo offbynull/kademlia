@@ -84,7 +84,7 @@ public final class LeastRecentlySeenSet {
         while (it.hasNext()) {
             Entry entry = it.next();
 
-            if (entry.getLastSeenTime().isAfter(time)) {
+            if (entry.getTime().isAfter(time)) {
                 it.previous(); // move back 1 space, we want to add to element just before entry
                 it.add(newEntry);
                 added = true;
@@ -113,7 +113,7 @@ public final class LeastRecentlySeenSet {
             Validate.validState(discardedEntry == null); // sanity check, must not have discarded anything
             
             // updated existing node
-            return EntryChangeSet.updated(new UpdatedEntry(newEntry.getNode(), oldEntry.getLastSeenTime(), newEntry.getLastSeenTime()));
+            return EntryChangeSet.updated(new UpdatedEntry(newEntry.getNode(), oldEntry.getTime(), newEntry.getTime()));
         } else {
             // if block above ensures oldEntry is null if we're in this else block, so sanity check below isn't nessecary
             // Validate.validState(oldEntry == null); // sanity check, node being touched must not have already existed
