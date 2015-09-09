@@ -1,10 +1,5 @@
 package com.offbynull.voip.kademlia;
 
-import com.offbynull.voip.kademlia.EntryChangeSet;
-import com.offbynull.voip.kademlia.Id;
-import com.offbynull.voip.kademlia.MostRecentlySeenSet;
-import com.offbynull.voip.kademlia.Node;
-import com.offbynull.voip.kademlia.LinkConflictException;
 import static com.offbynull.voip.kademlia.TestUtils.verifyChangeSetAdded;
 import static com.offbynull.voip.kademlia.TestUtils.verifyChangeSetCounts;
 import static com.offbynull.voip.kademlia.TestUtils.verifyChangeSetRemoved;

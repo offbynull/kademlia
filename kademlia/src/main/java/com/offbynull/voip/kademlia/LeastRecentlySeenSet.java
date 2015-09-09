@@ -16,7 +16,6 @@
  */
 package com.offbynull.voip.kademlia;
 
-import com.offbynull.voip.kademlia.EntryChangeSet.UpdatedEntry;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -113,7 +112,7 @@ public final class LeastRecentlySeenSet {
             Validate.validState(discardedEntry == null); // sanity check, must not have discarded anything
             
             // updated existing node
-            return EntryChangeSet.updated(new UpdatedEntry(newEntry.getNode(), oldEntry.getTime(), newEntry.getTime()));
+            return EntryChangeSet.updated(newEntry);
         } else {
             // if block above ensures oldEntry is null if we're in this else block, so sanity check below isn't nessecary
             // Validate.validState(oldEntry == null); // sanity check, node being touched must not have already existed
@@ -121,7 +120,7 @@ public final class LeastRecentlySeenSet {
             // added new node
             Collection<Entry> addedEntries = Collections.singletonList(newEntry);
             Collection<Entry> removedEntries = discardedEntry == null ? Collections.emptyList() : Collections.singletonList(discardedEntry);
-            Collection<UpdatedEntry> updatedEntries = Collections.emptyList();
+            Collection<Entry> updatedEntries = Collections.emptyList();
             return new EntryChangeSet(addedEntries, removedEntries, updatedEntries);
         }
     }

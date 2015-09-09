@@ -16,7 +16,6 @@
  */
 package com.offbynull.voip.kademlia;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -25,7 +24,6 @@ import static java.util.Collections.emptyList;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.apache.commons.collections4.list.UnmodifiableList;
 import org.apache.commons.lang3.Validate;
 
@@ -34,7 +32,7 @@ public final class EntryChangeSet {
     
     private final UnmodifiableList<Entry> removed;
     private final UnmodifiableList<Entry> added;
-    private final UnmodifiableList<UpdatedEntry> updated;
+    private final UnmodifiableList<Entry> updated;
     
     public static EntryChangeSet added(Entry ... entries) {
         Validate.notNull(entries);
@@ -60,19 +58,19 @@ public final class EntryChangeSet {
         return new EntryChangeSet(emptyList(), entries, emptyList());
     }
 
-    public static EntryChangeSet updated(UpdatedEntry ... entries) {
+    public static EntryChangeSet updated(Entry ... entries) {
         Validate.notNull(entries);
         Validate.noNullElements(entries);
         return updated(Arrays.asList(entries));
     }
 
-    public static EntryChangeSet updated(Collection<UpdatedEntry> entries) {
+    public static EntryChangeSet updated(Collection<Entry> entries) {
         Validate.notNull(entries);
         Validate.noNullElements(entries);
         return new EntryChangeSet(emptyList(), emptyList(), entries);
     }
     
-    public EntryChangeSet(Collection<Entry> added, Collection<Entry> removed, Collection<UpdatedEntry> updated) {
+    public EntryChangeSet(Collection<Entry> added, Collection<Entry> removed, Collection<Entry> updated) {
         Validate.notNull(removed);
         Validate.notNull(added);
         Validate.notNull(updated);
@@ -89,7 +87,7 @@ public final class EntryChangeSet {
 
         this.removed = (UnmodifiableList<Entry>) UnmodifiableList.unmodifiableList(new ArrayList<>(removed));
         this.added = (UnmodifiableList<Entry>) UnmodifiableList.unmodifiableList(new ArrayList<>(added));
-        this.updated = (UnmodifiableList<UpdatedEntry>) UnmodifiableList.unmodifiableList(new ArrayList<>(updated));
+        this.updated = (UnmodifiableList<Entry>) UnmodifiableList.unmodifiableList(new ArrayList<>(updated));
     }
 
     public UnmodifiableList<Entry> viewRemoved() {
@@ -100,7 +98,7 @@ public final class EntryChangeSet {
         return added;
     }
 
-    public UnmodifiableList<UpdatedEntry> viewUpdated() {
+    public UnmodifiableList<Entry> viewUpdated() {
         return updated;
     }
 
@@ -137,69 +135,5 @@ public final class EntryChangeSet {
     @Override
     public String toString() {
         return "ChangeSet{" + "removed=" + removed + ", added=" + added + ", updated=" + updated + '}';
-    }
-    
-    public static final class UpdatedEntry {
-        private final Node node;
-        private final Instant oldLastSeenTime;
-        private final Instant newLastSeenTime;
-
-        public UpdatedEntry(Node node, Instant oldLastSeenTime, Instant newLastSeenTime) {
-            Validate.notNull(node);
-            Validate.notNull(oldLastSeenTime);
-            Validate.notNull(newLastSeenTime);
-            
-            this.node = node;
-            this.oldLastSeenTime = oldLastSeenTime;
-            this.newLastSeenTime = newLastSeenTime;
-        }
-
-        public Node getNode() {
-            return node;
-        }
-
-        public Instant getOldLastSeenTime() {
-            return oldLastSeenTime;
-        }
-
-        public Instant getNewLastSeenTime() {
-            return newLastSeenTime;
-        }
-
-        @Override
-        public int hashCode() {
-            int hash = 3;
-            hash = 79 * hash + Objects.hashCode(this.node);
-            hash = 79 * hash + Objects.hashCode(this.oldLastSeenTime);
-            hash = 79 * hash + Objects.hashCode(this.newLastSeenTime);
-            return hash;
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (obj == null) {
-                return false;
-            }
-            if (getClass() != obj.getClass()) {
-                return false;
-            }
-            final UpdatedEntry other = (UpdatedEntry) obj;
-            if (!Objects.equals(this.node, other.node)) {
-                return false;
-            }
-            if (!Objects.equals(this.oldLastSeenTime, other.oldLastSeenTime)) {
-                return false;
-            }
-            if (!Objects.equals(this.newLastSeenTime, other.newLastSeenTime)) {
-                return false;
-            }
-            return true;
-        }
-
-        @Override
-        public String toString() {
-            return "UpdatedEntry{" + "node=" + node + ", oldLastSeenTime=" + oldLastSeenTime + ", newLastSeenTime=" + newLastSeenTime + '}';
-        }
-        
     }
 }
