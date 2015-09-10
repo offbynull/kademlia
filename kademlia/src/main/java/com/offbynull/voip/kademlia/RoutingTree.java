@@ -9,7 +9,9 @@ import org.apache.commons.lang3.Validate;
 
 public final class RoutingTree {
     private final Id baseId;
+    private final ActivitySet activityTracker;
     private final ArrayList<KBucket> buckets;
+    private final NearSet closestNodes;
 
     public RoutingTree(Id baseId, int depth, int bucketSize) {
         Validate.notNull(baseId);

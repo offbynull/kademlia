@@ -17,7 +17,7 @@ public final class ActivitySet {
     private final TreeMap<Instant, HashSet<Node>> touchTimes;
     private final MultiValueMap<Instant, Node> touchTimesDecorator;
     private final HashMap<Id, Activity> lookupById;
-    private final HashSet<Id> ignoreSet;
+    private final HashSet<Id> pending;
     
     private int size;
     
@@ -29,7 +29,7 @@ public final class ActivitySet {
         touchTimes = new TreeMap<>();
         touchTimesDecorator = MultiValueMap.multiValueMap(touchTimes, () -> new HashSet<>());
         lookupById = new HashMap<>();
-        ignoreSet = new HashSet<>();
+        pending = new HashSet<>();
     }
     
     public ActivityChangeSet touch(Instant time, Node node) throws LinkConflictException {
@@ -52,6 +52,9 @@ public final class ActivitySet {
                 throw new LinkConflictException(oldNode);
             }
             
+            
+            // Check not pending
+            Validate.validState(!pending.contains(id));
             
             // Remove old timestamp
             Instant oldTimestamp = oldEntry.getTime();
@@ -97,7 +100,7 @@ public final class ActivitySet {
         // Remove
         lookupById.remove(id);
         touchTimesDecorator.removeMapping(existingEntry.getTime(), node);
-        ignoreSet.remove(id);
+        pending.remove(id);
         
         size--;
         
@@ -105,14 +108,14 @@ public final class ActivitySet {
         return ActivityChangeSet.removed(existingEntry);
     }
     
-    public void ignore(Node node) throws LinkConflictException {
+    public void pending(Node node) throws LinkConflictException {
         Validate.notNull(node);
         
         Id id = node.getId();
         
         Activity existingEntry = lookupById.get(id);
         if (existingEntry == null) {
-            return;
+            throw new IllegalArgumentException();
         }
         
         Node oldNode = existingEntry.getNode();
@@ -123,17 +126,18 @@ public final class ActivitySet {
         }
         
         // Add to ignore set
-        ignoreSet.add(id);
+        boolean added = pending.add(id);
+        Validate.isTrue(added);
     }
     
-    public void unignore(Node node) throws LinkConflictException {
+    public void idle(Node node) throws LinkConflictException {
         Validate.notNull(node);
         
         Id id = node.getId();
         
         Activity existingEntry = lookupById.get(id);
         if (existingEntry == null) {
-            return;
+            throw new IllegalArgumentException();
         }
         
         Node oldNode = existingEntry.getNode();
@@ -144,7 +148,8 @@ public final class ActivitySet {
         }
         
         // Add to ignore set
-        ignoreSet.add(id);
+        boolean removed = pending.remove(id);
+        Validate.isTrue(removed);
     }
     
     @SuppressWarnings("unchecked")
@@ -156,7 +161,7 @@ public final class ActivitySet {
         LinkedList<Activity> ret = new LinkedList<>();
         subMap.entrySet().stream()
                 .flatMap(x -> x.getValue().stream())
-                .filter(x -> !ignoreSet.contains(x.getId()))
+                .filter(x -> !pending.contains(x.getId()))
                 .map(x -> lookupById.get(x.getId()))
                 .forEach(x -> ret.add(x));
         

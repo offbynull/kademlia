@@ -68,7 +68,7 @@ public final class Activity {
 
     @Override
     public String toString() {
-        return "Entry{" + "node=" + node + ", lastSeenTime=" + time + '}';
+        return "Activity{" + "node=" + node + ", time=" + time + '}';
     }
     
 }
