@@ -1,7 +1,5 @@
 package com.offbynull.voip.kademlia;
 
-import com.offbynull.voip.kademlia.Id;
-import com.offbynull.voip.kademlia.IdClosenessComparator;
 import static org.junit.Assert.assertEquals;
 import org.junit.Test;
 

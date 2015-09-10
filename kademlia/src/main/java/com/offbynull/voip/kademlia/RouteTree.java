@@ -22,6 +22,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Predicate;
 import org.apache.commons.lang3.Validate;
 
 public final class RouteTree {
@@ -127,26 +128,58 @@ public final class RouteTree {
         return new RouteTree(baseId, newPrefix, newSuffixLen, new ArrayList<>(Arrays.asList(newBuckets)));
     }
     
-    public List<Activity> findBucketContacts(Id id) {
+    public List<Activity> find(Id id, int max, Predicate<Activity> filter) {
         Validate.notNull(id);
-
         Validate.isTrue(!id.equals(baseId));
         Validate.isTrue(id.getBitLength() == baseId.getBitLength());
-        
         Validate.isTrue(id.getBitString().getBits(0, prefix.getBitLength()).equals(prefix)); // ensure prefix matches
+        Validate.isTrue(max >= 0); // why would anyone want 0? let thru anyways
+        
+        ArrayList<Activity> output = new ArrayList<>(max);    
+        findClosestNodes(id, output, max);
+        return output;
+    }
+    
+    private void findClosestNodes(Id id, ArrayList<Activity> output, int max) {
+//        No point in checking this here -- caller should be checking all this before calling this method
+//        Validate.notNull(id);
+//        Validate.isTrue(!id.equals(baseId));
+//        Validate.isTrue(id.getBitLength() == baseId.getBitLength());
+//        Validate.isTrue(id.getBitString().getBits(0, prefix.getBitLength()).equals(prefix)); // ensure prefix matches
         
         int bucketIdx = (int) baseId.getBitsAsLong(prefix.getBitLength(), suffixLen);
-        KBucket bucket = kBuckets.get(bucketIdx);
+        KBucket targetKBucket = kBuckets.get(bucketIdx);
         
-        if (bucket == null) {
+        if (targetKBucket == null) {
+            // Target kBucket is null, which means that nodes with this prefix can be found by continuing down child. In other words, we can
+            // continue down child to find more buckets with a larger prefix.
             Validate.validState(child != null); // sanity check
-            return child.findBucketContacts(id);
+            child.findClosestNodes(id, output, max);
+
+            // If we have more room available, scan buckets at this level and add nodes closes to id in to output
+            dumpCloseNodesFromKBucketsOnThisLevel(id, output, max);
         } else {
+            // Target kBucket found -- we've reached the end of how far we can go down the routing tree
             Validate.validState(child == null); // sanity check
-            return bucket.dumpBucket();
+            
+            // Scan buckets at this level and add nodes closes to id in to output
+            dumpCloseNodesFromKBucketsOnThisLevel(id, output, max);
         }
-//        IdClosenessComparator comparator = new IdClosenessComparator(id);
-//        Collections.sort(nodes, (x, y) -> comparator.compare(x.getNode().getId(), y.getNode().getId()));
+    }
+    
+    private void dumpCloseNodesFromKBucketsOnThisLevel(Id id, ArrayList<Activity> output, int max) {
+        int remaining = max - output.size();
+        if (remaining <= 0) {
+            return;
+        }
+        
+        IdClosenessComparator comparator = new IdClosenessComparator(id);
+        kBuckets.stream()
+                .filter(x -> x != null) // skip null buckets -- if a bucket is null, the tree branches down at that prefix
+                .flatMap(x -> x.dumpBucket().stream()) // kbucket to nodes in kbuckets
+                .sorted((x, y) -> -comparator.compare(x.getNode().getId(), y.getNode().getId())) // - to order nodes by biggest prefix first
+                .limit(remaining) // limit to amount of nodes we need to insert
+                .forEachOrdered(output::add); // add to output set
     }
 
     public KBucketChangeSet touch(Instant time, Node node) throws LinkConflictException {
