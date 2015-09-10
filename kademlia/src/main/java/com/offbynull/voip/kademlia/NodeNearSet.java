@@ -23,13 +23,13 @@ import java.util.List;
 import java.util.TreeMap;
 import org.apache.commons.lang3.Validate;
 
-public final class NearSet {
+public final class NodeNearSet {
     private final Id baseId;
     private final TreeMap<Id, Node> nodes;
     
     private int maxSize;
 
-    public NearSet(Id baseId, int maxSize) {
+    public NodeNearSet(Id baseId, int maxSize) {
         Validate.notNull(baseId);
         Validate.isTrue(maxSize >= 0);
         

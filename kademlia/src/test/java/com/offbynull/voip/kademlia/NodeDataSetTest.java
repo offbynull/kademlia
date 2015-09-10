@@ -9,7 +9,7 @@ import static org.junit.Assert.*;
 import org.junit.Rule;
 import org.junit.rules.ExpectedException;
 
-public class InformationSetTest {
+public class NodeDataSetTest {
     
     private static final Node NODE_000 = new Node(Id.createFromLong(0x00L, 3), "0"); // 000
     private static final Node NODE_001 = new Node(Id.createFromLong(0x01L, 3), "1");
@@ -20,7 +20,7 @@ public class InformationSetTest {
     private static final Node NODE_110 = new Node(Id.createFromLong(0x06L, 3), "6");
     private static final Node NODE_111 = new Node(Id.createFromLong(0x07L, 3), "7");
     
-    private final InformationSet fixture = new InformationSet(NODE_000.getId());
+    private final NodeDataSet fixture = new NodeDataSet(NODE_000.getId());
     
     @Rule
     public ExpectedException expectedException = ExpectedException.none();

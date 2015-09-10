@@ -25,13 +25,13 @@ import java.util.List;
 import java.util.ListIterator;
 import org.apache.commons.lang3.Validate;
 
-public final class LeastRecentlySeenSet {
+public final class NodeMostRecentSet {
     private final Id baseId;
     private final LinkedList<Activity> entries;
 
     private int maxSize;
 
-    public LeastRecentlySeenSet(Id baseId, int maxSize) {
+    public NodeMostRecentSet(Id baseId, int maxSize) {
         Validate.notNull(baseId);
         Validate.isTrue(maxSize >= 0);
         
@@ -40,7 +40,7 @@ public final class LeastRecentlySeenSet {
 
         this.entries = new LinkedList<>();
     }
-    
+  
     public ActivityChangeSet touch(Instant time, Node node) throws LinkConflictException {
         Validate.notNull(time);
         Validate.notNull(node);
@@ -78,13 +78,13 @@ public final class LeastRecentlySeenSet {
         
         // Add entry
         Activity newEntry = new Activity(node, time);
-        it = entries.listIterator();
+        it = entries.listIterator(entries.size());
         boolean added = false;
-        while (it.hasNext()) {
-            Activity entry = it.next();
+        while (it.hasPrevious()) {
+            Activity entry = it.previous();
 
-            if (entry.getTime().isAfter(time)) {
-                it.previous(); // move back 1 space, we want to add to element just before entry
+            if (entry.getTime().isBefore(time)) {
+                it.next(); // move forward 1 space, we want to add to element just after entry
                 it.add(newEntry);
                 added = true;
                 break;
@@ -92,15 +92,15 @@ public final class LeastRecentlySeenSet {
         }
 
         if (!added) { // special case where newEntry needs to be added at the end of entries, not handled by loop above
-            entries.addLast(newEntry);
+            entries.addFirst(newEntry);
         }
 
         
-        // Set has become too large, remove the item with the latest time
+        // Set has become too large, remove the item with the earliest time
         Activity discardedEntry = null;
         if (entries.size() > maxSize) {
-            // if the node removed with the latest time is the one we just added, then report that node couldn't be added
-            discardedEntry = entries.removeLast();
+            // if the node removed with the earliest time is the one we just added, then report that node couldn't be added
+            discardedEntry = entries.removeFirst();
             if (discardedEntry.equals(newEntry)) {
                 return ActivityChangeSet.NO_CHANGE;
             }
@@ -152,7 +152,7 @@ public final class LeastRecentlySeenSet {
         
         return ActivityChangeSet.NO_CHANGE;
     }
-    
+
     public ActivityChangeSet resize(int maxSize) {
         Validate.isTrue(maxSize >= 0);
         
@@ -168,11 +168,23 @@ public final class LeastRecentlySeenSet {
         
         return ActivityChangeSet.removed(removed);
     }
+
+    public ActivityChangeSet removeMostRecent(int count) {
+        LinkedList<Activity> removed = new LinkedList<>();
+        for (int i = 0; i < count; i++) {
+            Activity e = entries.removeLast();
+            if (e == null) {
+                break;
+            }
+            removed.addFirst(e);
+        }
+        return ActivityChangeSet.removed(removed);
+    }
     
     public List<Activity> dump() {
         return new ArrayList<>(entries);
     }
-    
+
     public int size() {
         return entries.size();
     }
@@ -183,7 +195,7 @@ public final class LeastRecentlySeenSet {
 
     @Override
     public String toString() {
-        return "LeastRecentlySeenSet{" + "baseId=" + baseId + ", entries=" + entries + ", maxSize=" + maxSize + '}';
+        return "MostRecentlySeenSet{" + "baseId=" + baseId + ", entries=" + entries + ", maxSize=" + maxSize + '}';
     }
 
 

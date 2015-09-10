@@ -11,7 +11,7 @@ import java.util.TreeMap;
 import org.apache.commons.collections4.map.MultiValueMap;
 import org.apache.commons.lang3.Validate;
 
-public final class ActivitySet {
+public final class NodeActivitySet {
     private final Id baseId;
     
     private final TreeMap<Instant, HashSet<Node>> touchTimes;
@@ -21,7 +21,7 @@ public final class ActivitySet {
     
     private int size;
     
-    public ActivitySet(Id baseId) {
+    public NodeActivitySet(Id baseId) {
         Validate.notNull(baseId);
         
         this.baseId = baseId;

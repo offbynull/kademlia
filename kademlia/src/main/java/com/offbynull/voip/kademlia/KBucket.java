@@ -12,8 +12,8 @@ public final class KBucket {
     private final BitString prefix;
 
     // the way thigns are done, cache and bucket should never contain the same node id at the same time
-    private final LeastRecentlySeenSet bucket;
-    private final MostRecentlySeenSet cache;
+    private final NodeLeastRecentSet bucket;
+    private final NodeMostRecentSet cache;
 
     private Instant lastUpdateTime;
 
@@ -26,8 +26,8 @@ public final class KBucket {
 
         this.baseId = baseId;
         this.prefix = prefix;
-        this.bucket = new LeastRecentlySeenSet(baseId, maxBucketSize);
-        this.cache = new MostRecentlySeenSet(baseId, maxCacheSize);
+        this.bucket = new NodeLeastRecentSet(baseId, maxBucketSize);
+        this.cache = new NodeMostRecentSet(baseId, maxCacheSize);
         lastUpdateTime = Instant.MIN;
     }
 

@@ -10,7 +10,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-public final class MostRecentlySeenSetTest {
+public final class NodeMostRecentSetTest {
     
     private static final Id BASE_ID = Id.createFromLong(0x12340000L, 32);
     
@@ -22,7 +22,7 @@ public final class MostRecentlySeenSetTest {
     
     private static final Instant BASE_TIME = Instant.ofEpochMilli(0L);
     
-    private MostRecentlySeenSet fixture = new MostRecentlySeenSet(BASE_ID, 4); // bucket for prefix of 16 bits, bucket capacity of 4
+    private NodeMostRecentSet fixture = new NodeMostRecentSet(BASE_ID, 4); // bucket for prefix of 16 bits, bucket capacity of 4
     
     @Rule
     public ExpectedException expectedException = ExpectedException.none();

@@ -12,7 +12,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-public class ActivitySetTest {
+public class NodeActivitySetTest {
 
     private static final Node NODE_000 = new Node(Id.createFromLong(0x00L, 3), "0"); // 000
     private static final Node NODE_001 = new Node(Id.createFromLong(0x01L, 3), "1");
@@ -25,7 +25,7 @@ public class ActivitySetTest {
     
     private static final Instant BASE_TIME = Instant.ofEpochMilli(0L);
     
-    private final ActivitySet fixture = new ActivitySet(NODE_000.getId());
+    private final NodeActivitySet fixture = new NodeActivitySet(NODE_000.getId());
     
     @Rule
     public ExpectedException expectedException = ExpectedException.none();

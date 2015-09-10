@@ -4,11 +4,11 @@ import java.util.HashMap;
 import java.util.Map;
 import org.apache.commons.lang3.Validate;
 
-public final class InformationSet {
+public final class NodeDataSet {
     private final Id baseId;
     private final Map<Id, DataHolder> nodes;
     
-    public InformationSet(Id baseId) {
+    public NodeDataSet(Id baseId) {
         Validate.notNull(baseId);
         
         this.baseId = baseId;

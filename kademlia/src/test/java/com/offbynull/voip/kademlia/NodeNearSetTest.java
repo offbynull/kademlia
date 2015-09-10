@@ -9,7 +9,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-public final class NearSetTest {
+public final class NodeNearSetTest {
     
     private static final Node NODE_000 = new Node(Id.createFromLong(0x00L, 3), "0"); // 000
     private static final Node NODE_001 = new Node(Id.createFromLong(0x01L, 3), "1");
@@ -20,7 +20,7 @@ public final class NearSetTest {
     private static final Node NODE_110 = new Node(Id.createFromLong(0x06L, 3), "6");
     private static final Node NODE_111 = new Node(Id.createFromLong(0x07L, 3), "7");
     
-    private final NearSet fixture = new NearSet(NODE_000.getId(), 2);
+    private final NodeNearSet fixture = new NodeNearSet(NODE_000.getId(), 2);
     
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
