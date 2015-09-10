@@ -134,6 +134,6 @@ public final class ActivityChangeSet {
 
     @Override
     public String toString() {
-        return "ChangeSet{" + "removed=" + removed + ", added=" + added + ", updated=" + updated + '}';
+        return "ActivityChangeSet{" + "removed=" + removed + ", added=" + added + ", updated=" + updated + '}';
     }
 }

@@ -183,7 +183,7 @@ public final class NodeLeastRecentSet {
 
     @Override
     public String toString() {
-        return "LeastRecentlySeenSet{" + "baseId=" + baseId + ", entries=" + entries + ", maxSize=" + maxSize + '}';
+        return "NodeLeastRecentSet{" + "baseId=" + baseId + ", entries=" + entries + ", maxSize=" + maxSize + '}';
     }
 
 

@@ -18,6 +18,7 @@ package com.offbynull.voip.kademlia;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import org.apache.commons.lang3.Validate;
 
 public final class NodeDataSet {
@@ -154,6 +155,12 @@ public final class NodeDataSet {
             throw new LinkConflictException(existingNode);
         }
     }
+
+    @Override
+    public String toString() {
+        return "NodeDataSet{" + "baseId=" + baseId + ", nodes=" + nodes + '}';
+    }
+    
     
     
     private static final class DataHolder {

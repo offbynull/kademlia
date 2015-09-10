@@ -195,8 +195,9 @@ public final class NodeMostRecentSet {
 
     @Override
     public String toString() {
-        return "MostRecentlySeenSet{" + "baseId=" + baseId + ", entries=" + entries + ", maxSize=" + maxSize + '}';
+        return "NodeMostRecentSet{" + "baseId=" + baseId + ", entries=" + entries + ", maxSize=" + maxSize + '}';
     }
+
 
 
 

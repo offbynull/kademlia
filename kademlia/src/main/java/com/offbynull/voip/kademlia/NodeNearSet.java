@@ -126,10 +126,10 @@ public final class NodeNearSet {
     public int getMaxSize() {
         return maxSize;
     }
-    
+
     @Override
     public String toString() {
-        return "NearSet{" + "baseId=" + baseId + ", entries=" + nodes + ", maxSize=" + maxSize + '}';
+        return "NodeNearSet{" + "baseId=" + baseId + ", nodes=" + nodes + ", maxSize=" + maxSize + '}';
     }
-    
+
 }

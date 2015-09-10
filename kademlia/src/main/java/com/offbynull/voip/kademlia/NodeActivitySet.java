@@ -187,5 +187,11 @@ public final class NodeActivitySet {
     public int size() {
         return size;
     }
+
+    @Override
+    public String toString() {
+        return "NodeActivitySet{" + "baseId=" + baseId + ", touchTimes=" + touchTimes +  ", lookupById=" + lookupById + ", pending="
+                + pending + ", size=" + size + '}';
+    }
     
 }
