@@ -125,6 +125,33 @@ public final class NodeLeastRecentSet {
         }
     }
 
+    public boolean contains(Node node) throws LinkConflictException {
+        Validate.notNull(node);
+        
+        Id nodeId = node.getId();
+        String nodeLink = node.getLink();
+        
+        ListIterator<Activity> it = entries.listIterator();
+        while (it.hasNext()) {
+            Activity entry = it.next();
+
+            Id entryId = entry.getNode().getId();
+            String entryLink = entry.getNode().getLink();
+
+            if (entryId.equals(nodeId)) {
+                if (!entryLink.equals(nodeLink)) {
+                    // if ID exists but link for ID is different
+                    throw new LinkConflictException(entry.getNode());
+                }
+
+                // remove
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
     public ActivityChangeSet remove(Node node) throws LinkConflictException {
         Validate.notNull(node);
         

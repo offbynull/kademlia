@@ -128,6 +128,7 @@ public final class RouteTree {
         return new RouteTree(baseId, newPrefix, newSuffixLen, new ArrayList<>(Arrays.asList(newBuckets)));
     }
     
+    // find closest nodes to an id
     public List<Activity> find(Id id, int max, Predicate<Activity> filter) {
         Validate.notNull(id);
         Validate.isTrue(!id.equals(baseId));

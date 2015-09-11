@@ -17,9 +17,14 @@
 package com.offbynull.voip.kademlia;
 
 import java.time.Instant;
-import java.util.Collections;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import org.apache.commons.lang3.Validate;
+import org.apache.commons.lang3.tuple.ImmutablePair;
 
 public final class KBucket {
 
@@ -30,6 +35,9 @@ public final class KBucket {
     // the way thigns are done, cache and bucket should never contain the same node id at the same time
     private final NodeLeastRecentSet bucket;
     private final NodeMostRecentSet cache;
+    
+    // the way things are done, stale set should only ever contain nodes from bucket
+    private final Set<Node> staleSet;
 
     private Instant lastUpdateTime;
 
@@ -44,6 +52,8 @@ public final class KBucket {
         this.prefix = prefix;
         this.bucket = new NodeLeastRecentSet(baseId, maxBucketSize);
         this.cache = new NodeMostRecentSet(baseId, maxCacheSize);
+        this.staleSet = new LinkedHashSet<>(); // linked to maintain order of items as they're added
+        
         lastUpdateTime = Instant.MIN;
     }
 
@@ -60,21 +70,37 @@ public final class KBucket {
 
         Validate.isTrue(!time.isBefore(lastUpdateTime)); // time must be >= lastUpdatedTime
         
+        // Touch the bucket
         ActivityChangeSet bucketTouchRes = bucket.touch(time, node);
         Validate.validState(bucketTouchRes.viewRemoved().isEmpty()); // sanity check, should never remove anything when touching bucket
         if (!bucketTouchRes.viewAdded().isEmpty() || !bucketTouchRes.viewUpdated().isEmpty()) {
             // node was added to bucket, or node was already in bucket and was updated
+            staleSet.remove(node); // if being updated, node may have been stale... unstale it here because it's being touched
             lastUpdateTime = time;
             return new KBucketChangeSet(bucketTouchRes, ActivityChangeSet.NO_CHANGE);
         }
-
+        
+        // Touch the cache
         ActivityChangeSet cacheTouchRes = cache.touch(time, node);
         lastUpdateTime = time;
+        
+        // There may be something in the cache now, so if we have any stale nodes, replace them with this new cache item.
+        // left = removed stale node from bucket
+        // right = moved in to bucket the node that was jsut added in to cache
+        ImmutablePair<Activity, Activity> res = replaceNextStaleNodeWithCacheNode(); // left = removed, right = added
+        if (res != null) {
+            return new KBucketChangeSet(
+                    new ActivityChangeSet(singletonList(res.right), singletonList(res.left), emptyList()),
+                    ActivityChangeSet.NO_CHANGE); // nochange because technically nothing moved in to cache, even though it temporarily did
+        }
+        
+        // No stale nodes encountered, so nothing was replaced. Return standard results.
         return new KBucketChangeSet(bucketTouchRes, cacheTouchRes);
     }
     
-    public KBucketChangeSet replace(Instant time, Node node) throws LinkConflictException {
-        Validate.notNull(time);
+    // there's no time param here because technically because it isn't needed. marking a node as stale doesn't mean that it recieved comm,
+    // as such it's wrong to update its time.
+    public KBucketChangeSet stale(Node node) throws LinkConflictException {
         Validate.notNull(node);
         
         Id nodeId = node.getId();
@@ -83,19 +109,47 @@ public final class KBucket {
         Validate.isTrue(nodeId.getBitLength() == baseId.getBitLength());
         
         Validate.isTrue(nodeId.getBitString().getBits(0, prefix.getBitLength()).equals(prefix)); // ensure prefix matches
+        
+        Validate.isTrue(bucket.contains(node)); // node being marked as stale must be in bucket
 
-        Validate.isTrue(!time.isBefore(lastUpdateTime)); // time must be >= lastUpdatedTime
-
-        if (cache.size() == 0) {
-            lastUpdateTime = time;
+        staleSet.add(node); // add to stale set
+        
+        // replace, if nodes are available in cache to replace with... otherwise it'll just keep this node marked as stale
+        // left = removed stale node from bucket
+        // right = moved in to bucket from cache in order to replace stale node
+        ImmutablePair<Activity, Activity> res = replaceNextStaleNodeWithCacheNode();
+        if (res == null) {
+            // There were no nodes in cache to move over, as such return no change. But as soon as a cache node becomes available it'll be
+            // used as a replacement for nodes in the stale set (see touch())
             return new KBucketChangeSet(ActivityChangeSet.NO_CHANGE, ActivityChangeSet.NO_CHANGE);
         }
+
         
-        // Remove
-        ActivityChangeSet bucketRemoveRes = bucket.remove(node); // throws EntryConflictException if id is equal but link isn't
+        return new KBucketChangeSet(
+                new ActivityChangeSet(singletonList(res.right), singletonList(res.left), emptyList()),
+                ActivityChangeSet.removed(res.right));
+    }
+
+    // return is left=removed right=added
+    private ImmutablePair<Activity, Activity> replaceNextStaleNodeWithCacheNode() throws LinkConflictException {
+        if (staleSet.isEmpty()) {
+            return null;
+        }
+        
+        // Get stale node
+        Iterator<Node> staleIt = staleSet.iterator();
+        Node staleNode = staleIt.next();
+        
+        // Check to make sure cache has items to replace with
+        if (cache.size() == 0) {
+            return null;
+        }
+        
+        // Remove from bucket and staleset
+        staleIt.remove(); // remove from staleset
+        ActivityChangeSet bucketRemoveRes = bucket.remove(staleNode); // throws EntryConflictException if id is equal but link isn't
         if (bucketRemoveRes.viewRemoved().isEmpty()) {
-            lastUpdateTime = time;
-            return new KBucketChangeSet(ActivityChangeSet.NO_CHANGE, ActivityChangeSet.NO_CHANGE);
+            return null;
         }
         
         // Remove latest from cache and add to bucket
@@ -111,12 +165,9 @@ public final class KBucket {
         }
         Validate.validState(bucketTouchRes.viewAdded().size() == 1); // sanity check, should always add 1 node
         
-        lastUpdateTime = time;
-        return new KBucketChangeSet(
-                new ActivityChangeSet(bucketTouchRes.viewAdded(), bucketRemoveRes.viewRemoved(), Collections.emptyList()),
-                cacheRemoveRes);
+        return ImmutablePair.of(bucketRemoveRes.viewRemoved().get(0), bucketTouchRes.viewAdded().get(0));
     }
-
+    
     // bitCount = 0 is 1 buckets
     // bitCount = 1 is 2 buckets
     // bitCount = 2 is 4 buckets
@@ -235,6 +286,9 @@ public final class KBucket {
             Validate.validState(res.viewAdded().isEmpty());
             Validate.validState(res.viewUpdated().isEmpty());
             
+            // all nodes that were removed from bucket need to also be removed in staleness set
+            staleSet.removeAll(res.viewRemoved());
+            
             return new KBucketChangeSet(res, ActivityChangeSet.NO_CHANGE);
         } else {
             // increasing space, so move over stuff from the cache in to new bucket spaces
@@ -329,4 +383,12 @@ public final class KBucket {
         }
         return bytes;
     }
+
+    @Override
+    public String toString() {
+        return "KBucket{" + "baseId=" + baseId + ", prefix=" + prefix + ", bucket=" + bucket + ", cache=" + cache + ", staleSet=" + staleSet
+                + ", lastUpdateTime=" + lastUpdateTime + '}';
+    }
+    
+    
 }

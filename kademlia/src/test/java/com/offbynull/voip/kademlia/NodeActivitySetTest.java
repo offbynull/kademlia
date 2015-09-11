@@ -102,7 +102,7 @@ public class NodeActivitySetTest {
         verifyActivityChangeSetAdded(res, NODE_111);
         
         
-        List<Activity> activities = fixture.getNodes(BASE_TIME.plusMillis(5L));
+        List<Activity> activities = fixture.getStagnantNodes(BASE_TIME.plusMillis(5L));
         verifyNodesInActivities(activities, NODE_001, NODE_010, NODE_011, NODE_100, NODE_101); 
         verifyTimeInActivities(activities,
                 BASE_TIME.plusMillis(1L),
@@ -147,7 +147,7 @@ public class NodeActivitySetTest {
         fixture.pending(NODE_010);
         fixture.pending(NODE_011);
         
-        List<Activity> activities = fixture.getNodes(BASE_TIME.plusMillis(5L));
+        List<Activity> activities = fixture.getStagnantNodes(BASE_TIME.plusMillis(5L));
         verifyNodesInActivities(activities, NODE_001, NODE_100, NODE_101); 
         verifyTimeInActivities(activities,
                 BASE_TIME.plusMillis(1L),
@@ -192,7 +192,7 @@ public class NodeActivitySetTest {
         fixture.idle(NODE_010);
         fixture.idle(NODE_011);
         
-        List<Activity> activities = fixture.getNodes(BASE_TIME.plusMillis(5L));
+        List<Activity> activities = fixture.getStagnantNodes(BASE_TIME.plusMillis(5L));
         verifyNodesInActivities(activities, NODE_001, NODE_010, NODE_011, NODE_100, NODE_101); 
         verifyTimeInActivities(activities,
                 BASE_TIME.plusMillis(1L),

@@ -1,10 +1,5 @@
 package com.offbynull.voip.kademlia;
 
-import com.offbynull.voip.kademlia.KBucket;
-import com.offbynull.voip.kademlia.Id;
-import com.offbynull.voip.kademlia.KBucketChangeSet;
-import com.offbynull.voip.kademlia.Node;
-import com.offbynull.voip.kademlia.LinkConflictException;
 import static com.offbynull.voip.kademlia.TestUtils.verifyActivityChangeSetAdded;
 import static com.offbynull.voip.kademlia.TestUtils.verifyActivityChangeSetCounts;
 import static com.offbynull.voip.kademlia.TestUtils.verifyActivityChangeSetRemoved;
@@ -387,7 +382,7 @@ public class KBucketTest {
     }
 
     @Test
-    public void mustReplaceBucketNodeWithLatestCacheNode() throws Throwable {
+    public void mustReplaceStaleNodeWithLatestCacheNodeImmediatelyIfCacheNotEmpty() throws Throwable {
         fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
         fixture.touch(BASE_TIME.plusMillis(2L), NODE_1000);
         fixture.touch(BASE_TIME.plusMillis(3L), NODE_0100);
@@ -397,7 +392,7 @@ public class KBucketTest {
         fixture.touch(BASE_TIME.plusMillis(7L), NODE_1101);
         
         KBucketChangeSet res;
-        res = fixture.replace(BASE_TIME.plusMillis(8L), NODE_1000);
+        res = fixture.stale(NODE_1000);
         verifyActivityChangeSetCounts(res.getBucketChangeSet(), 1, 1, 0);
         verifyActivityChangeSetAdded(res.getBucketChangeSet(), NODE_1101);
         verifyActivityChangeSetRemoved(res.getBucketChangeSet(), NODE_1000);
@@ -415,11 +410,47 @@ public class KBucketTest {
         verifyTimeInActivities(fixture.dumpCache(),
                 BASE_TIME.plusMillis(5L),
                 BASE_TIME.plusMillis(6L));
-        assertEquals(BASE_TIME.plusMillis(8L), fixture.getLastUpdateTime());
+        assertEquals(BASE_TIME.plusMillis(7L), fixture.getLastUpdateTime());
     }
 
     @Test
-    public void mustReplaceBucketNodeIfNotInBucket() throws Throwable {
+    public void mustReplaceStaleNodesBeforePlacingInCache() throws Throwable {
+        fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
+        fixture.touch(BASE_TIME.plusMillis(2L), NODE_1000);
+        fixture.touch(BASE_TIME.plusMillis(3L), NODE_0100);
+        fixture.touch(BASE_TIME.plusMillis(4L), NODE_1100);
+
+        KBucketChangeSet res;
+        
+        res = fixture.stale(NODE_1000);
+        verifyActivityChangeSetCounts(res.getBucketChangeSet(), 0, 0, 0);
+        verifyActivityChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
+        
+        res = fixture.touch(BASE_TIME.plusMillis(5L), NODE_1111);
+        verifyActivityChangeSetCounts(res.getBucketChangeSet(), 1, 1, 0);
+        verifyActivityChangeSetAdded(res.getBucketChangeSet(), NODE_1111);
+        verifyActivityChangeSetRemoved(res.getBucketChangeSet(), NODE_1000);
+        verifyActivityChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
+        
+        fixture.touch(BASE_TIME.plusMillis(6L), NODE_1110);
+        fixture.touch(BASE_TIME.plusMillis(7L), NODE_1101);
+        
+        
+        verifyNodesInActivities(fixture.dumpBucket(), NODE_0010, NODE_0100, NODE_1100, NODE_1111);
+        verifyTimeInActivities(fixture.dumpBucket(),
+                BASE_TIME.plusMillis(1L),
+                BASE_TIME.plusMillis(3L),
+                BASE_TIME.plusMillis(4L),
+                BASE_TIME.plusMillis(5L));
+        verifyNodesInActivities(fixture.dumpCache(), NODE_1110, NODE_1101);
+        verifyTimeInActivities(fixture.dumpCache(),
+                BASE_TIME.plusMillis(6L),
+                BASE_TIME.plusMillis(7L));
+        assertEquals(BASE_TIME.plusMillis(7L), fixture.getLastUpdateTime());
+    }
+
+    @Test
+    public void mustFailToMarkNodeAsStaleIfInCacheInsteadOfBucket() throws Throwable {
         fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
         fixture.touch(BASE_TIME.plusMillis(2L), NODE_1000);
         fixture.touch(BASE_TIME.plusMillis(3L), NODE_0100);
@@ -428,37 +459,22 @@ public class KBucketTest {
         fixture.touch(BASE_TIME.plusMillis(6L), NODE_1110);
         fixture.touch(BASE_TIME.plusMillis(7L), NODE_1101);
         
-        KBucketChangeSet res;
-        res = fixture.replace(BASE_TIME.plusMillis(8L), NODE_1111);
-        verifyActivityChangeSetCounts(res.getBucketChangeSet(), 0, 0, 0);
-        verifyActivityChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
-        
-        
-        verifyNodesInActivities(fixture.dumpBucket(), NODE_0010, NODE_1000, NODE_0100, NODE_1100);
-        verifyTimeInActivities(fixture.dumpBucket(),
-                BASE_TIME.plusMillis(1L),
-                BASE_TIME.plusMillis(2L),
-                BASE_TIME.plusMillis(3L),
-                BASE_TIME.plusMillis(4L));
-        verifyNodesInActivities(fixture.dumpCache(), NODE_1111, NODE_1110, NODE_1101);
-        verifyTimeInActivities(fixture.dumpCache(),
-                BASE_TIME.plusMillis(5L),
-                BASE_TIME.plusMillis(6L),
-                BASE_TIME.plusMillis(7L));
-        assertEquals(BASE_TIME.plusMillis(8L), fixture.getLastUpdateTime());
+        expectedException.expect(IllegalArgumentException.class);
+        fixture.stale(NODE_1111);
     }
 
     @Test
     public void mustFailToReplaceNodeIfCacheIsEmpty() throws Throwable {
         fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
         fixture.touch(BASE_TIME.plusMillis(2L), NODE_1000);
-        fixture.touch(BASE_TIME.plusMillis(3L), NODE_0100);
-        fixture.touch(BASE_TIME.plusMillis(4L), NODE_1100);
         
         KBucketChangeSet res;
-        res = fixture.replace(BASE_TIME.plusMillis(8L), NODE_1000);
+        res = fixture.stale(NODE_1000);
         verifyActivityChangeSetCounts(res.getBucketChangeSet(), 0, 0, 0);
         verifyActivityChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
+        
+        fixture.touch(BASE_TIME.plusMillis(3L), NODE_0100);
+        fixture.touch(BASE_TIME.plusMillis(4L), NODE_1100);
         
         
         verifyNodesInActivities(fixture.dumpBucket(), NODE_0010, NODE_1000, NODE_0100, NODE_1100);
@@ -469,7 +485,7 @@ public class KBucketTest {
                 BASE_TIME.plusMillis(4L));
         verifyNodesInActivities(fixture.dumpCache());
         verifyTimeInActivities(fixture.dumpCache());
-        assertEquals(BASE_TIME.plusMillis(8L), fixture.getLastUpdateTime());
+        assertEquals(BASE_TIME.plusMillis(4L), fixture.getLastUpdateTime());
     }
     
     @Test

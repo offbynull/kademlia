@@ -168,8 +168,28 @@ public final class NodeActivitySet {
         Validate.isTrue(removed);
     }
     
+    public Activity get(Node node) throws LinkConflictException {
+        Validate.notNull(node);
+        
+        Id id = node.getId();
+        
+        Activity existingEntry = lookupById.get(id);
+        if (existingEntry == null) {
+            return null;
+        }
+        
+        Node existingNode = existingEntry.getNode();
+        
+        // Check links match
+        if (!existingNode.equals(node)) {
+            throw new LinkConflictException(existingNode);
+        }
+        
+        return existingEntry;
+    }
+    
     @SuppressWarnings("unchecked")
-    public List<Activity> getNodes(Instant maxTime) {
+    public List<Activity> getStagnantNodes(Instant maxTime) {
         Validate.notNull(maxTime);
         
         Map<Instant, HashSet<Node>> subMap = touchTimes.headMap(maxTime, true);
