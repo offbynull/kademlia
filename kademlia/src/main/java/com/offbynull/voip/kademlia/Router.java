@@ -157,7 +157,7 @@ public final class Router {
         
         Validate.isTrue(activitySet.get(node) != null); // activity exists
         
-        
+        routeTree.stale(node);
     }
 //    public void setNodeProperty(Node node, Object key, Object value) throws LinkConflictException {
 //        Validate.notNull(node);

@@ -205,7 +205,7 @@ public final class RouteTree {
         }
     }
 
-    public void stale(Node node) throws LinkConflictException {
+    public KBucketChangeSet stale(Node node) throws LinkConflictException {
         Validate.notNull(node);
         
         Id id = node.getId();
@@ -220,13 +220,11 @@ public final class RouteTree {
         
         if (bucket == null) {
             Validate.validState(child != null); // sanity check
-            child.stale(node);
+            return child.stale(node);
         } else {
             Validate.validState(child == null); // sanity check
-            bucket.stale(node);
+            return bucket.stale(node);
         }
-        
-        // return; // MUST TERMIANTE HERE
     }
     
     
