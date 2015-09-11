@@ -33,7 +33,6 @@ public final class NodeActivitySet {
     private final TreeMap<Instant, HashSet<Node>> touchTimes;
     private final MultiValueMap<Instant, Node> touchTimesDecorator;
     private final HashMap<Id, Activity> lookupById;
-    private final HashSet<Id> pending;
     
     private int size;
     
@@ -45,7 +44,6 @@ public final class NodeActivitySet {
         touchTimes = new TreeMap<>();
         touchTimesDecorator = MultiValueMap.multiValueMap(touchTimes, () -> new HashSet<>());
         lookupById = new HashMap<>();
-        pending = new HashSet<>();
     }
     
     public ActivityChangeSet touch(Instant time, Node node) throws LinkConflictException {
@@ -68,9 +66,6 @@ public final class NodeActivitySet {
                 throw new LinkConflictException(oldNode);
             }
             
-            
-            // Check not pending
-            Validate.validState(!pending.contains(id));
             
             // Remove old timestamp
             Instant oldTimestamp = oldEntry.getTime();
@@ -116,58 +111,13 @@ public final class NodeActivitySet {
         // Remove
         lookupById.remove(id);
         touchTimesDecorator.removeMapping(existingEntry.getTime(), node);
-        pending.remove(id);
         
         size--;
         
         // Return that node was removed
         return ActivityChangeSet.removed(existingEntry);
     }
-    
-    public void pending(Node node) throws LinkConflictException {
-        Validate.notNull(node);
-        
-        Id id = node.getId();
-        
-        Activity existingEntry = lookupById.get(id);
-        if (existingEntry == null) {
-            throw new IllegalArgumentException();
-        }
-        
-        Node oldNode = existingEntry.getNode();
-        
-        // Check links match
-        if (!oldNode.equals(node)) {
-            throw new LinkConflictException(oldNode);
-        }
-        
-        // Add to ignore set
-        boolean added = pending.add(id);
-        Validate.isTrue(added);
-    }
-    
-    public void idle(Node node) throws LinkConflictException {
-        Validate.notNull(node);
-        
-        Id id = node.getId();
-        
-        Activity existingEntry = lookupById.get(id);
-        if (existingEntry == null) {
-            throw new IllegalArgumentException();
-        }
-        
-        Node oldNode = existingEntry.getNode();
-        
-        // Check links match
-        if (!oldNode.equals(node)) {
-            throw new LinkConflictException(oldNode);
-        }
-        
-        // Add to ignore set
-        boolean removed = pending.remove(id);
-        Validate.isTrue(removed);
-    }
-    
+
     public Activity get(Node node) throws LinkConflictException {
         Validate.notNull(node);
         
@@ -197,7 +147,6 @@ public final class NodeActivitySet {
         LinkedList<Activity> ret = new LinkedList<>();
         subMap.entrySet().stream()
                 .flatMap(x -> x.getValue().stream())
-                .filter(x -> !pending.contains(x.getId()))
                 .map(x -> lookupById.get(x.getId()))
                 .forEach(x -> ret.add(x));
         
@@ -210,8 +159,8 @@ public final class NodeActivitySet {
 
     @Override
     public String toString() {
-        return "NodeActivitySet{" + "baseId=" + baseId + ", touchTimes=" + touchTimes +  ", lookupById=" + lookupById + ", pending="
-                + pending + ", size=" + size + '}';
+        return "NodeActivitySet{" + "baseId=" + baseId + ", touchTimes=" + touchTimes +  ", lookupById=" + lookupById
+                + ", size=" + size + '}';
     }
     
 }
