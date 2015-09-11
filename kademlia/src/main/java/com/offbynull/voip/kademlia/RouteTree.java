@@ -22,7 +22,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.Predicate;
 import org.apache.commons.lang3.Validate;
 
 public final class RouteTree {
@@ -129,7 +128,7 @@ public final class RouteTree {
     }
     
     // find closest nodes to an id
-    public List<Activity> find(Id id, int max, Predicate<Activity> filter) {
+    public List<Activity> find(Id id, int max) {
         Validate.notNull(id);
         Validate.isTrue(!id.equals(baseId));
         Validate.isTrue(id.getBitLength() == baseId.getBitLength());
@@ -204,6 +203,30 @@ public final class RouteTree {
             Validate.validState(child == null); // sanity check
             return bucket.touch(time, node);
         }
+    }
+
+    public void stale(Node node) throws LinkConflictException {
+        Validate.notNull(node);
+        
+        Id id = node.getId();
+
+        Validate.isTrue(!id.equals(baseId));
+        Validate.isTrue(id.getBitLength() == baseId.getBitLength());
+        
+        Validate.isTrue(id.getBitString().getBits(0, prefix.getBitLength()).equals(prefix)); // ensure prefix matches
+        
+        int bucketIdx = (int) baseId.getBitsAsLong(prefix.getBitLength(), suffixLen);
+        KBucket bucket = kBuckets.get(bucketIdx);
+        
+        if (bucket == null) {
+            Validate.validState(child != null); // sanity check
+            child.stale(node);
+        } else {
+            Validate.validState(child == null); // sanity check
+            bucket.stale(node);
+        }
+        
+        // return; // MUST TERMIANTE HERE
     }
     
     

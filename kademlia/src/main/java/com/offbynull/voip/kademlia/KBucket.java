@@ -84,7 +84,8 @@ public final class KBucket {
         ActivityChangeSet cacheTouchRes = cache.touch(time, node);
         lastUpdateTime = time;
         
-        // There may be something in the cache now, so if we have any stale nodes, replace them with this new cache item.
+        // There may be something in the cache now, so if we have any stale nodes, replace them with this new cache item. We should never
+        // ever be in a state where !cache.isEmpty() && !staleSet.isEmpty(). If we are then something's gone wrong.
         // left = removed stale node from bucket
         // right = moved in to bucket the node that was jsut added in to cache
         ImmutablePair<Activity, Activity> res = replaceNextStaleNodeWithCacheNode(); // left = removed, right = added
@@ -112,7 +113,7 @@ public final class KBucket {
         
         Validate.isTrue(bucket.contains(node)); // node being marked as stale must be in bucket
 
-        staleSet.add(node); // add to stale set
+        staleSet.add(node); // add to stale set, it's fine if it's already in the staleset
         
         // replace, if nodes are available in cache to replace with... otherwise it'll just keep this node marked as stale
         // left = removed stale node from bucket
