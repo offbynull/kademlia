@@ -72,9 +72,9 @@ public final class IdClosenessComparator implements Comparator<Id>, Serializable
         int sharedPrefixLen2 = o2.getSharedPrefixLength(baseId);
         
         if (sharedPrefixLen1 > sharedPrefixLen2) {
-            return 1;
+            return -1; // -1 because its closer
         } else if (sharedPrefixLen1 < sharedPrefixLen2) {
-            return -1;
+            return 1; // 1 because its farther
         } else {
             return 0;
         }

@@ -78,6 +78,15 @@ final class TestUtils {
         assertEquals(expected, actual);
     }
 
+    public static void verifyNodes(List<Node> inputNodes, Node ... testAgainstNodes) {
+        assertEquals(inputNodes.size(), testAgainstNodes.length);
+        
+        List<Node> actual = inputNodes;
+        List<Node> expected = Arrays.asList(testAgainstNodes);
+        
+        assertEquals(expected, actual);
+    }
+
     public static void verifyNodesInActivities(List<Activity> activities, Node ... nodes) {
         assertEquals(activities.size(), nodes.length);
         

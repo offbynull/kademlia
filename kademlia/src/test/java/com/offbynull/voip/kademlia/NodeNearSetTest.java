@@ -3,7 +3,8 @@ package com.offbynull.voip.kademlia;
 import static com.offbynull.voip.kademlia.TestUtils.verifyNodeChangeSetAdded;
 import static com.offbynull.voip.kademlia.TestUtils.verifyNodeChangeSetCounts;
 import static com.offbynull.voip.kademlia.TestUtils.verifyNodeChangeSetRemoved;
-import java.util.Arrays;
+import static com.offbynull.voip.kademlia.TestUtils.verifyNodes;
+import java.util.List;
 import static org.junit.Assert.assertEquals;
 import org.junit.Rule;
 import org.junit.Test;
@@ -37,7 +38,7 @@ public final class NodeNearSetTest {
         verifyNodeChangeSetCounts(res, 1, 0, 0);
         verifyNodeChangeSetAdded(res, NODE_011);
         
-        assertEquals(Arrays.asList(NODE_111, NODE_011), fixture.dump());
+        verifyNodes(fixture.dump(), NODE_011, NODE_111);
         
         res = fixture.touch(NODE_011);
         verifyNodeChangeSetCounts(res, 0, 0, 0);
@@ -47,7 +48,25 @@ public final class NodeNearSetTest {
         verifyNodeChangeSetRemoved(res, NODE_111);
         verifyNodeChangeSetAdded(res, NODE_001);
         
-        assertEquals(Arrays.asList(NODE_011, NODE_001), fixture.dump());
+        verifyNodes(fixture.dump(), NODE_001, NODE_011);
+    }
+
+    @Test
+    public void mustNotShowChangeIfNodeIsTooFarAway() throws Throwable {
+        NodeChangeSet res;
+        
+        res = fixture.touch(NODE_001);
+        verifyNodeChangeSetCounts(res, 1, 0, 0);
+        verifyNodeChangeSetAdded(res, NODE_001);
+        
+        res = fixture.touch(NODE_010);
+        verifyNodeChangeSetCounts(res, 1, 0, 0);
+        verifyNodeChangeSetAdded(res, NODE_010);
+        
+        res = fixture.touch(NODE_011);
+        verifyNodeChangeSetCounts(res, 0, 0, 0);
+        
+        verifyNodes(fixture.dump(), NODE_001, NODE_010);
     }
 
     // See "notion of closeness" section in notes for more information on how closeness is calculated
@@ -63,7 +82,7 @@ public final class NodeNearSetTest {
         verifyNodeChangeSetCounts(res, 1, 0, 0);
         verifyNodeChangeSetAdded(res, NODE_110);
         
-        assertEquals(Arrays.asList(NODE_111, NODE_110), fixture.dump());
+        verifyNodes(fixture.dump(), NODE_110, NODE_111);
         
         res = fixture.touch(NODE_111);
         verifyNodeChangeSetCounts(res, 0, 0, 0);
@@ -73,7 +92,7 @@ public final class NodeNearSetTest {
         verifyNodeChangeSetAdded(res, NODE_100);
         verifyNodeChangeSetRemoved(res, NODE_111);
         
-        assertEquals(Arrays.asList(NODE_110, NODE_100), fixture.dump());
+        verifyNodes(fixture.dump(), NODE_100, NODE_110);
     }
 
     @Test
@@ -115,7 +134,7 @@ public final class NodeNearSetTest {
         
         assertEquals(2, fixture.size());
         assertEquals(2, fixture.getMaxSize());
-        assertEquals(Arrays.asList(NODE_111, NODE_011), fixture.dump());
+        verifyNodes(fixture.dump(), NODE_011, NODE_111);
         
         res = fixture.resize(1);
         verifyNodeChangeSetCounts(res, 0, 1, 0);
@@ -123,7 +142,79 @@ public final class NodeNearSetTest {
         
         assertEquals(1, fixture.size());
         assertEquals(1, fixture.getMaxSize());
-        assertEquals(Arrays.asList(NODE_011), fixture.dump());
+        verifyNodes(fixture.dump(), NODE_011);
+    }
+
+    @Test
+    public void mustDumpNearestUpTo() throws Throwable {
+        fixture.resize(10);
+        
+        fixture.touch(NODE_001);
+        fixture.touch(NODE_010);
+        fixture.touch(NODE_011);
+        fixture.touch(NODE_100);
+        fixture.touch(NODE_101);
+        fixture.touch(NODE_110);
+        fixture.touch(NODE_111);
+
+        List<Node> res;
+        res = fixture.dumpNearestBefore(NODE_011.getId(), 10);
+
+        verifyNodes(res, NODE_001, NODE_010);
+    }
+
+    @Test
+    public void mustDumpNearestUpToLimited() throws Throwable {
+        fixture.resize(10);
+        
+        fixture.touch(NODE_001);
+        fixture.touch(NODE_010);
+        fixture.touch(NODE_011);
+        fixture.touch(NODE_100);
+        fixture.touch(NODE_101);
+        fixture.touch(NODE_110);
+        fixture.touch(NODE_111);
+
+        List<Node> res;
+        res = fixture.dumpNearestBefore(NODE_011.getId(), 1);
+
+        verifyNodes(res, NODE_001);
+    }
+
+    @Test
+    public void mustDumpNearestFrom() throws Throwable {
+        fixture.resize(10);
+        
+        fixture.touch(NODE_001);
+        fixture.touch(NODE_010);
+        fixture.touch(NODE_011);
+        fixture.touch(NODE_100);
+        fixture.touch(NODE_101);
+        fixture.touch(NODE_110);
+        fixture.touch(NODE_111);
+
+        List<Node> res;
+        res = fixture.dumpNearestAfter(NODE_011.getId(), 10);
+
+        verifyNodes(res, NODE_100, NODE_101, NODE_110, NODE_111);
+    }
+
+    @Test
+    public void mustDumpNearestFromLimited() throws Throwable {
+        fixture.resize(10);
+        
+        fixture.touch(NODE_001);
+        fixture.touch(NODE_010);
+        fixture.touch(NODE_011);
+        fixture.touch(NODE_100);
+        fixture.touch(NODE_101);
+        fixture.touch(NODE_110);
+        fixture.touch(NODE_111);
+
+        List<Node> res;
+        res = fixture.dumpNearestAfter(NODE_011.getId(), 2);
+
+        verifyNodes(res, NODE_100, NODE_101);
     }
     
     @Test
@@ -137,7 +228,7 @@ public final class NodeNearSetTest {
         verifyNodeChangeSetRemoved(res, NODE_111);
         
         assertEquals(1, fixture.size());
-        assertEquals(Arrays.asList(NODE_011), fixture.dump());
+        verifyNodes(fixture.dump(), NODE_011);
     }
 
     @Test
@@ -150,7 +241,7 @@ public final class NodeNearSetTest {
         verifyNodeChangeSetCounts(res, 0, 0, 0);
         
         assertEquals(2, fixture.size());
-        assertEquals(Arrays.asList(NODE_111, NODE_011), fixture.dump());
+        verifyNodes(fixture.dump(), NODE_011, NODE_111);
     }
 
     @Test

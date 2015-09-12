@@ -20,6 +20,8 @@ import java.util.ArrayList;
 import static java.util.Collections.emptyList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map.Entry;
+import java.util.NavigableMap;
 import java.util.TreeMap;
 import org.apache.commons.lang3.Validate;
 
@@ -67,8 +69,13 @@ public final class NodeNearSet {
         added.add(node);
         nodes.put(nodeId, node);
         if (nodes.size() > maxSize) {
-            Node oldNode = nodes.pollFirstEntry().getValue(); // remove first node (farthest) so we don't exceed maxSize
+            Node oldNode = nodes.pollLastEntry().getValue(); // remove first node (farthest) so we don't exceed maxSize
             removed.add(oldNode);
+            
+            // if the node we evicted it the one that we added, that means no change has occured
+            if (node.equals(oldNode)) {
+                return NodeChangeSet.NO_CHANGE;
+            }
         }
         
         return new NodeChangeSet(added, removed, emptyList());
@@ -104,10 +111,10 @@ public final class NodeNearSet {
         
         int discardCount = this.maxSize - maxSize;
         
-        List<Node> removed = new LinkedList<>();
+        LinkedList<Node> removed = new LinkedList<>();
         for (int i = 0; i < discardCount; i++) {
-            Node removedEntry = nodes.pollFirstEntry().getValue(); // remove largest
-            removed.add(removedEntry);
+            Node removedEntry = nodes.pollLastEntry().getValue(); // remove largest
+            removed.addFirst(removedEntry);
         }
         
         this.maxSize = maxSize;
@@ -117,6 +124,46 @@ public final class NodeNearSet {
     
     public List<Node> dump() {
         return new ArrayList<>(nodes.values());
+    }
+
+    public List<Node> dumpNearestBefore(Id id, int max) { // dumps up to max nodes < id, starting from nearest in set (EXCLUSIVE)
+        Validate.notNull(id); // perfectly okay for id to equal baseId;
+        Validate.isTrue(max >= 0);
+        
+        NavigableMap<Id, Node> partialMap = nodes.headMap(id, false);
+        
+        int remaining = Math.min(max, nodes.size());
+        List<Node> ret = new ArrayList<>(remaining);
+        
+        for (Entry<Id, Node> entry : partialMap.entrySet()) {
+            if (remaining == 0) {
+                break;
+            }
+            ret.add(entry.getValue());
+            remaining--;
+        }
+        
+        return ret;
+    }
+
+    public List<Node> dumpNearestAfter(Id id, int max) { // dumps up to max nodes > id, starting from nearest to id (EXCLUSIVE)
+        Validate.notNull(id); // perfectly okay for id to equal baseId;
+        Validate.isTrue(max >= 0);
+        
+        NavigableMap<Id, Node> partialMap = nodes.tailMap(id, false);
+        
+        int remaining = Math.min(max, nodes.size());
+        List<Node> ret = new ArrayList<>(remaining);
+        
+        for (Entry<Id, Node> entry : partialMap.entrySet()) {
+            if (remaining == 0) {
+                break;
+            }
+            ret.add(entry.getValue());
+            remaining--;
+        }
+        
+        return ret;
     }
     
     public int size() {

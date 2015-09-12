@@ -17,11 +17,13 @@
 package com.offbynull.voip.kademlia;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
-import static java.util.Locale.filter;
 import java.util.Map;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 import org.apache.commons.collections4.map.UnmodifiableMap;
 import org.apache.commons.lang3.Validate;
 
@@ -80,6 +82,9 @@ public final class Router {
         } else if (!bucketChangeSet.viewUpdated().isEmpty()) {
             // Node was updated in bucket
             ActivityChangeSet activityChangeSet = activitySet.touch(time, node);
+            
+            // If node was stale, it means it no longer is stale now
+            dataSet.remove(node, InternalNodeProperties.STALE_IN_ROUTINGTREE);
             
             // This is an update to an existing entry -- sanity check that it was updated in all sets and nothing was added/removed in the
             // process. Also validate that node is already flagged as being in the routing tree.
@@ -143,24 +148,52 @@ public final class Router {
         }
     }
     
-    public List<Node> getClosestNodes(Id id, int max, boolean skipPending, boolean skipStale) {
-        routeTree.find(id, max, filter);
+    public List<Node> getClosestNodes(Id id, int max, Predicate<RouterNodeInformation> filter) {
+        Predicate<Node> nodeFilter = new NodeCheckPredicate(filter);
+        List<Node> closestNodesInRoutingTree = routeTree.find(id, max, nodeFilter);
+        List<Node> closestNodes = nearSet.dump();
         
+        List<Node> res = new ArrayList<>(closestNodesInRoutingTree.size() + closestNodes.size());
+        
+        Comparator<Id> idComp = new IdClosenessComparator(id);
+        Stream.concat(closestNodes.stream().filter(nodeFilter), closestNodesInRoutingTree.stream())
+                .sorted((x,y) -> -idComp.compare(x.getId(), y.getId()))
+                .limit(max)
+                .forEachOrdered(res::add);
+        
+        return res;
     }
 
-    public List<Activity> getStagnantNodes(Instant maxTime) {
+    public List<Activity> getStagnantNodes(Instant maxTime, Predicate<RouterNodeInformation> filter) {
         Validate.notNull(maxTime);
-        return activitySet.getStagnantNodes(maxTime);
+        return activitySet.getStagnantNodes(maxTime, filter);
     }
 
-    public void stale(Node node) throws LinkConflictException {
+    public void unresponsive(Node node) throws LinkConflictException {
         Id nodeId = node.getId();
         Validate.isTrue(!nodeId.equals(baseId));
         Validate.isTrue(nodeId.getBitLength() == baseId.getBitLength());
         
         Validate.isTrue(activitySet.get(node) != null); // activity exists
         
-        routeTree.stale(node);
+        if (dataSet.get(node, InternalNodeProperties.ROUTINGTREE_STATE) != RoutingTreeState.NOT_FOUND) {
+            KBucketChangeSet res = routeTree.stale(node);
+            if (res.getBucketChangeSet().viewRemoved().isEmpty()) {
+                // Nothing was removed, so that means that the node wasn't replaced by a cache item (because there are no cache items
+                // available). Instead it was marked as stale and is slated for a removal whenver a new node hits that bucket (or if it gets
+                // touched again).
+                dataSet.put(node, InternalNodeProperties.ROUTINGTREE_STATE, RoutingTreeState.STALE);
+            } else {
+                // Node was removed and a new node (from the cache) was put in its place.
+                dataSet.removeAll(node);
+                
+                // TODO: FIND EARLIEST BUCKET NODE AND USE TO REPLACE HERE.
+            }
+        }
+        
+        if (dataSet.get(node, InternalNodeProperties.NEARSET_STATE) != NearSetState.NOT_FOUND) {
+            
+        }
     }
     
     public void setNodeProperty(Node node, Object key, Object value) throws LinkConflictException {
@@ -247,10 +280,10 @@ public final class Router {
                 // should never happen
                 throw new IllegalStateException(lce);
             }
-            boolean foundInRoutingTree = properties.remove(InternalNodeProperties.EXISTS_IN_ROUTINGTREE) != null;
-            boolean foundInNearSet = properties.remove(InternalNodeProperties.EXISTS_IN_NEARSET) != null;
+            RoutingTreeState routingTreeState = (RoutingTreeState) properties.remove(InternalNodeProperties.ROUTINGTREE_STATE);
+            NearSetState nearSetState = (NearSetState) properties.remove(InternalNodeProperties.NEARSET_STATE);
             
-            RouterNodeInformation testObj = new RouterNodeInformation(node, lastActivityTime, foundInRoutingTree, foundInNearSet,
+            RouterNodeInformation testObj = new RouterNodeInformation(node, lastActivityTime, routingTreeState, nearSetState,
                     (UnmodifiableMap<Object, Object>) UnmodifiableMap.unmodifiableMap(properties));
             return backingPredicate.test(testObj);
         }
@@ -260,23 +293,24 @@ public final class Router {
     public static final class RouterNodeInformation {
         private final Node node;
         private final Instant lastActivityTime;
-        private final boolean foundInRoutingTree;
-        private final boolean foundInNearSet;
-        private final boolean stale;
+        private final RoutingTreeState routingTreeState;
+        private final NearSetState nearSetState;
         private final UnmodifiableMap<Object, Object> properties;
 
-        public RouterNodeInformation(Node node, Instant lastActivityTime, boolean foundInRoutingTree, boolean foundInNearSet,
+        public RouterNodeInformation(Node node, Instant lastActivityTime, RoutingTreeState routingTreeState, NearSetState nearSetState,
                 UnmodifiableMap<Object, Object> properties) {
             Validate.notNull(node);
             Validate.notNull(lastActivityTime);
+            Validate.notNull(routingTreeState);
+            Validate.notNull(nearSetState);
             Validate.notNull(properties);
             Validate.noNullElements(properties.keySet());
             Validate.noNullElements(properties.values());
             
             this.node = node;
             this.lastActivityTime = lastActivityTime;
-            this.foundInRoutingTree = foundInRoutingTree;
-            this.foundInNearSet = foundInNearSet;
+            this.routingTreeState = routingTreeState;
+            this.nearSetState = nearSetState;
             this.properties = properties;
         }
 
@@ -288,26 +322,32 @@ public final class Router {
             return lastActivityTime;
         }
 
-        public boolean isFoundInRoutingTree() {
-            return foundInRoutingTree;
+        public RoutingTreeState getRoutingTreeState() {
+            return routingTreeState;
         }
 
-        public boolean isFoundInNearSet() {
-            return foundInNearSet;
+        public NearSetState getNearSetState() {
+            return nearSetState;
         }
 
         public UnmodifiableMap<Object, Object> getProperties() {
             return properties;
         }
     }
-    
+
     private enum InternalNodeProperties {
-        EXISTS_IN_ROUTINGTREE,
-        EXISTS_IN_NEARSET,
+        ROUTINGTREE_STATE,
+        NEARSET_STATE,
     }
     
-    private enum RoutingTreeState {
+    public enum RoutingTreeState {
+        NOT_FOUND,
         ACTIVE,
         STALE
+    }
+    
+    public enum NearSetState {
+        NOT_FOUND,
+        ACTIVE
     }
 }

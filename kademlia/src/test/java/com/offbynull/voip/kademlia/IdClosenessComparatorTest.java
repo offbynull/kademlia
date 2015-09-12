@@ -21,9 +21,9 @@ public class IdClosenessComparatorTest {
         Id o2 = Id.createFromLong(0x3L, 3); // 011
         
         int res1 = fixture.compare(o1, o2);
-        assertEquals(1, res1);
+        assertEquals(-1, res1);
         int res2 = fixture.compare(o2, o1);
-        assertEquals(-1, res2);
+        assertEquals(1, res2);
     }
     
     @Test
@@ -32,9 +32,9 @@ public class IdClosenessComparatorTest {
         Id o2 = Id.createFromLong(0x7L, 3); // 111
         
         int res1 = fixture.compare(o1, o2);
-        assertEquals(1, res1);
+        assertEquals(-1, res1);
         int res2 = fixture.compare(o2, o1);
-        assertEquals(-1, res2);
+        assertEquals(1, res2);
     }
     
 }
