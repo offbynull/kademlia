@@ -187,6 +187,20 @@ public class KBucketTest {
     }
 
     @Test
+    public void mustPreventConflictingNodeOnStale() throws Throwable {
+        fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
+        fixture.touch(BASE_TIME.plusMillis(2L), NODE_1000);
+        fixture.touch(BASE_TIME.plusMillis(3L), NODE_0100);
+        fixture.touch(BASE_TIME.plusMillis(4L), NODE_1100);
+        fixture.touch(BASE_TIME.plusMillis(5L), NODE_1111);
+        fixture.touch(BASE_TIME.plusMillis(6L), NODE_1110);
+        fixture.touch(BASE_TIME.plusMillis(7L), NODE_1101);
+        
+        expectedException.expect(LinkConflictException.class);
+        fixture.stale(new Node(NODE_1100.getId(), "fakelink"));
+    }
+
+    @Test
     public void mustProperlyInsertAfterIncreasingBucketSize() throws Throwable {
         // insert in to bucket first, once bucket is full dump in to cache
         KBucketChangeSet res;

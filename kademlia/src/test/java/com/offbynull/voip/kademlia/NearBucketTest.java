@@ -3,6 +3,7 @@ package com.offbynull.voip.kademlia;
 import static com.offbynull.voip.kademlia.TestUtils.verifyNodeChangeSetAdded;
 import static com.offbynull.voip.kademlia.TestUtils.verifyNodeChangeSetCounts;
 import static com.offbynull.voip.kademlia.TestUtils.verifyNodeChangeSetRemoved;
+import static com.offbynull.voip.kademlia.TestUtils.verifyNodeChangeSetUpdated;
 import static com.offbynull.voip.kademlia.TestUtils.verifyNodes;
 import org.junit.Test;
 import org.junit.Rule;
@@ -59,6 +60,42 @@ public final class NearBucketTest {
         verifyNodeChangeSetCounts(res.getPeerChangeSet(), 0, 0, 0);
         
         verifyNodes(fixture.dumpBucket(), NODE_001, NODE_010);
+    }
+
+    @Test
+    public void mustBeAbleToTouchSameNodeMultipleTimes() throws Throwable {
+        NearBucketChangeSet res;
+        
+        res = fixture.touch(NODE_001);
+        verifyNodeChangeSetCounts(res.getBucketChangeSet(), 1, 0, 0);
+        verifyNodeChangeSetAdded(res.getBucketChangeSet(), NODE_001);
+        verifyNodeChangeSetCounts(res.getPeerChangeSet(), 0, 0, 0);
+        
+        res = fixture.touch(NODE_001);
+        verifyNodeChangeSetCounts(res.getBucketChangeSet(), 0, 0, 1);
+        verifyNodeChangeSetUpdated(res.getBucketChangeSet(), NODE_001);
+        verifyNodeChangeSetCounts(res.getPeerChangeSet(), 0, 0, 0);
+        
+        verifyNodes(fixture.dumpBucket(), NODE_001);
+    }
+
+    @Test
+    public void mustBeAbleToTouchSamePeerNodeMultipleTimes() throws Throwable {
+        NearBucketChangeSet res;
+        
+        res = fixture.touchPeer(NODE_001);
+        verifyNodeChangeSetCounts(res.getBucketChangeSet(), 1, 0, 0);
+        verifyNodeChangeSetAdded(res.getBucketChangeSet(), NODE_001);
+        verifyNodeChangeSetCounts(res.getPeerChangeSet(), 1, 0, 0);
+        verifyNodeChangeSetAdded(res.getPeerChangeSet(), NODE_001);
+        
+        res = fixture.touchPeer(NODE_001);
+        verifyNodeChangeSetCounts(res.getBucketChangeSet(), 0, 0, 1);
+        verifyNodeChangeSetUpdated(res.getBucketChangeSet(), NODE_001);
+        verifyNodeChangeSetCounts(res.getPeerChangeSet(), 0, 0, 1);
+        verifyNodeChangeSetUpdated(res.getPeerChangeSet(), NODE_001);
+        
+        verifyNodes(fixture.dumpBucket(), NODE_001);
     }
 
     @Test
@@ -314,6 +351,23 @@ public final class NearBucketTest {
     }
 
     @Test
+    public void mustFailToRemoveIfNodeDoesntExistInEitherPeersOrBucket() throws Throwable {
+        NearBucketChangeSet res;
+
+        fixture.touchPeer(NODE_011);
+        fixture.touchPeer(NODE_010);
+
+        fixture.touch(NODE_001);
+        
+        verifyNodes(fixture.dumpBucket(), NODE_001, NODE_010);
+        
+        res = fixture.remove(NODE_111);
+        verifyNodeChangeSetCounts(res.getBucketChangeSet(), 0, 0, 0);
+        
+        verifyNodes(fixture.dumpBucket(), NODE_001, NODE_010);
+    }
+
+    @Test
     public void mustProperlyInsertAfterIncreasingSize() throws Throwable {
         // insert in to bucket first, once bucket is full dump in to cache
         NearBucketChangeSet res;
@@ -419,5 +473,60 @@ public final class NearBucketTest {
         verifyNodeChangeSetRemoved(res.getBucketChangeSet(), NODE_010);
         verifyNodeChangeSetCounts(res.getPeerChangeSet(), 0, 0, 0);
         verifyNodes(fixture.dumpBucket(), NODE_001);
+    }
+    
+    @Test
+    public void mustPreventConflictingBucketNodeOnTouch() throws Throwable {
+        fixture.touch(NODE_001);
+        fixture.touch(NODE_010);
+        
+        expectedException.expect(LinkConflictException.class);
+        fixture.touch(new Node(NODE_010.getId(), "fakelink"));
+    }
+
+    @Test
+    public void mustPreventConflictingPeerNodeOnTouchPeer() throws Throwable {
+        fixture.touchPeer(NODE_001);
+        fixture.touchPeer(NODE_010);
+        fixture.touchPeer(NODE_110);
+        
+        expectedException.expect(LinkConflictException.class);
+        fixture.touchPeer(new Node(NODE_110.getId(), "fakelink"));
+    }
+    
+    @Test
+    public void mustPreventBucketNodeConflictingWithPeerNodeOnTouch() throws Throwable {
+        fixture.touch(NODE_001);
+        fixture.touch(NODE_010);
+        
+        expectedException.expect(LinkConflictException.class);
+        fixture.touchPeer(new Node(NODE_010.getId(), "fakelink"));
+    }
+
+    @Test
+    public void mustPreventPeerNodeConflictingWithBucketNodeOnTouch() throws Throwable {
+        fixture.touchPeer(NODE_001);
+        fixture.touchPeer(NODE_010);
+        
+        expectedException.expect(LinkConflictException.class);
+        fixture.touch(new Node(NODE_010.getId(), "fakelink"));
+    }
+
+    @Test
+    public void mustPreventRemoveIfConflictingWithBucketNodeOnTouch() throws Throwable {
+        fixture.touch(NODE_001);
+        fixture.touch(NODE_010);
+        
+        expectedException.expect(LinkConflictException.class);
+        fixture.remove(new Node(NODE_010.getId(), "fakelink"));
+    }
+
+    @Test
+    public void mustPreventRemoveIfConflictingWithPeerNodeOnTouch() throws Throwable {
+        fixture.touchPeer(NODE_001);
+        fixture.touchPeer(NODE_010);
+        
+        expectedException.expect(LinkConflictException.class);
+        fixture.remove(new Node(NODE_010.getId(), "fakelink"));
     }
 }

@@ -63,7 +63,7 @@ public final class NodeNearSet {
                 throw new LinkConflictException(existingNode);
             }
             
-            return NodeChangeSet.NO_CHANGE; // already exists
+            return NodeChangeSet.updated(node); // already exists -- show as being updated to indicate that it already exists
         }
         
         added.add(node);

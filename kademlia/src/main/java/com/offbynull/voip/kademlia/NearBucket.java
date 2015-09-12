@@ -82,7 +82,6 @@ public final class NearBucket {
         
         NodeChangeSet applyToBucketRes = applyPeerNodesToBucket();
         Validate.isTrue(applyToBucketRes.viewRemoved().isEmpty()); // sanity check
-        Validate.isTrue(applyToBucketRes.viewUpdated().isEmpty()); // sanity check
         
         return new NearBucketChangeSet(
                 new NodeChangeSet(applyToBucketRes.viewAdded(), bucketChangeSet.viewRemoved(), emptyList()),

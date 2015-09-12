@@ -3,6 +3,7 @@ package com.offbynull.voip.kademlia;
 import static com.offbynull.voip.kademlia.TestUtils.verifyNodeChangeSetAdded;
 import static com.offbynull.voip.kademlia.TestUtils.verifyNodeChangeSetCounts;
 import static com.offbynull.voip.kademlia.TestUtils.verifyNodeChangeSetRemoved;
+import static com.offbynull.voip.kademlia.TestUtils.verifyNodeChangeSetUpdated;
 import static com.offbynull.voip.kademlia.TestUtils.verifyNodes;
 import java.util.List;
 import static org.junit.Assert.assertEquals;
@@ -41,7 +42,8 @@ public final class NodeNearSetTest {
         verifyNodes(fixture.dump(), NODE_011, NODE_111);
         
         res = fixture.touch(NODE_011);
-        verifyNodeChangeSetCounts(res, 0, 0, 0);
+        verifyNodeChangeSetCounts(res, 0, 0, 1);
+        verifyNodeChangeSetUpdated(res, NODE_011);
         
         res = fixture.touch(NODE_001);
         verifyNodeChangeSetCounts(res, 1, 1, 0);
@@ -85,7 +87,8 @@ public final class NodeNearSetTest {
         verifyNodes(fixture.dump(), NODE_110, NODE_111);
         
         res = fixture.touch(NODE_111);
-        verifyNodeChangeSetCounts(res, 0, 0, 0);
+        verifyNodeChangeSetCounts(res, 0, 0, 1);
+        verifyNodeChangeSetUpdated(res, NODE_111);
         
         res = fixture.touch(NODE_100);
         verifyNodeChangeSetCounts(res, 1, 1, 0);
