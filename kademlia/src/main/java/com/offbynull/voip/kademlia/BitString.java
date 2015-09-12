@@ -45,6 +45,51 @@ public final class BitString implements Serializable {
     }
 
     /**
+     * Constructs a {@link BitString} from a string. Bits from string are read in read-order (starting from position 0 onward). Character
+     * {@code '0'} is represented as bit {@code 0}, and character {@code '1'} is represented as bit {@code 1}.
+     * @param data string to read bitstring data from
+     * @return created bitstring
+     * @throws IllegalArgumentException if any chracter other than {@code '0'} or {@code '1'} is encountered in {@code data}
+     * @throws NullPointerException if any argument is {@code null}
+     */
+    public static BitString createFromString(String data) {
+        Validate.notNull(data);
+        
+        int offset = 0;
+        int len = data.length();
+        
+        int arrLen = calculateRequiredByteArraySize(len);
+        int arrIdx = 0;
+        byte[] arr = new byte[arrLen];
+        
+        int end = offset + len;
+        int currOffset = offset;
+        byte[] temp = new byte[1];
+        while (currOffset < end) {
+            int nextOffset = Math.min(currOffset + 8, end);
+            int currLen = nextOffset - currOffset;
+            
+            try {
+                temp[0] = (byte) (Integer.valueOf(data.substring(currOffset, currOffset + currLen), 2) & 0xFF);
+            } catch (NumberFormatException nfe) {
+                throw new IllegalArgumentException(nfe);
+            }
+            
+            if (currLen < 8) {
+                temp[0] = (byte) ((temp[0] << (8 - currLen)) & 0xFF);
+            }
+            
+            byte b = readBitsFromByteArrayInReadOrder(temp, 0, currLen);
+            arr[arrIdx] = b;
+
+            arrIdx++;
+            currOffset = nextOffset;
+        }
+        
+        return new BitString(arr, len);
+    }
+
+    /**
      * Constructs a {@link BitString} from a byte array. Bits from input array are read in logical-order (starting from bit 0 onward). This
      * seems counter-intuitive because an array of bytes is represented from left-to-right (byte 0 is leftmost) while an array of bits is
      * represented from right-to-left (bit 0 is the right-most). So for example, the input array {@code [0x04, 0xFB]} with offset of 2 and

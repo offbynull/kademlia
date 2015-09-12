@@ -1,6 +1,5 @@
 package com.offbynull.voip.kademlia;
 
-import com.offbynull.voip.kademlia.BitString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -12,6 +11,18 @@ public class BitStringTest {
     
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
+
+    @Test
+    public void mustCreateFromString() {
+        BitString bitString1 = BitString.createFromString("100001011111");
+        assertEquals("(12) 1000 0101 1111", bitString1.toString());
+    }
+
+    @Test
+    public void mustFailConstructingFromStringIfSpacesInString() {
+        expectedException.expect(IllegalArgumentException.class);
+        BitString.createFromString("1000 0101 1111");
+    }
 
     @Test
     public void mustCreateTheSameBitStringUsingAllConstructors() {

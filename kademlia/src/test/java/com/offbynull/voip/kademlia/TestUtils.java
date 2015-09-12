@@ -104,4 +104,8 @@ final class TestUtils {
         
         assertEquals(expected, actual);
     }
+    
+    public static void verifyPrefixMatches(BitString actual, String expected) {
+        assertEquals(BitString.createFromString(expected), actual);
+    }
 }

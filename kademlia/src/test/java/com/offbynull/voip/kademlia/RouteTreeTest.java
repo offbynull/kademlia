@@ -1,8 +1,10 @@
 package com.offbynull.voip.kademlia;
 
+import static com.offbynull.voip.kademlia.TestUtils.verifyPrefixMatches;
 import java.time.Instant;
+import org.junit.Rule;
 import org.junit.Test;
-import static org.junit.Assert.*;
+import org.junit.rules.ExpectedException;
 
 public final class RouteTreeTest {
     
@@ -17,19 +19,43 @@ public final class RouteTreeTest {
     
     private static final Instant BASE_TIME = Instant.ofEpochMilli(0L);
     
-    private RouteTree fixture = RouteTree.create(
+    private RouteTree fixture = new RouteTree(
             NODE_000.getId(),
-            new SimpleRouteTreeSpecificationSupplier(NODE_000.getId(), 1, 2, 1));
+            new SimpleRouteTreeSpecificationSupplier(NODE_000.getId(), 1, 2, 2));
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
+    
+    @Test
+    public void mustRejectIfTouchingSelfId() throws Throwable {
+        expectedException.expect(IllegalArgumentException.class);
+        fixture.touch(BASE_TIME.plusMillis(1L), NODE_000);
+    }
 
     @Test
     public void must() throws Throwable {
-        fixture.touch(BASE_TIME.plusMillis(1L), NODE_001);
-        fixture.touch(BASE_TIME.plusMillis(2L), NODE_010);
-        fixture.touch(BASE_TIME.plusMillis(3L), NODE_011);
-        fixture.touch(BASE_TIME.plusMillis(4L), NODE_100);
-        fixture.touch(BASE_TIME.plusMillis(5L), NODE_101);
-        fixture.touch(BASE_TIME.plusMillis(6L), NODE_110);
-        fixture.touch(BASE_TIME.plusMillis(7L), NODE_111);
+        RouteTreeChangeSet res;
+        
+        res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_001);
+        verifyPrefixMatches(res.getKBucketPrefix(), "001");
+        
+        res = fixture.touch(BASE_TIME.plusMillis(2L), NODE_010);
+        verifyPrefixMatches(res.getKBucketPrefix(), "01");
+        
+        res = fixture.touch(BASE_TIME.plusMillis(3L), NODE_011);
+        verifyPrefixMatches(res.getKBucketPrefix(), "0");
+        
+        res = fixture.touch(BASE_TIME.plusMillis(4L), NODE_100);
+        verifyPrefixMatches(res.getKBucketPrefix(), "1");
+        
+        res = fixture.touch(BASE_TIME.plusMillis(5L), NODE_101);
+        verifyPrefixMatches(res.getKBucketPrefix(), "1");
+        
+        res = fixture.touch(BASE_TIME.plusMillis(6L), NODE_110);
+        verifyPrefixMatches(res.getKBucketPrefix(), "1");
+        
+        res = fixture.touch(BASE_TIME.plusMillis(7L), NODE_111);
+        verifyPrefixMatches(res.getKBucketPrefix(), "1");
     }
     
 }
