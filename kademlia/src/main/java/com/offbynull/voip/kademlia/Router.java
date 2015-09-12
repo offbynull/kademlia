@@ -20,6 +20,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
@@ -32,7 +33,7 @@ public final class Router {
     
     private final Id baseId;
     private final RouteTree routeTree;
-    private final NodeNearSet nearSet;
+    private final NearBucket nearBucket;
     private final NodeActivitySet activitySet;
     private final NodeDataSet dataSet;
     
@@ -45,7 +46,7 @@ public final class Router {
         
         this.baseId = baseId;
         this.routeTree = RouteTree.create(baseId, specSupplier);
-        this.nearSet = new NodeNearSet(baseId, maxNearNodes);
+        this.nearBucket = new NearBucket(baseId, maxNearNodes);
         this.activitySet = new NodeActivitySet(baseId);
         this.dataSet = new NodeDataSet(baseId);
     }
@@ -68,83 +69,39 @@ public final class Router {
 
         
         
-        // Touch bucket -- note that bucket can only add/update. It will never remove when you touch.
-        ActivityChangeSet bucketChangeSet = routeTree.touch(time, node).getBucketChangeSet();
-        if (!bucketChangeSet.viewAdded().isEmpty()) {
-            // Node was added to bucket
-            ActivityChangeSet activityChangeSet = activitySet.touch(time, node); // touch activityset with this node
-            NodeChangeSet dataChangeSet = dataSet.put(node, InternalNodeProperties.EXISTS_IN_ROUTINGTREE, UNUSED_VALUE);
-            
-            // This is a new entry -- sanity check that it was added in to all sets and nothing was updated/removed in the process.
-            sanityCheckChangeSet(bucketChangeSet, 1, 0, 0);
-            sanityCheckChangeSet(activityChangeSet, 1, 0, 0);
-            sanityCheckChangeSet(dataChangeSet, 1, 0, 0);
-        } else if (!bucketChangeSet.viewUpdated().isEmpty()) {
-            // Node was updated in bucket
-            ActivityChangeSet activityChangeSet = activitySet.touch(time, node);
-            
-            // If node was stale, it means it no longer is stale now
-            dataSet.remove(node, InternalNodeProperties.STALE_IN_ROUTINGTREE);
-            
-            // This is an update to an existing entry -- sanity check that it was updated in all sets and nothing was added/removed in the
-            // process. Also validate that node is already flagged as being in the routing tree.
-            sanityCheckChangeSet(bucketChangeSet, 0, 1, 0);
-            sanityCheckChangeSet(activityChangeSet, 0, 1, 0);
-            Validate.validState(dataSet.get(node, InternalNodeProperties.EXISTS_IN_ROUTINGTREE) == UNUSED_VALUE);
-        } else {
-            // This should never happen -- sanity check that the bucket doesn't remove anything as the result of a touch.
-            throw new IllegalStateException();
+        // Touch routing tree -- apply changes to activityset and nearbucket
+        ActivityChangeSet routeTreeChangeSet = routeTree.touch(time, node).getBucketChangeSet();        
+        for (Activity addedNode : routeTreeChangeSet.viewAdded()) {
+            activitySet.touch(addedNode.getTime(), addedNode.getNode());
+            nearBucket.touchPeer(addedNode.getNode()); // this is a new peer, so let the near bucket know
+        }
+
+        for (Activity removedNode : routeTreeChangeSet.viewRemoved()) {
+            activitySet.remove(removedNode.getNode());
+            nearBucket.remove(removedNode.getNode()); // a peer was removed, so let the neat bucket know
+        }
+
+        for (Activity updatedNode : routeTreeChangeSet.viewUpdated()) {
+            activitySet.touch(updatedNode.getTime(), updatedNode.getNode());
+            nearBucket.touchPeer(updatedNode.getNode()); // this is a existing peer, so let the near bucket know
         }
         
         
         
-        
-        
-        
-        // Touch nearset -- note that nearset can only add, update, or replace (add and remove at the same time) when you touch.
-        NodeChangeSet nearChangeSet = nearSet.touch(node);
-        if (!nearChangeSet.viewAdded().isEmpty()) {
-            // Node was added to the near set
-            ActivityChangeSet activityChangeSet = activitySet.touch(time, node);
-            dataSet.put(node, InternalNodeProperties.EXISTS_IN_NEARSET, UNUSED_VALUE);
+        // In addition to that, touch the nearbucket anyways -- if wasn't added to route tree, we may still want it because it may be nearer
+        NodeChangeSet nearBucketChangeSet = nearBucket.touch(node).getBucketChangeSet();
+        for (Node addedNode : nearBucketChangeSet.viewAdded()) {
+            activitySet.touch(time, addedNode);
+        }
 
-            // This is a new entry -- sanity check that the only other thing that can happen is that a node could be evicted from nearset
-            // due to the add.
-            sanityCheckChangeSet(nearChangeSet, 1, 0, new int[] {0, 1});
-            sanityCheckChangeSet(activityChangeSet, 1, 0, 0);
-            
-            // Since node was added to nearset, it may have caused another node to be removed. If that happens, remove the nearset marker on
-            // the removed node.
-            if (!nearChangeSet.viewRemoved().isEmpty()) {
-                Node removedNode = nearChangeSet.viewRemoved().get(0);
-                NodeChangeSet removeDataChangeSet = dataSet.remove(removedNode, InternalNodeProperties.EXISTS_IN_NEARSET);
-                
-                // This may cause the node to be removed from teh dataset -- sanity check to make sure at most 1 nodes removed.
-                sanityCheckChangeSet(removeDataChangeSet, 0, 0, new int[]{0, 1}); // 0 or 1 because there may be more data
-               
-                // If that removed node is also no longer in the routing table, remove it from the activityset entirely
-                if (dataSet.get(removedNode, InternalNodeProperties.EXISTS_IN_ROUTINGTREE) == null) {
-                    NodeChangeSet removeAllDataChangeSet = dataSet.removeAll(removedNode);
-                    ActivityChangeSet removeActivityChangeSet = activitySet.remove(removedNode);
-                
-                    // The removed node is being removed entirely -- sanity check that to make sure only removals are happening.
-                    sanityCheckChangeSet(removeAllDataChangeSet, 0, 0, new int[]{0, 1});  // 0 or 1 because keys may been cleared before
-                    sanityCheckChangeSet(removeActivityChangeSet, 0, 0, 1);
-                }
-            }
-        } else if (!nearChangeSet.viewUpdated().isEmpty()) {
-            // Node was already in bucket, and was updated
-            ActivityChangeSet activityChangeSet = activitySet.touch(time, node);
-            
-            // This is an update to an existing entry -- sanity check that it was updated in all sets and nothing was added/removed in the
-            // process. Also validate that node is already flagged as being in the near set.
-            sanityCheckChangeSet(nearChangeSet, 0, 1, 0);
-            sanityCheckChangeSet(activityChangeSet, 0, 1, 0);
-            Validate.validState(dataSet.get(node, InternalNodeProperties.EXISTS_IN_NEARSET) != null);
-        } else {
-            // This should never happen -- sanity check that the nearset never removes anything without an add. A remove must be accompanied
-            // by an add if its from a touch.
-            throw new IllegalStateException();
+        for (Node removedNode : nearBucketChangeSet.viewRemoved()) {
+            // node has been removed from the nearbucket, but it may also still be part of the routing tree, so don't remove it from the
+            // activity set unless you know for certain 
+            activitySet.remove(removedNode);
+        }
+
+        for (Node updatedNode : nearBucketChangeSet.viewUpdated()) {
+            // do nothing, an update means the node was already in the nearbucket
         }
     }
     

@@ -324,6 +324,10 @@ public final class KBucket {
     public Instant getLastUpdateTime() {
         return lastUpdateTime;
     }
+
+    public BitString getPrefix() {
+        return prefix;
+    }
     
     private KBucketChangeSet fillMissingBucketSlotsWithCacheItems() {
         int unoccupiedBucketSlots = bucket.getMaxSize() - bucket.size();

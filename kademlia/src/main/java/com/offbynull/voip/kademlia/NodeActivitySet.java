@@ -19,19 +19,14 @@ package com.offbynull.voip.kademlia;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
-import org.apache.commons.collections4.map.MultiValueMap;
 import org.apache.commons.lang3.Validate;
 
 public final class NodeActivitySet {
     private final Id baseId;
     
-    private final TreeMap<Instant, HashSet<Node>> touchTimes;
-    private final MultiValueMap<Instant, Node> touchTimesDecorator;
+    private final TimeSet<Node> touchTimes;
     private final HashMap<Id, Activity> lookupById;
     
     private int size;
@@ -41,8 +36,7 @@ public final class NodeActivitySet {
         
         this.baseId = baseId;
         
-        touchTimes = new TreeMap<>();
-        touchTimesDecorator = MultiValueMap.multiValueMap(touchTimes, () -> new HashSet<>());
+        touchTimes = new TimeSet<>();
         lookupById = new HashMap<>();
     }
     
@@ -68,12 +62,11 @@ public final class NodeActivitySet {
             
             
             // Remove old timestamp
-            Instant oldTimestamp = oldEntry.getTime();
-            touchTimesDecorator.removeMapping(oldTimestamp, node);
+            touchTimes.remove(node);
             
             // Replace entry and insert new timestamp
             Activity activity = new Activity(node, time);
-            touchTimesDecorator.put(time, node);
+            touchTimes.insert(time, node);
             lookupById.put(id, activity);
             
             size++;
@@ -83,7 +76,7 @@ public final class NodeActivitySet {
         } else {
             // Insert items
             Activity activity = new Activity(node, time);
-            touchTimesDecorator.put(time, node);
+            touchTimes.insert(time, node);
             lookupById.put(id, activity);
             
             // Return that node was inserted
@@ -110,7 +103,7 @@ public final class NodeActivitySet {
         
         // Remove
         lookupById.remove(id);
-        touchTimesDecorator.removeMapping(existingEntry.getTime(), node);
+        touchTimes.remove(node);
         
         size--;
         
@@ -142,13 +135,10 @@ public final class NodeActivitySet {
     public List<Activity> getStagnantNodes(Instant maxTime) {
         Validate.notNull(maxTime);
         
-        Map<Instant, HashSet<Node>> subMap = touchTimes.headMap(maxTime, true);
-        
         LinkedList<Activity> ret = new LinkedList<>();
-        subMap.entrySet().stream()
-                .flatMap(x -> x.getValue().stream())
+        touchTimes.getBefore(maxTime, true).stream()
                 .map(x -> lookupById.get(x.getId()))
-                .forEach(x -> ret.add(x));
+                .forEach(ret::add);
         
         return new ArrayList<>(ret);
     }
