@@ -26,7 +26,7 @@ public final class NearBucket {
     private final Id baseId;
 
     private final NodeNearSet bucket; // nearest nodes to you by id
-    private final NodeNearSet replacements; // should contain all nodes that aren't stale in the routetree... used to add nodes to bucket if it
+    private final NodeNearSet peers; // should contain all nodes that aren't stale in the routetree... used to add nodes to bucket if it
                                      // gets less than its max size
 
     public NearBucket(Id baseId, int maxSize) {
@@ -35,11 +35,11 @@ public final class NearBucket {
 
         this.baseId = baseId;
         this.bucket = new NodeNearSet(baseId, maxSize);
-        this.replacements = new NodeNearSet(baseId, Integer.MAX_VALUE);
+        this.peers = new NodeNearSet(baseId, Integer.MAX_VALUE);
     }
 
     // A peer that has been added to the routing table. okay to call this more than once on same node
-    public NearBucketChangeSet replacementNode(Node node) throws LinkConflictException {
+    public NearBucketChangeSet touchPeer(Node node) throws LinkConflictException {
         Validate.notNull(node);
 
         Id nodeId = node.getId();
@@ -47,11 +47,10 @@ public final class NearBucket {
         Validate.isTrue(!nodeId.equals(baseId));
         Validate.isTrue(nodeId.getBitLength() == baseId.getBitLength());
         
-        // Touch peer nodes
-        NodeChangeSet networkChangeSet = replacements.touch(node);
-        List<Node> movedInToBucket = fillMissingBucketSlotsWithPeers();
+        NodeChangeSet networkChangeSet = peers.touch(node);
+        NodeChangeSet bucketChangeSet = bucket.touch(node);
         
-        return new NearBucketChangeSet(NodeChangeSet.added(movedInToBucket), networkChangeSet);
+        return new NearBucketChangeSet(bucketChangeSet, networkChangeSet);
     }
     
     public NearBucketChangeSet touch(Node node) throws LinkConflictException {
@@ -79,12 +78,14 @@ public final class NearBucket {
         
         
         NodeChangeSet bucketChangeSet = bucket.remove(node);
-        NodeChangeSet networkChangeSet = replacements.remove(node);
+        NodeChangeSet networkChangeSet = peers.remove(node);
         
-        List<Node> movedInToBucket = fillMissingBucketSlotsWithPeers();
+        NodeChangeSet applyToBucketRes = applyPeerNodesToBucket();
+        Validate.isTrue(applyToBucketRes.viewRemoved().isEmpty()); // sanity check
+        Validate.isTrue(applyToBucketRes.viewUpdated().isEmpty()); // sanity check
         
         return new NearBucketChangeSet(
-                new NodeChangeSet(movedInToBucket, bucketChangeSet.viewRemoved(), emptyList()),
+                new NodeChangeSet(applyToBucketRes.viewAdded(), bucketChangeSet.viewRemoved(), emptyList()),
                 networkChangeSet);
     }
 
@@ -103,18 +104,20 @@ public final class NearBucket {
             return new NearBucketChangeSet(res, NodeChangeSet.NO_CHANGE);
         } else {
             // increasing space, so move over stuff from the cache in to new bucket spaces
-            NodeChangeSet res = bucket.resize(maxSize);
+            NodeChangeSet bucketResizeRes = bucket.resize(maxSize);
             
             // sanity check
             // validate nothing changed with elements in the set -- we're only expanding the size of the bucket
-            Validate.validState(res.viewAdded().isEmpty());
-            Validate.validState(res.viewRemoved().isEmpty());
-            Validate.validState(res.viewUpdated().isEmpty());
+            Validate.validState(bucketResizeRes.viewAdded().isEmpty());
+            Validate.validState(bucketResizeRes.viewRemoved().isEmpty());
+            Validate.validState(bucketResizeRes.viewUpdated().isEmpty());
             
             
-            List<Node> movedInToBucket = fillMissingBucketSlotsWithPeers();
+            NodeChangeSet applyToBucketRes = applyPeerNodesToBucket();
+            Validate.isTrue(applyToBucketRes.viewRemoved().isEmpty()); // sanity check nothing was removed
+            Validate.isTrue(applyToBucketRes.viewUpdated().isEmpty()); // sanity check nothing was removed
             
-            return new NearBucketChangeSet(NodeChangeSet.added(movedInToBucket), NodeChangeSet.NO_CHANGE);
+            return new NearBucketChangeSet(applyToBucketRes, NodeChangeSet.NO_CHANGE);
         }
     }
     
@@ -122,24 +125,40 @@ public final class NearBucket {
         return bucket.dump();
     }
     
-    private List<Node> fillMissingBucketSlotsWithPeers() {
-        int unoccupiedBucketSlots = bucket.getMaxSize() - bucket.size();
-        int availablePeers = replacements.size();
-        if (unoccupiedBucketSlots <= 0 || availablePeers == 0) {
-            return emptyList();
-        }
-        
-        int moveAmount = Math.min(availablePeers, unoccupiedBucketSlots);
-        
+    private NodeChangeSet applyPeerNodesToBucket() {
         try {
-            // If we have nothing in our bucket, copy over as much as we can. Copy over the network nodes that are closest to your own id.
+            // If we have no peer nodes, return immediately
+            int availablePeers = peers.size();
+            if (availablePeers == 0) {
+                return NodeChangeSet.NO_CHANGE;
+            }
+
+            // If the bucket is full, attempt to apply closest peer node to the bucket
+            int unoccupiedBucketSlots = bucket.getMaxSize() - bucket.size();
+            if (unoccupiedBucketSlots <= 0) {
+                Node closestReplacementNode = peers.dumpNearestAfter(baseId, 1).get(0); // get closest node out of replacements
+                try {
+                    return bucket.touch(closestReplacementNode);
+                } catch (LinkConflictException lce) {
+                    // should never happen
+                    throw new IllegalStateException(lce);
+                }
+            }
+        
+            
+            int moveAmount = Math.min(availablePeers, unoccupiedBucketSlots);
+            
+            // If bucket is empty, copy over as much as we can. Copy over the peer nodes that are closest to your own id.
             if (bucket.size() == 0) {
-                List<Node> closestPeers = replacements.dumpNearestAfter(baseId, moveAmount);
+                List<Node> closestPeers = peers.dumpNearestAfter(baseId, moveAmount);
                 for (Node node : closestPeers) {
-                    bucket.touch(node);
+                    NodeChangeSet ret = bucket.touch(node);
+                    Validate.isTrue(ret.viewAdded().size() == 1); // sanity check
+                    Validate.isTrue(ret.viewRemoved().isEmpty()); // sanity check
+                    Validate.isTrue(ret.viewUpdated().isEmpty()); // sanity check
                 }
                 
-                return emptyList();
+                return NodeChangeSet.added(closestPeers);
             }
 
             List<Node> bucketNodes = bucket.dump();
@@ -148,22 +167,28 @@ public final class NearBucket {
             
             // Copy over network nodes that are closer than the closest node to our own id, if we have any.
             Node closestBucketNode = bucketNodes.get(0);
-            List<Node> closerPeers = replacements.dumpNearestBefore(closestBucketNode.getId(), moveAmount);
+            List<Node> closerPeers = peers.dumpNearestBefore(closestBucketNode.getId(), moveAmount);
             for (Node node : closerPeers) {
-                bucket.touch(node);
+                NodeChangeSet ret = bucket.touch(node);
+                Validate.isTrue(ret.viewAdded().size() == 1); // sanity check
+                Validate.isTrue(ret.viewRemoved().isEmpty()); // sanity check
+                Validate.isTrue(ret.viewUpdated().isEmpty()); // sanity check
                 addedNodes.add(node);
                 moveAmount--;
             }
 
             // There may be room left, so copy over network nodes that are farther than the farthest node to our own id, if we have any.
             Node farthestBucketNode = bucketNodes.get(bucketNodes.size() - 1);
-            List<Node> fartherPeers = replacements.dumpNearestAfter(farthestBucketNode.getId(), moveAmount);
+            List<Node> fartherPeers = peers.dumpNearestAfter(farthestBucketNode.getId(), moveAmount);
             for (Node node : fartherPeers) {
-                bucket.touch(node);
+                NodeChangeSet ret = bucket.touch(node);
+                Validate.isTrue(ret.viewAdded().size() == 1); // sanity check
+                Validate.isTrue(ret.viewRemoved().isEmpty()); // sanity check
+                Validate.isTrue(ret.viewUpdated().isEmpty()); // sanity check
                 addedNodes.add(node);
             }
             
-            return addedNodes;
+            return NodeChangeSet.added(addedNodes);
         } catch (LinkConflictException lce) {
             // should never happen
             throw new IllegalStateException(lce);
@@ -172,6 +197,6 @@ public final class NearBucket {
 
     @Override
     public String toString() {
-        return "NearBucket{" + "baseId=" + baseId + ", bucket=" + bucket + ", network=" + replacements + '}';
+        return "NearBucket{" + "baseId=" + baseId + ", bucket=" + bucket + ", network=" + peers + '}';
     }
 }

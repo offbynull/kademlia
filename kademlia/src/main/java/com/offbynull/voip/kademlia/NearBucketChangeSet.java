@@ -20,29 +20,29 @@ import java.util.Objects;
 import org.apache.commons.lang3.Validate;
 
 public final class NearBucketChangeSet {
-    private final NodeChangeSet nearChangeSet;
-    private final NodeChangeSet networkChangeSet;
+    private final NodeChangeSet bucketChangeSet;
+    private final NodeChangeSet peerChangeSet;
 
-    public NearBucketChangeSet(NodeChangeSet nearChangeSet, NodeChangeSet networkChangeSet) {
-        Validate.notNull(nearChangeSet);
-        Validate.notNull(networkChangeSet);
-        this.nearChangeSet = nearChangeSet;
-        this.networkChangeSet = networkChangeSet;
+    public NearBucketChangeSet(NodeChangeSet bucketChangeSet, NodeChangeSet peerChangeSet) {
+        Validate.notNull(bucketChangeSet);
+        Validate.notNull(peerChangeSet);
+        this.bucketChangeSet = bucketChangeSet;
+        this.peerChangeSet = peerChangeSet;
     }
 
     public NodeChangeSet getBucketChangeSet() {
-        return nearChangeSet;
+        return bucketChangeSet;
     }
 
-    public NodeChangeSet getCacheChangeSet() {
-        return networkChangeSet;
+    public NodeChangeSet getPeerChangeSet() {
+        return peerChangeSet;
     }
 
     @Override
     public int hashCode() {
         int hash = 3;
-        hash = 83 * hash + Objects.hashCode(this.nearChangeSet);
-        hash = 83 * hash + Objects.hashCode(this.networkChangeSet);
+        hash = 83 * hash + Objects.hashCode(this.bucketChangeSet);
+        hash = 83 * hash + Objects.hashCode(this.peerChangeSet);
         return hash;
     }
 
@@ -55,10 +55,10 @@ public final class NearBucketChangeSet {
             return false;
         }
         final NearBucketChangeSet other = (NearBucketChangeSet) obj;
-        if (!Objects.equals(this.nearChangeSet, other.nearChangeSet)) {
+        if (!Objects.equals(this.bucketChangeSet, other.bucketChangeSet)) {
             return false;
         }
-        if (!Objects.equals(this.networkChangeSet, other.networkChangeSet)) {
+        if (!Objects.equals(this.peerChangeSet, other.peerChangeSet)) {
             return false;
         }
         return true;
@@ -66,6 +66,6 @@ public final class NearBucketChangeSet {
 
     @Override
     public String toString() {
-        return "NearBucketChangeSet{" + "nearChangeSet=" + nearChangeSet + ", networkChangeSet=" + networkChangeSet + '}';
+        return "NearBucketChangeSet{" + "nearChangeSet=" + bucketChangeSet + ", networkChangeSet=" + peerChangeSet + '}';
     }
 }

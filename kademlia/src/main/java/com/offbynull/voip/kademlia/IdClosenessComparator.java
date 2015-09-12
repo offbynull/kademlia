@@ -34,8 +34,6 @@ public final class IdClosenessComparator implements Comparator<Id>, Serializable
     public int compare(Id o1, Id o2) {
         Validate.notNull(o1);
         Validate.notNull(o2);
-        Validate.isTrue(!baseId.equals(o1)); // o1 can't equal the base ID
-        Validate.isTrue(!baseId.equals(o2)); // o2 can't equal the base ID
         
         // If the two IDs contain all the same bits, then they're equal
         if (o1.equals(o2)) {
