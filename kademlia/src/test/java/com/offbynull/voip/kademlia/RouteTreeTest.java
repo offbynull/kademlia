@@ -80,7 +80,7 @@ public final class RouteTreeTest {
     }
 
     @Test
-    public void mustProperlyReplaceStaleNodesIfCacheAvailable() throws Throwable {
+    public void mustProperlyReplaceStaleNodesWithCacheIfAvailable() throws Throwable {
         fixture.touch(BASE_TIME.plusMillis(1L), NODE_001);
         fixture.touch(BASE_TIME.plusMillis(2L), NODE_010);
         fixture.touch(BASE_TIME.plusMillis(3L), NODE_011);
@@ -105,6 +105,40 @@ public final class RouteTreeTest {
         verifyActivityChangeSetRemoved(res.getKBucketChangeSet().getBucketChangeSet(), NODE_101);
         verifyActivityChangeSetCounts(res.getKBucketChangeSet().getCacheChangeSet(), 0, 1, 0);
         verifyActivityChangeSetRemoved(res.getKBucketChangeSet().getCacheChangeSet(), NODE_110);
+    }
+
+    @Test
+    public void mustProperlyReplaceStaleNodesWithCacheWhenAvailable() throws Throwable {
+        fixture.touch(BASE_TIME.plusMillis(1L), NODE_001);
+        fixture.touch(BASE_TIME.plusMillis(2L), NODE_010);
+        fixture.touch(BASE_TIME.plusMillis(3L), NODE_011);
+        fixture.touch(BASE_TIME.plusMillis(4L), NODE_100);
+        fixture.touch(BASE_TIME.plusMillis(5L), NODE_101);
+        
+        RouteTreeChangeSet res;
+        res = fixture.stale(NODE_100);
+        verifyPrefixMatches(res.getKBucketPrefix(), "1");
+        verifyActivityChangeSetCounts(res.getKBucketChangeSet().getBucketChangeSet(), 0, 0, 0);
+        verifyActivityChangeSetCounts(res.getKBucketChangeSet().getCacheChangeSet(), 0, 0, 0);
+        
+        res = fixture.stale(NODE_101);
+        verifyPrefixMatches(res.getKBucketPrefix(), "1");
+        verifyActivityChangeSetCounts(res.getKBucketChangeSet().getBucketChangeSet(), 0, 0, 0);
+        verifyActivityChangeSetCounts(res.getKBucketChangeSet().getCacheChangeSet(), 0, 0, 0);
+        
+        res = fixture.touch(BASE_TIME.plusMillis(6L), NODE_110);
+        verifyPrefixMatches(res.getKBucketPrefix(), "1");
+        verifyActivityChangeSetCounts(res.getKBucketChangeSet().getBucketChangeSet(), 1, 1, 0);
+        verifyActivityChangeSetAdded(res.getKBucketChangeSet().getBucketChangeSet(), NODE_110);
+        verifyActivityChangeSetRemoved(res.getKBucketChangeSet().getBucketChangeSet(), NODE_100);
+        verifyActivityChangeSetCounts(res.getKBucketChangeSet().getCacheChangeSet(), 0, 0, 0);
+        
+        res = fixture.touch(BASE_TIME.plusMillis(7L), NODE_111);
+        verifyPrefixMatches(res.getKBucketPrefix(), "1");
+        verifyActivityChangeSetCounts(res.getKBucketChangeSet().getBucketChangeSet(), 1, 1, 0);
+        verifyActivityChangeSetAdded(res.getKBucketChangeSet().getBucketChangeSet(), NODE_111);
+        verifyActivityChangeSetRemoved(res.getKBucketChangeSet().getBucketChangeSet(), NODE_101);
+        verifyActivityChangeSetCounts(res.getKBucketChangeSet().getCacheChangeSet(), 0, 0, 0);
     }
     
     @Test
