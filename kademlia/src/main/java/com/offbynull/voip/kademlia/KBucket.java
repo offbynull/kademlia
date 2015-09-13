@@ -43,8 +43,12 @@ public final class KBucket {
 
     public KBucket(Id baseId, BitString prefix, int maxBucketSize, int maxCacheSize) {
         Validate.notNull(baseId);
-        Validate.isTrue(prefix.getBitLength() < baseId.getBitLength()); // cannot == baseId.bitLength, because then you'd have an empty
-                                                                        // bucket that you can't add anything to
+        Validate.isTrue(prefix.getBitLength() <= baseId.getBitLength());
+        // Let this thru anyways, because without it bucket splitting logic will become slightly more convolouted. But this may also
+        // introduce bugs if higher level code using this class isn't aware that this is allowed.
+//        Validate.isTrue(!baseId.getBitString().equals(prefix)); // baseId cannot == prefix, because then you'd have an empty bucket that
+//                                                                // you can't add anything to ... no point in having a bucket with your
+//                                                                // own ID in it
         Validate.isTrue(maxBucketSize >= 0); // what's the point of a 0 size kbucket? let it thru anyways
         Validate.isTrue(maxCacheSize >= 0); // a cache size of 0 is not worthless...  may not care about having a replacement cache of nodes
 

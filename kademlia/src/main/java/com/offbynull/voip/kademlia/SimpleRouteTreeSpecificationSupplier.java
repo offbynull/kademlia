@@ -18,37 +18,45 @@ package com.offbynull.voip.kademlia;
 
 import org.apache.commons.lang3.Validate;
 
-public final class SimpleRouteTreeSpecificationSupplier implements RouteTreeSpecificationSupplier {
+public final class SimpleRouteTreeSpecificationSupplier implements RouteTreeBranchSpecificationSupplier,
+        RouteTreeBucketSpecificationSupplier {
     private final Id baseId;
-    private final int bucketsPerLevel;
+    private final int branchesPerLevel;
     private final int nodesPerBucket;
     private final int cacheNodesPerBucket;
 
-    public SimpleRouteTreeSpecificationSupplier(Id baseId, int branchesPerLevel, int bucketSize, int cacheSize) {
+    public SimpleRouteTreeSpecificationSupplier(Id baseId, int branchesPerLevel, int nodesPerBucket, int cacheNodesPerBucket) {
         Validate.notNull(baseId);
         Validate.isTrue(branchesPerLevel > 0);
-        Validate.isTrue(bucketSize > 0);
-        Validate.isTrue(cacheSize > 0);
+        Validate.isTrue(nodesPerBucket > 0);
+        Validate.isTrue(cacheNodesPerBucket > 0);
         
         // check to make sure power of 2
         // other ways: http://javarevisited.blogspot.ca/2013/05/how-to-check-if-integer-number-is-power-of-two-example.html
         Validate.isTrue(Integer.bitCount(branchesPerLevel) == 1);
         
         this.baseId = baseId;
-        this.bucketsPerLevel = branchesPerLevel;
-        this.nodesPerBucket = bucketSize;
-        this.cacheNodesPerBucket = cacheSize;
+        this.branchesPerLevel = branchesPerLevel;
+        this.nodesPerBucket = nodesPerBucket;
+        this.cacheNodesPerBucket = cacheNodesPerBucket;
     }
 
     @Override
-    public DepthParameters getParameters(BitString prefix) {
+    public int getBranchCount(BitString prefix) {
         Validate.notNull(prefix);
         
-        BucketParameters[] bucketParams = new BucketParameters[bucketsPerLevel];
-        for (int i = 0; i < bucketsPerLevel; i++) {
-            bucketParams[i] = new BucketParameters(nodesPerBucket, cacheNodesPerBucket);
+        if (prefix.getBitLength() >= baseId.getBitLength()) {
+            // Maximum tree depth reached, cannot branch any further
+            return 0;
         }
-        return new DepthParameters(bucketParams);
+        
+        return branchesPerLevel;
+    }
+
+    @Override
+    public BucketParameters getBucketParameters(BitString prefix) {
+        Validate.notNull(prefix);
+        return new BucketParameters(nodesPerBucket, cacheNodesPerBucket);
     }
     
 }

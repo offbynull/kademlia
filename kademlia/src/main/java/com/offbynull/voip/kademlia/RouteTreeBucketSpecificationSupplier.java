@@ -20,34 +20,10 @@ import java.util.Arrays;
 import org.apache.commons.lang3.Validate;
 
 
-public interface RouteTreeSpecificationSupplier {
+public interface RouteTreeBucketSpecificationSupplier {
 
-    DepthParameters getParameters(BitString prefix);
-    
-    public static final class DepthParameters {
-        private final BucketParameters[] bucketParams;
-        
-        public DepthParameters(BucketParameters ... bucketParams) {
-            Validate.notNull(bucketParams);
-            Validate.noNullElements(bucketParams);
-            Validate.isTrue(bucketParams.length > 0);
-            
-            // check to make sure power of 2
-            // other ways: http://javarevisited.blogspot.ca/2013/05/how-to-check-if-integer-number-is-power-of-two-example.html
-            Validate.isTrue(Integer.bitCount(bucketParams.length) == 1);
-            
-            this.bucketParams = Arrays.copyOf(bucketParams, bucketParams.length);
-        }
-        
-        int getNumberOfBranches() {
-            return bucketParams.length;
-        }
-        
-        BucketParameters getBucketParametersAtBranch(int idx) {
-            return bucketParams[idx];
-        }
-    }
-    
+    BucketParameters getBucketParameters(BitString prefix);
+
     public static final class BucketParameters {
         private final int bucketSize;
         private final int cacheSize;

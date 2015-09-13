@@ -16,8 +16,7 @@
  */
 package com.offbynull.voip.kademlia;
 
-import com.offbynull.voip.kademlia.RouteTreeSpecificationSupplier.BucketParameters;
-import com.offbynull.voip.kademlia.RouteTreeSpecificationSupplier.DepthParameters;
+import com.offbynull.voip.kademlia.RouteTreeBucketSpecificationSupplier.BucketParameters;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -32,17 +31,20 @@ public final class RouteTree {
     
     private Instant lastUpdateTime;
     
-    public RouteTree(Id baseId, RouteTreeSpecificationSupplier specSupplier) {
+    public RouteTree(Id baseId,
+            RouteTreeBranchSpecificationSupplier branchSpecSupplier,
+            RouteTreeBucketSpecificationSupplier bucketSpecSupplier) {
         Validate.notNull(baseId);
-        Validate.notNull(specSupplier);
+        Validate.notNull(branchSpecSupplier);
+        Validate.notNull(bucketSpecSupplier);
 
         this.baseId = baseId; // must be set before creating RouteTreeLevels
         this.bucketUpdateTimes = new TimeSet<>();
 
-        root = createRoot(specSupplier);
+        root = createRoot(branchSpecSupplier, bucketSpecSupplier);
         RouteTreeLevel child = root;
         while (child != null) {
-            child = growParent(child, specSupplier);
+            child = growParent(child, branchSpecSupplier, bucketSpecSupplier);
         }
         
         this.lastUpdateTime = Instant.MIN;
@@ -101,24 +103,28 @@ public final class RouteTree {
     
     private static final BitString EMPTY = BitString.createFromString("");
 
-    private RouteTreeLevel createRoot(RouteTreeSpecificationSupplier specSupplier) {
-        Validate.notNull(specSupplier);
+    private RouteTreeLevel createRoot(
+            RouteTreeBranchSpecificationSupplier branchSpecSupplier,
+            RouteTreeBucketSpecificationSupplier bucketSpecSupplier) {
+        Validate.notNull(branchSpecSupplier);
+        Validate.notNull(bucketSpecSupplier);
 
         
         
-        // Get parameters for root
-        DepthParameters depthParams = specSupplier.getParameters(EMPTY);
-        Validate.isTrue(depthParams != null);
 
-        // Get number of buckets to create for root
-        int numOfBuckets = depthParams.getNumberOfBranches();
-        Validate.validState(Integer.bitCount(numOfBuckets) == 1); // sanity check numofbuckets is pow of 2
+        // Get number of branches/buckets to create for root
+        int numOfBuckets = branchSpecSupplier.getBranchCount(EMPTY);
+        Validate.isTrue(numOfBuckets >= 0, "Branch cannot be negative, was %d", numOfBuckets);
+        Validate.isTrue(numOfBuckets != 0, "Root of tree must contain at least 1 branch, was %d", numOfBuckets);
+        Validate.isTrue(Integer.bitCount(numOfBuckets) == 1, "Branch count must be power of 2");
         int suffixBitCount = Integer.bitCount(numOfBuckets - 1); // num of bits   e.g. 8 --> 1000 - 1 = 0111, bitcount(0111) = 3
+        Validate.isTrue(suffixBitCount <= baseId.getBitLength(),
+                "Attempting to branch too far (in root) %d bits extends past %d bits", suffixBitCount, baseId.getBitLength());
 
         // Create buckets by creating a 0-sized top bucket and splitting it + resizing each split
         KBucket[] newBuckets = new KBucket(baseId, EMPTY, 0, 0).split(suffixBitCount);
         for (int i = 0; i < newBuckets.length; i++) {
-            BucketParameters bucketParams = depthParams.getBucketParametersAtBranch(i);
+            BucketParameters bucketParams = bucketSpecSupplier.getBucketParameters(newBuckets[i].getPrefix());
             int bucketSize = bucketParams.getBucketSize();
             int cacheSize = bucketParams.getCacheSize();
             newBuckets[i].resizeBucket(bucketSize);
@@ -131,9 +137,12 @@ public final class RouteTree {
         return new RouteTreeLevel(EMPTY, suffixBitCount, new ArrayList<>(Arrays.asList(newBuckets)));
     }
 
-    private RouteTreeLevel growParent(RouteTreeLevel parent, RouteTreeSpecificationSupplier specSupplier) {
+    private RouteTreeLevel growParent(RouteTreeLevel parent,
+            RouteTreeBranchSpecificationSupplier branchSpecSupplier,
+            RouteTreeBucketSpecificationSupplier bucketSpecSupplier) {
         Validate.notNull(parent);
-        Validate.notNull(specSupplier);
+        Validate.notNull(branchSpecSupplier);
+        Validate.notNull(bucketSpecSupplier);
 
         // Calculate which bucket from parent to split
         int parentNumOfBuckets = parent.kBuckets.size();
@@ -144,25 +153,26 @@ public final class RouteTree {
         BitString splitBucketPrefix = parent.kBuckets.get(splitBucketIdx).getPrefix();
         
         
-
-        // Get parameters for new level
-        DepthParameters depthParams = specSupplier.getParameters(splitBucketPrefix);
-        if (depthParams == null) { // can no longer branch
-            return null;
-        }
-
-        
         
         // Get number of buckets to create for new level
-        int numOfBuckets = depthParams.getNumberOfBranches();
-        Validate.validState(Integer.bitCount(numOfBuckets) == 1); // sanity check pow of 2
+        int numOfBuckets = branchSpecSupplier.getBranchCount(splitBucketPrefix);
+        Validate.isTrue(numOfBuckets >= 0, "Branch cannot be negative, was %d", numOfBuckets);
+        if (numOfBuckets == 0) {
+            return null; // 0 means do not grow
+        }
+        Validate.isTrue(Integer.bitCount(numOfBuckets) == 1, "Branch count must be power of 2");
         int suffixBitCount = Integer.bitCount(numOfBuckets - 1); // num of bits   e.g. 8 (1000) -- 1000 - 1 = 0111, bitcount(0111) = 3
+        Validate.isTrue(splitBucketPrefix.getBitLength() + suffixBitCount <= baseId.getBitLength(),
+                "Attempting to branch too far %s with %d bits extends past %d bits", splitBucketPrefix, suffixBitCount,
+                baseId.getBitLength());
+        
+        
         
         // Split parent bucket at that branch index
         BitString newPrefix = baseId.getBitString().getBits(0, splitBucketPrefix.getBitLength() + suffixBitCount);
         KBucket[] newBuckets = parent.kBuckets.get(splitBucketIdx).split(suffixBitCount);
         for (int i = 0; i < newBuckets.length; i++) {
-            BucketParameters bucketParams = depthParams.getBucketParametersAtBranch(i);
+            BucketParameters bucketParams = bucketSpecSupplier.getBucketParameters(newBuckets[i].getPrefix());
             int bucketSize = bucketParams.getBucketSize();
             int cacheSize = bucketParams.getCacheSize();
             newBuckets[i].resizeBucket(bucketSize);
