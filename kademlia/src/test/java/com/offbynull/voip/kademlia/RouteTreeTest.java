@@ -19,12 +19,15 @@ public final class RouteTreeTest {
     
     private static final Instant BASE_TIME = Instant.ofEpochMilli(0L);
     
-    private RouteTree fixture = new RouteTree(
-            NODE_000.getId(),
-            new SimpleRouteTreeSpecificationSupplier(NODE_000.getId(), 2, 2, 2));
+    private RouteTree fixture;
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
+    
+    public RouteTreeTest() {
+        SimpleRouteTreeSpecificationSupplier specSupplier = new SimpleRouteTreeSpecificationSupplier(NODE_000.getId(), 2, 2, 2);
+        fixture = new RouteTree(NODE_000.getId(), specSupplier, specSupplier);        
+    }
     
     @Test
     public void mustRejectIfTouchingSelfId() throws Throwable {
@@ -43,7 +46,7 @@ public final class RouteTreeTest {
         verifyPrefixMatches(res.getKBucketPrefix(), "01");
         
         res = fixture.touch(BASE_TIME.plusMillis(3L), NODE_011);
-        verifyPrefixMatches(res.getKBucketPrefix(), "0");
+        verifyPrefixMatches(res.getKBucketPrefix(), "01");
         
         res = fixture.touch(BASE_TIME.plusMillis(4L), NODE_100);
         verifyPrefixMatches(res.getKBucketPrefix(), "1");

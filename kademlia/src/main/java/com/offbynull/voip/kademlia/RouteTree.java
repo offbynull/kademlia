@@ -31,13 +31,13 @@ public final class RouteTree {
     
     private Instant lastUpdateTime;
     
-    public RouteTree(Id baseId,
+    public RouteTree(Id baseId, // remember that baseId will always have a size of 1 or greater
             RouteTreeBranchSpecificationSupplier branchSpecSupplier,
             RouteTreeBucketSpecificationSupplier bucketSpecSupplier) {
         Validate.notNull(baseId);
         Validate.notNull(branchSpecSupplier);
         Validate.notNull(bucketSpecSupplier);
-
+        
         this.baseId = baseId; // must be set before creating RouteTreeLevels
         this.bucketUpdateTimes = new TimeSet<>();
 
@@ -109,8 +109,6 @@ public final class RouteTree {
         Validate.notNull(branchSpecSupplier);
         Validate.notNull(bucketSpecSupplier);
 
-        
-        
 
         // Get number of branches/buckets to create for root
         int numOfBuckets = branchSpecSupplier.getBranchCount(EMPTY);
@@ -121,6 +119,7 @@ public final class RouteTree {
         Validate.isTrue(suffixBitCount <= baseId.getBitLength(),
                 "Attempting to branch too far (in root) %d bits extends past %d bits", suffixBitCount, baseId.getBitLength());
 
+        
         // Create buckets by creating a 0-sized top bucket and splitting it + resizing each split
         KBucket[] newBuckets = new KBucket(baseId, EMPTY, 0, 0).split(suffixBitCount);
         for (int i = 0; i < newBuckets.length; i++) {
@@ -144,14 +143,22 @@ public final class RouteTree {
         Validate.notNull(branchSpecSupplier);
         Validate.notNull(bucketSpecSupplier);
 
+        
         // Calculate which bucket from parent to split
         int parentNumOfBuckets = parent.kBuckets.size();
         Validate.validState(Integer.bitCount(parentNumOfBuckets) == 1); // sanity check numofbuckets is pow of 2
-        int parentSuffixBitCount = Integer.bitCount(parentNumOfBuckets - 1); // num of bits e.g. 8 --> 1000 - 1 = 0111, bitcount(0111) = 3
+        int parentPrefixBitLen = parent.prefix.getBitLength(); // num of bits in parent's prefix
+        int parentSuffixBitCount = Integer.bitCount(parentNumOfBuckets - 1); // num of bits in parent's suffix
+                                                                             // e.g. 8 --> 1000 - 1 = 0111, bitcount(0111) = 3
         
-        int splitBucketIdx = (int) baseId.getBitString().getBitsAsLong(parent.prefix.getBitLength(), parentSuffixBitCount);
+        if (parentPrefixBitLen + parentSuffixBitCount >= baseId.getBitLength()) { // should never be >, only ==, but just in case
+            // The parents prefix length + the number of bits the parent used for buckets > baseId's length. As such, it isn't possible to
+            // grow any further, so don't even try.
+            return null;
+        }
+        
+        int splitBucketIdx = (int) baseId.getBitString().getBitsAsLong(parentPrefixBitLen, parentSuffixBitCount);
         BitString splitBucketPrefix = parent.kBuckets.get(splitBucketIdx).getPrefix();
-        
         
         
         // Get number of buckets to create for new level
@@ -167,9 +174,8 @@ public final class RouteTree {
                 baseId.getBitLength());
         
         
-        
         // Split parent bucket at that branch index
-        BitString newPrefix = baseId.getBitString().getBits(0, splitBucketPrefix.getBitLength() + suffixBitCount);
+        BitString newPrefix = baseId.getBitString().getBits(0, parentPrefixBitLen + suffixBitCount);
         KBucket[] newBuckets = parent.kBuckets.get(splitBucketIdx).split(suffixBitCount);
         for (int i = 0; i < newBuckets.length; i++) {
             BucketParameters bucketParams = bucketSpecSupplier.getBucketParameters(newBuckets[i].getPrefix());
@@ -277,8 +283,6 @@ public final class RouteTree {
                 Validate.validState(child != null); // sanity check
                 return child.touch(time, node);
             } else {
-                Validate.validState(child == null); // sanity check
-
                 KBucketChangeSet kBucketChangeSet = bucket.touch(time, node);
                 BitString kBucketPrefix = bucket.getPrefix();
                 Instant kBucketLastUpdateTime = bucket.getLastUpdateTime();
