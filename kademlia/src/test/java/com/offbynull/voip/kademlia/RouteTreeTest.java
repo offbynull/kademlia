@@ -11,14 +11,22 @@ import org.junit.rules.ExpectedException;
 
 public final class RouteTreeTest {
     
-    private static final Node NODE_000 = new Node(Id.createFromLong(0x00L, 3), "0"); // 000
-    private static final Node NODE_001 = new Node(Id.createFromLong(0x01L, 3), "1");
-    private static final Node NODE_010 = new Node(Id.createFromLong(0x02L, 3), "2");
-    private static final Node NODE_011 = new Node(Id.createFromLong(0x03L, 3), "3");
-    private static final Node NODE_100 = new Node(Id.createFromLong(0x04L, 3), "4");
-    private static final Node NODE_101 = new Node(Id.createFromLong(0x05L, 3), "5");
-    private static final Node NODE_110 = new Node(Id.createFromLong(0x06L, 3), "6");
-    private static final Node NODE_111 = new Node(Id.createFromLong(0x07L, 3), "7");
+    private static final Node NODE_0000 = new Node(Id.createFromLong(0x00L, 4), "0"); // 0000
+    private static final Node NODE_0001 = new Node(Id.createFromLong(0x01L, 4), "1");
+    private static final Node NODE_0010 = new Node(Id.createFromLong(0x02L, 4), "2");
+    private static final Node NODE_0011 = new Node(Id.createFromLong(0x03L, 4), "3");
+    private static final Node NODE_0100 = new Node(Id.createFromLong(0x04L, 4), "4");
+    private static final Node NODE_0101 = new Node(Id.createFromLong(0x05L, 4), "5");
+    private static final Node NODE_0110 = new Node(Id.createFromLong(0x06L, 4), "6");
+    private static final Node NODE_0111 = new Node(Id.createFromLong(0x07L, 4), "7");
+    private static final Node NODE_1000 = new Node(Id.createFromLong(0x08L, 4), "8"); // 0000
+    private static final Node NODE_1001 = new Node(Id.createFromLong(0x09L, 4), "9");
+    private static final Node NODE_1010 = new Node(Id.createFromLong(0x0AL, 4), "A");
+    private static final Node NODE_1011 = new Node(Id.createFromLong(0x0BL, 4), "B");
+    private static final Node NODE_1100 = new Node(Id.createFromLong(0x0CL, 4), "C");
+    private static final Node NODE_1101 = new Node(Id.createFromLong(0x0DL, 4), "D");
+    private static final Node NODE_1110 = new Node(Id.createFromLong(0x0EL, 4), "E");
+    private static final Node NODE_1111 = new Node(Id.createFromLong(0x0FL, 4), "F");
     
     private static final Instant BASE_TIME = Instant.ofEpochMilli(0L);
     
@@ -28,128 +36,128 @@ public final class RouteTreeTest {
     public ExpectedException expectedException = ExpectedException.none();
     
     public RouteTreeTest() {
-        SimpleRouteTreeSpecificationSupplier specSupplier = new SimpleRouteTreeSpecificationSupplier(NODE_000.getId(), 2, 2, 2);
-        fixture = new RouteTree(NODE_000.getId(), specSupplier, specSupplier);        
+        SimpleRouteTreeSpecificationSupplier specSupplier = new SimpleRouteTreeSpecificationSupplier(NODE_0000.getId(), 2, 2, 2);
+        fixture = new RouteTree(NODE_0000.getId(), specSupplier, specSupplier);        
     }
 
     @Test
     public void mustAddNodesToProperBuckets() throws Throwable {
         RouteTreeChangeSet res;
         
-        res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_001);
+        res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_0001);
+        verifyPrefixMatches(res.getKBucketPrefix(), "0001");
+        verifyActivityChangeSetCounts(res.getKBucketChangeSet().getBucketChangeSet(), 1, 0, 0);
+        verifyActivityChangeSetAdded(res.getKBucketChangeSet().getBucketChangeSet(), NODE_0001);
+        verifyActivityChangeSetCounts(res.getKBucketChangeSet().getCacheChangeSet(), 0, 0, 0);
+        
+        res = fixture.touch(BASE_TIME.plusMillis(2L), NODE_0010);
         verifyPrefixMatches(res.getKBucketPrefix(), "001");
         verifyActivityChangeSetCounts(res.getKBucketChangeSet().getBucketChangeSet(), 1, 0, 0);
-        verifyActivityChangeSetAdded(res.getKBucketChangeSet().getBucketChangeSet(), NODE_001);
+        verifyActivityChangeSetAdded(res.getKBucketChangeSet().getBucketChangeSet(), NODE_0010);
         verifyActivityChangeSetCounts(res.getKBucketChangeSet().getCacheChangeSet(), 0, 0, 0);
         
-        res = fixture.touch(BASE_TIME.plusMillis(2L), NODE_010);
+        res = fixture.touch(BASE_TIME.plusMillis(3L), NODE_0011);
+        verifyPrefixMatches(res.getKBucketPrefix(), "001");
+        verifyActivityChangeSetCounts(res.getKBucketChangeSet().getBucketChangeSet(), 1, 0, 0);
+        verifyActivityChangeSetAdded(res.getKBucketChangeSet().getBucketChangeSet(), NODE_0011);
+        verifyActivityChangeSetCounts(res.getKBucketChangeSet().getCacheChangeSet(), 0, 0, 0);
+        
+        res = fixture.touch(BASE_TIME.plusMillis(4L), NODE_0100);
         verifyPrefixMatches(res.getKBucketPrefix(), "01");
         verifyActivityChangeSetCounts(res.getKBucketChangeSet().getBucketChangeSet(), 1, 0, 0);
-        verifyActivityChangeSetAdded(res.getKBucketChangeSet().getBucketChangeSet(), NODE_010);
+        verifyActivityChangeSetAdded(res.getKBucketChangeSet().getBucketChangeSet(), NODE_0100);
         verifyActivityChangeSetCounts(res.getKBucketChangeSet().getCacheChangeSet(), 0, 0, 0);
         
-        res = fixture.touch(BASE_TIME.plusMillis(3L), NODE_011);
+        res = fixture.touch(BASE_TIME.plusMillis(5L), NODE_0101);
         verifyPrefixMatches(res.getKBucketPrefix(), "01");
         verifyActivityChangeSetCounts(res.getKBucketChangeSet().getBucketChangeSet(), 1, 0, 0);
-        verifyActivityChangeSetAdded(res.getKBucketChangeSet().getBucketChangeSet(), NODE_011);
+        verifyActivityChangeSetAdded(res.getKBucketChangeSet().getBucketChangeSet(), NODE_0101);
         verifyActivityChangeSetCounts(res.getKBucketChangeSet().getCacheChangeSet(), 0, 0, 0);
         
-        res = fixture.touch(BASE_TIME.plusMillis(4L), NODE_100);
-        verifyPrefixMatches(res.getKBucketPrefix(), "1");
-        verifyActivityChangeSetCounts(res.getKBucketChangeSet().getBucketChangeSet(), 1, 0, 0);
-        verifyActivityChangeSetAdded(res.getKBucketChangeSet().getBucketChangeSet(), NODE_100);
-        verifyActivityChangeSetCounts(res.getKBucketChangeSet().getCacheChangeSet(), 0, 0, 0);
-        
-        res = fixture.touch(BASE_TIME.plusMillis(5L), NODE_101);
-        verifyPrefixMatches(res.getKBucketPrefix(), "1");
-        verifyActivityChangeSetCounts(res.getKBucketChangeSet().getBucketChangeSet(), 1, 0, 0);
-        verifyActivityChangeSetAdded(res.getKBucketChangeSet().getBucketChangeSet(), NODE_101);
-        verifyActivityChangeSetCounts(res.getKBucketChangeSet().getCacheChangeSet(), 0, 0, 0);
-        
-        res = fixture.touch(BASE_TIME.plusMillis(6L), NODE_110);
-        verifyPrefixMatches(res.getKBucketPrefix(), "1");
+        res = fixture.touch(BASE_TIME.plusMillis(6L), NODE_0110);
+        verifyPrefixMatches(res.getKBucketPrefix(), "01");
         verifyActivityChangeSetCounts(res.getKBucketChangeSet().getBucketChangeSet(), 0, 0, 0);
         verifyActivityChangeSetCounts(res.getKBucketChangeSet().getCacheChangeSet(), 1, 0, 0);
-        verifyActivityChangeSetAdded(res.getKBucketChangeSet().getCacheChangeSet(), NODE_110);
+        verifyActivityChangeSetAdded(res.getKBucketChangeSet().getCacheChangeSet(), NODE_0110);
         
-        res = fixture.touch(BASE_TIME.plusMillis(7L), NODE_111);
-        verifyPrefixMatches(res.getKBucketPrefix(), "1");
+        res = fixture.touch(BASE_TIME.plusMillis(7L), NODE_0111);
+        verifyPrefixMatches(res.getKBucketPrefix(), "01");
         verifyActivityChangeSetCounts(res.getKBucketChangeSet().getBucketChangeSet(), 0, 0, 0);
         verifyActivityChangeSetCounts(res.getKBucketChangeSet().getCacheChangeSet(), 1, 0, 0);
-        verifyActivityChangeSetAdded(res.getKBucketChangeSet().getCacheChangeSet(), NODE_111);
+        verifyActivityChangeSetAdded(res.getKBucketChangeSet().getCacheChangeSet(), NODE_0111);
     }
 
     @Test
     public void mustProperlyReplaceStaleNodesWithCacheIfAvailable() throws Throwable {
-        fixture.touch(BASE_TIME.plusMillis(1L), NODE_001);
-        fixture.touch(BASE_TIME.plusMillis(2L), NODE_010);
-        fixture.touch(BASE_TIME.plusMillis(3L), NODE_011);
-        fixture.touch(BASE_TIME.plusMillis(4L), NODE_100);
-        fixture.touch(BASE_TIME.plusMillis(5L), NODE_101);
-        fixture.touch(BASE_TIME.plusMillis(6L), NODE_110);
-        fixture.touch(BASE_TIME.plusMillis(7L), NODE_111);
+        fixture.touch(BASE_TIME.plusMillis(1L), NODE_0001);
+        fixture.touch(BASE_TIME.plusMillis(2L), NODE_0010);
+        fixture.touch(BASE_TIME.plusMillis(3L), NODE_0011);
+        fixture.touch(BASE_TIME.plusMillis(4L), NODE_0100);
+        fixture.touch(BASE_TIME.plusMillis(5L), NODE_0101);
+        fixture.touch(BASE_TIME.plusMillis(6L), NODE_0110);
+        fixture.touch(BASE_TIME.plusMillis(7L), NODE_0111);
         
         RouteTreeChangeSet res;
-        res = fixture.stale(NODE_100);
-        verifyPrefixMatches(res.getKBucketPrefix(), "1");
+        res = fixture.stale(NODE_0100);
+        verifyPrefixMatches(res.getKBucketPrefix(), "01");
         verifyActivityChangeSetCounts(res.getKBucketChangeSet().getBucketChangeSet(), 1, 1, 0);
-        verifyActivityChangeSetAdded(res.getKBucketChangeSet().getBucketChangeSet(), NODE_111);
-        verifyActivityChangeSetRemoved(res.getKBucketChangeSet().getBucketChangeSet(), NODE_100);
+        verifyActivityChangeSetAdded(res.getKBucketChangeSet().getBucketChangeSet(), NODE_0111);
+        verifyActivityChangeSetRemoved(res.getKBucketChangeSet().getBucketChangeSet(), NODE_0100);
         verifyActivityChangeSetCounts(res.getKBucketChangeSet().getCacheChangeSet(), 0, 1, 0);
-        verifyActivityChangeSetRemoved(res.getKBucketChangeSet().getCacheChangeSet(), NODE_111);
+        verifyActivityChangeSetRemoved(res.getKBucketChangeSet().getCacheChangeSet(), NODE_0111);
         
-        res = fixture.stale(NODE_101);
-        verifyPrefixMatches(res.getKBucketPrefix(), "1");
+        res = fixture.stale(NODE_0101);
+        verifyPrefixMatches(res.getKBucketPrefix(), "01");
         verifyActivityChangeSetCounts(res.getKBucketChangeSet().getBucketChangeSet(), 1, 1, 0);
-        verifyActivityChangeSetAdded(res.getKBucketChangeSet().getBucketChangeSet(), NODE_110);
-        verifyActivityChangeSetRemoved(res.getKBucketChangeSet().getBucketChangeSet(), NODE_101);
+        verifyActivityChangeSetAdded(res.getKBucketChangeSet().getBucketChangeSet(), NODE_0110);
+        verifyActivityChangeSetRemoved(res.getKBucketChangeSet().getBucketChangeSet(), NODE_0101);
         verifyActivityChangeSetCounts(res.getKBucketChangeSet().getCacheChangeSet(), 0, 1, 0);
-        verifyActivityChangeSetRemoved(res.getKBucketChangeSet().getCacheChangeSet(), NODE_110);
+        verifyActivityChangeSetRemoved(res.getKBucketChangeSet().getCacheChangeSet(), NODE_0110);
     }
 
     @Test
     public void mustProperlyReplaceStaleNodesWithCacheWhenAvailable() throws Throwable {
-        fixture.touch(BASE_TIME.plusMillis(1L), NODE_001);
-        fixture.touch(BASE_TIME.plusMillis(2L), NODE_010);
-        fixture.touch(BASE_TIME.plusMillis(3L), NODE_011);
-        fixture.touch(BASE_TIME.plusMillis(4L), NODE_100);
-        fixture.touch(BASE_TIME.plusMillis(5L), NODE_101);
+        fixture.touch(BASE_TIME.plusMillis(1L), NODE_0001);
+        fixture.touch(BASE_TIME.plusMillis(2L), NODE_0010);
+        fixture.touch(BASE_TIME.plusMillis(3L), NODE_0011);
+        fixture.touch(BASE_TIME.plusMillis(4L), NODE_0100);
+        fixture.touch(BASE_TIME.plusMillis(5L), NODE_0101);
         
         RouteTreeChangeSet res;
-        res = fixture.stale(NODE_100);
-        verifyPrefixMatches(res.getKBucketPrefix(), "1");
+        res = fixture.stale(NODE_0100);
+        verifyPrefixMatches(res.getKBucketPrefix(), "01");
         verifyActivityChangeSetCounts(res.getKBucketChangeSet().getBucketChangeSet(), 0, 0, 0);
         verifyActivityChangeSetCounts(res.getKBucketChangeSet().getCacheChangeSet(), 0, 0, 0);
         
-        res = fixture.stale(NODE_101);
-        verifyPrefixMatches(res.getKBucketPrefix(), "1");
+        res = fixture.stale(NODE_0101);
+        verifyPrefixMatches(res.getKBucketPrefix(), "01");
         verifyActivityChangeSetCounts(res.getKBucketChangeSet().getBucketChangeSet(), 0, 0, 0);
         verifyActivityChangeSetCounts(res.getKBucketChangeSet().getCacheChangeSet(), 0, 0, 0);
         
-        res = fixture.touch(BASE_TIME.plusMillis(6L), NODE_110);
-        verifyPrefixMatches(res.getKBucketPrefix(), "1");
+        res = fixture.touch(BASE_TIME.plusMillis(6L), NODE_0110);
+        verifyPrefixMatches(res.getKBucketPrefix(), "01");
         verifyActivityChangeSetCounts(res.getKBucketChangeSet().getBucketChangeSet(), 1, 1, 0);
-        verifyActivityChangeSetAdded(res.getKBucketChangeSet().getBucketChangeSet(), NODE_110);
-        verifyActivityChangeSetRemoved(res.getKBucketChangeSet().getBucketChangeSet(), NODE_100);
+        verifyActivityChangeSetAdded(res.getKBucketChangeSet().getBucketChangeSet(), NODE_0110);
+        verifyActivityChangeSetRemoved(res.getKBucketChangeSet().getBucketChangeSet(), NODE_0100);
         verifyActivityChangeSetCounts(res.getKBucketChangeSet().getCacheChangeSet(), 0, 0, 0);
         
-        res = fixture.touch(BASE_TIME.plusMillis(7L), NODE_111);
-        verifyPrefixMatches(res.getKBucketPrefix(), "1");
+        res = fixture.touch(BASE_TIME.plusMillis(7L), NODE_0111);
+        verifyPrefixMatches(res.getKBucketPrefix(), "01");
         verifyActivityChangeSetCounts(res.getKBucketChangeSet().getBucketChangeSet(), 1, 1, 0);
-        verifyActivityChangeSetAdded(res.getKBucketChangeSet().getBucketChangeSet(), NODE_111);
-        verifyActivityChangeSetRemoved(res.getKBucketChangeSet().getBucketChangeSet(), NODE_101);
+        verifyActivityChangeSetAdded(res.getKBucketChangeSet().getBucketChangeSet(), NODE_0111);
+        verifyActivityChangeSetRemoved(res.getKBucketChangeSet().getBucketChangeSet(), NODE_0101);
         verifyActivityChangeSetCounts(res.getKBucketChangeSet().getCacheChangeSet(), 0, 0, 0);
     }
     
     @Test
     public void mustRejectIfTouchingSelfId() throws Throwable {
         expectedException.expect(IllegalArgumentException.class);
-        fixture.touch(BASE_TIME.plusMillis(1L), NODE_000);
+        fixture.touch(BASE_TIME.plusMillis(1L), NODE_0000);
     }
 
     @Test
     public void mustRejectIfStalingSelfId() throws Throwable {
         expectedException.expect(IllegalArgumentException.class);
-        fixture.stale(NODE_000);
+        fixture.stale(NODE_0000);
     }
 }
