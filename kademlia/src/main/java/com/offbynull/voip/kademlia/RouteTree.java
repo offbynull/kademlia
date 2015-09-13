@@ -28,7 +28,7 @@ import org.apache.commons.lang3.Validate;
 public final class RouteTree {
     private final Id baseId;
     private final RouteTreeLevel root;
-    private final TimeSet<BitString> bucketTouchTimes;
+    private final TimeSet<BitString> bucketUpdateTimes;
     
     private Instant lastUpdateTime;
     
@@ -37,7 +37,7 @@ public final class RouteTree {
         Validate.notNull(specSupplier);
 
         this.baseId = baseId; // must be set before creating RouteTreeLevels
-        this.bucketTouchTimes = new TimeSet<>();
+        this.bucketUpdateTimes = new TimeSet<>();
 
         root = createRoot(specSupplier);
         RouteTreeLevel child = root;
@@ -92,85 +92,95 @@ public final class RouteTree {
     }
 
     public List<BitString> getBucketsUpdatedBefore(Instant time) {
-        return bucketTouchTimes.getBefore(time, true);
+        return bucketUpdateTimes.getBefore(time, true);
     }
     
     public Instant getLastUpdateTime() {
         return lastUpdateTime;
     }
     
+    private static final BitString EMPTY = BitString.createFromString("");
 
     private RouteTreeLevel createRoot(RouteTreeSpecificationSupplier specSupplier) {
         Validate.notNull(specSupplier);
 
+        
+        
         // Get parameters for root
-        DepthParameters depthParams = specSupplier.getParameters(0);
+        DepthParameters depthParams = specSupplier.getParameters(EMPTY);
         Validate.isTrue(depthParams != null);
 
         // Get number of buckets to create for root
-        int numOfBuckets = depthParams.getLength();
-        Validate.validState(Integer.bitCount(numOfBuckets) == 1); // sanity check pow of 2
-        int newSuffixLen = Integer.highestOneBit(numOfBuckets); // number of bits in suffix
+        int numOfBuckets = depthParams.getNumberOfBranches();
+        Validate.validState(Integer.bitCount(numOfBuckets) == 1); // sanity check numofbuckets is pow of 2
+        int suffixBitCount = Integer.bitCount(numOfBuckets - 1); // num of bits   e.g. 8 --> 1000 - 1 = 0111, bitcount(0111) = 3
 
-        // Create buckets
-        KBucket[] newBuckets = new KBucket[newSuffixLen];
+        // Create buckets by creating a 0-sized top bucket and splitting it + resizing each split
+        KBucket[] newBuckets = new KBucket(baseId, EMPTY, 0, 0).split(suffixBitCount);
         for (int i = 0; i < newBuckets.length; i++) {
-            BucketParameters bucketParams = depthParams.getBucketParameters(i);
-            int newBucketSize = bucketParams.getBucketSize();
-            int newCacheSize = bucketParams.getCacheSize();
-            newBuckets[i].resizeBucket(newBucketSize);
-            newBuckets[i].resizeCache(newCacheSize);
+            BucketParameters bucketParams = depthParams.getBucketParametersAtBranch(i);
+            int bucketSize = bucketParams.getBucketSize();
+            int cacheSize = bucketParams.getCacheSize();
+            newBuckets[i].resizeBucket(bucketSize);
+            newBuckets[i].resizeCache(cacheSize);
             
-            bucketTouchTimes.insert(newBuckets[i].getLastUpdateTime(), newBuckets[i].getPrefix());
+            bucketUpdateTimes.insert(newBuckets[i].getLastUpdateTime(), newBuckets[i].getPrefix());
         }
 
         // Create root
-        return new RouteTreeLevel(
-                Id.createFromLong(0L, 0).getBitString(), // always empty bitstring
-                newSuffixLen,
-                new ArrayList<>(Arrays.asList(newBuckets)));
+        return new RouteTreeLevel(EMPTY, suffixBitCount, new ArrayList<>(Arrays.asList(newBuckets)));
     }
 
     private RouteTreeLevel growParent(RouteTreeLevel parent, RouteTreeSpecificationSupplier specSupplier) {
         Validate.notNull(parent);
         Validate.notNull(specSupplier);
 
-        BitString prefix = parent.prefix;
-        List<KBucket> kBuckets = parent.kBuckets;
+        // Calculate which bucket from parent to split
+        int parentNumOfBuckets = parent.kBuckets.size();
+        Validate.validState(Integer.bitCount(parentNumOfBuckets) == 1); // sanity check numofbuckets is pow of 2
+        int parentSuffixBitCount = Integer.bitCount(parentNumOfBuckets - 1); // num of bits e.g. 8 --> 1000 - 1 = 0111, bitcount(0111) = 3
+        
+        int splitBucketIdx = (int) baseId.getBitString().getBitsAsLong(parent.prefix.getBitLength(), parentSuffixBitCount);
+        BitString splitBucketPrefix = parent.kBuckets.get(splitBucketIdx).getPrefix();
+        
+        
 
         // Get parameters for new level
-        DepthParameters depthParams = specSupplier.getParameters(parent.prefix.getBitLength());
+        DepthParameters depthParams = specSupplier.getParameters(splitBucketPrefix);
         if (depthParams == null) { // can no longer branch
             return null;
         }
 
+        
+        
         // Get number of buckets to create for new level
-        int numOfBuckets = depthParams.getLength();
+        int numOfBuckets = depthParams.getNumberOfBranches();
         Validate.validState(Integer.bitCount(numOfBuckets) == 1); // sanity check pow of 2
-        int newSuffixLen = Integer.highestOneBit(numOfBuckets); // number of bits in suffix
-
-        // Get index at this level where bucket is to branch to new level
-        int splitIdx = (int) baseId.getBitsAsLong(prefix.getBitLength(), newSuffixLen); // bits after prefix that match id
-
-        // Split bucket at that index and use those buckets as the next level's buckets
-        BitString newPrefix = baseId.getBitString().getBits(0, prefix.getBitLength() + newSuffixLen);
-        KBucket[] newBuckets = kBuckets.get(splitIdx).split(newSuffixLen);
+        int suffixBitCount = Integer.bitCount(numOfBuckets - 1); // num of bits   e.g. 8 (1000) -- 1000 - 1 = 0111, bitcount(0111) = 3
+        
+        // Split parent bucket at that branch index
+        BitString newPrefix = baseId.getBitString().getBits(0, splitBucketPrefix.getBitLength() + suffixBitCount);
+        KBucket[] newBuckets = parent.kBuckets.get(splitBucketIdx).split(suffixBitCount);
         for (int i = 0; i < newBuckets.length; i++) {
-            BucketParameters bucketParams = depthParams.getBucketParameters(i);
-            int newBucketSize = bucketParams.getBucketSize();
-            int newCacheSize = bucketParams.getCacheSize();
-            newBuckets[i].resizeBucket(newBucketSize);
-            newBuckets[i].resizeCache(newCacheSize);
+            BucketParameters bucketParams = depthParams.getBucketParametersAtBranch(i);
+            int bucketSize = bucketParams.getBucketSize();
+            int cacheSize = bucketParams.getCacheSize();
+            newBuckets[i].resizeBucket(bucketSize);
+            newBuckets[i].resizeCache(cacheSize);
             
-            bucketTouchTimes.insert(newBuckets[i].getLastUpdateTime(), newBuckets[i].getPrefix());
+            bucketUpdateTimes.insert(newBuckets[i].getLastUpdateTime(), newBuckets[i].getPrefix());
         }
 
-        // Get rid of bucket that was just split. It branches down here and the nodes that were contained there will be in the new level
-        bucketTouchTimes.remove(kBuckets.get(splitIdx).getPrefix());
-        parent.kBuckets.set(splitIdx, null);
+        // Get rid of parent bucket we just split. It branches down at that point, and any nodes that were contained within will be in the
+        // newly created buckets
+        bucketUpdateTimes.remove(parent.kBuckets.get(splitBucketIdx).getPrefix());
+        parent.kBuckets.set(splitBucketIdx, null);
 
-        // Create new level
-        return new RouteTreeLevel(newPrefix, newSuffixLen, new ArrayList<>(Arrays.asList(newBuckets)));
+        // Create new level and set as child
+        RouteTreeLevel ret = new RouteTreeLevel(newPrefix, suffixBitCount, new ArrayList<>(Arrays.asList(newBuckets)));
+        parent.child = ret;
+        
+        return ret;
     }
     
     private final class RouteTreeLevel {
@@ -265,8 +275,8 @@ public final class RouteTree {
                 
                 if (kBucketLastUpdateTime.isAfter(lastUpdateTime)) {
                     lastUpdateTime = kBucketLastUpdateTime;
-                    bucketTouchTimes.remove(kBucketPrefix);
-                    bucketTouchTimes.insert(lastUpdateTime, kBucketPrefix);
+                    bucketUpdateTimes.remove(kBucketPrefix);
+                    bucketUpdateTimes.insert(lastUpdateTime, kBucketPrefix);
                 }
                 
                 return new RouteTreeChangeSet(kBucketPrefix, kBucketChangeSet);
@@ -293,8 +303,8 @@ public final class RouteTree {
                 
                 if (kBucketLastUpdateTime.isAfter(lastUpdateTime)) { // should never change from call to kbucket.stale(), but just incase
                     lastUpdateTime = kBucketLastUpdateTime;
-                    bucketTouchTimes.remove(kBucketPrefix);
-                    bucketTouchTimes.insert(lastUpdateTime, kBucketPrefix);
+                    bucketUpdateTimes.remove(kBucketPrefix);
+                    bucketUpdateTimes.insert(lastUpdateTime, kBucketPrefix);
                 }
                 
                 return new RouteTreeChangeSet(kBucketPrefix, kBucketChangeSet);

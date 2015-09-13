@@ -22,7 +22,7 @@ import org.apache.commons.lang3.Validate;
 
 public interface RouteTreeSpecificationSupplier {
 
-    DepthParameters getParameters(int prefixLen);
+    DepthParameters getParameters(BitString prefix);
     
     public static final class DepthParameters {
         private final BucketParameters[] bucketParams;
@@ -30,6 +30,7 @@ public interface RouteTreeSpecificationSupplier {
         public DepthParameters(BucketParameters ... bucketParams) {
             Validate.notNull(bucketParams);
             Validate.noNullElements(bucketParams);
+            Validate.isTrue(bucketParams.length > 0);
             
             // check to make sure power of 2
             // other ways: http://javarevisited.blogspot.ca/2013/05/how-to-check-if-integer-number-is-power-of-two-example.html
@@ -38,11 +39,11 @@ public interface RouteTreeSpecificationSupplier {
             this.bucketParams = Arrays.copyOf(bucketParams, bucketParams.length);
         }
         
-        int getLength() {
+        int getNumberOfBranches() {
             return bucketParams.length;
         }
         
-        BucketParameters getBucketParameters(int idx) {
+        BucketParameters getBucketParametersAtBranch(int idx) {
             return bucketParams[idx];
         }
     }

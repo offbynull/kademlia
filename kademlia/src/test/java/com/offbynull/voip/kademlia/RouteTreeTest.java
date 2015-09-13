@@ -21,7 +21,7 @@ public final class RouteTreeTest {
     
     private RouteTree fixture = new RouteTree(
             NODE_000.getId(),
-            new SimpleRouteTreeSpecificationSupplier(NODE_000.getId(), 1, 2, 2));
+            new SimpleRouteTreeSpecificationSupplier(NODE_000.getId(), 2, 2, 2));
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();

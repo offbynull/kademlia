@@ -24,26 +24,25 @@ public final class SimpleRouteTreeSpecificationSupplier implements RouteTreeSpec
     private final int nodesPerBucket;
     private final int cacheNodesPerBucket;
 
-    public SimpleRouteTreeSpecificationSupplier(Id baseId, int bucketsPerLevel, int nodesPerBucket, int cacheNodesPerBucket) {
+    public SimpleRouteTreeSpecificationSupplier(Id baseId, int branchesPerLevel, int bucketSize, int cacheSize) {
         Validate.notNull(baseId);
-        Validate.isTrue(bucketsPerLevel > 0);
-        Validate.isTrue(nodesPerBucket > 0);
-        Validate.isTrue(cacheNodesPerBucket > 0);
+        Validate.isTrue(branchesPerLevel > 0);
+        Validate.isTrue(bucketSize > 0);
+        Validate.isTrue(cacheSize > 0);
         
         // check to make sure power of 2
         // other ways: http://javarevisited.blogspot.ca/2013/05/how-to-check-if-integer-number-is-power-of-two-example.html
-        Validate.isTrue(Integer.bitCount(bucketsPerLevel) == 1);
+        Validate.isTrue(Integer.bitCount(branchesPerLevel) == 1);
         
         this.baseId = baseId;
-        this.bucketsPerLevel = bucketsPerLevel;
-        this.nodesPerBucket = nodesPerBucket;
-        this.cacheNodesPerBucket = cacheNodesPerBucket;
+        this.bucketsPerLevel = branchesPerLevel;
+        this.nodesPerBucket = bucketSize;
+        this.cacheNodesPerBucket = cacheSize;
     }
 
     @Override
-    public DepthParameters getParameters(int prefixLen) {
-        Validate.isTrue(prefixLen >= 0);
-        Validate.isTrue(prefixLen < baseId.getBitLength());
+    public DepthParameters getParameters(BitString prefix) {
+        Validate.notNull(prefix);
         
         BucketParameters[] bucketParams = new BucketParameters[bucketsPerLevel];
         for (int i = 0; i < bucketsPerLevel; i++) {
