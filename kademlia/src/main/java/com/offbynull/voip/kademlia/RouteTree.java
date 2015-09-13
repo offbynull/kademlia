@@ -309,8 +309,6 @@ public final class RouteTree {
                 Validate.validState(child != null); // sanity check
                 return child.stale(node);
             } else {
-                Validate.validState(child == null); // sanity check
-
                 KBucketChangeSet kBucketChangeSet = bucket.stale(node);
                 BitString kBucketPrefix = bucket.getPrefix();
                 Instant kBucketLastUpdateTime = bucket.getLastUpdateTime();
