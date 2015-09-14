@@ -61,19 +61,26 @@ public final class RouteTree {
         
         // Go through all buckets with a matching prefix, starting from the largest matching prefix, and grab the 'closest' nodes to an ID.
         // See IdClosenessComparator for description on how closeness is calculated.
-        root.findClosestNodesByLargestSharedPrefix(id, output, max);
+        RouteTreeLevel lastDumpedLevel = root.findClosestNodesByLargestSharedPrefix(id, output, max);
         if (output.size() >= max) { // should never extend past max, but just incase
             return new ArrayList<>(output);
         }
         
         // At this point, output will contain the closest nodes that share a prefix. However, if we still have room, re-do the search as if
         // all the buckets accessed were empty -- flipping the bits corresponding to those empty buckets, as per Kademlia's notion of
-        // closeness. Why do you want to do this? A few reasons...
+        // closeness. 
+        //
+        // IMPORTANT NOTE: If we've more than 2 branches per level, the bit flipping is not bit flipping but changing the bits such that we
+        //                 traverse further down the tree. Also, when at the k-bucket with the largest common shared prefix, every k-bucket
+        //                 at that level is scanned and sorted by shared common prefix length
+        //
+        //
+        // Why do you want to do this? A few reasons...
         //
         // 1. Highly unbalanced networks
         // 2. Networks in their infancy (very few nodes in the network)
         //
-        // Assume a 3-bit system with k = 1. Assume that all the 1xxb nodes are in the network, and no 0xxb nodes are present.
+        // Assume a 3-bit system with k = 1. Assume that the network only has nodes in the 11x range present.
         // 
         //         0/ \1
         //         /   \
@@ -83,38 +90,26 @@ public final class RouteTree {
         //    0/ \1     0/ \1
         //    /   \     /   \ 
         //  0/\1 0/\1 0/\1 0/\1
-        //            * *  * *
+        //                 * *
         //
         // This is a highly unbalanced network
         //
         // Node 111b wants to store a value at 000b, but node 111b has nothing in its 0xxb bucket. The store could be important, so we
-        // follow this notion of closeness and flip the top bit, turning 000b to 100b. 100b then becomes the closest node. If it turns out
-        // that 100b isn't present in the network as well, we continually flip the next bit until we find a node that is (so if we were to
-        // flip again it would be 110b).
+        // follow this notion of closeness and flip the top bit, turning 000b to 100b. 100b then becomes the ID to search for. It turns out
+        // that 100b isn't present in the network as well, so we  flip the next bit and turn 100b to 110b. 110b exists and is found.
         //
         // How likely is this to happen in a real Kademlia network with a key size of 160-bits? Even if the RNG for node ID generation is
         // biased, it probably won't be biased to the point where we have a massively lop-sided tree. But, networks just starting out with
         // only a few nodes in them may encounter this scenario.
 
 
-        // Get longest common prefix from the currently found closest node (nodes that have a shared prefix in the routing table). If it's
-        // self, get next longest prefix.
-        int longestPrefixBitLen = output.stream()
-                .map(x -> id.getSharedPrefixLength(x.getNode().getId())) // map found id to shared prefix length
-                .filter(x -> x < id.getBitLength()) // throw out if self (if longest common prefix spans the entire id)
-                .max(Integer::compare) // get largest prefix
-                .orElseGet(() -> 0); // no largest prefix, return 0
-        // Start flipping bits at just after the largest prefix found in search aboveStart until we have an output that reaches max or we've
-        // exhausted the remaining bits we could flip.
-        int bitOffset = 0;
-        int bitLen = longestPrefixBitLen;
-        Id flippedId = id;
-        for (int i = bitLen - 1; i >= 0; i--) {
-            flippedId = flippedId.flipBit(i);
-            root.findClosestNodesByLargestSharedPrefix(flippedId, output, max);
-            if (output.size() >= max) { // should never extend past max, but just incase
-                return new ArrayList<>(output);
-            }
+
+        while (output.size() < max && lastDumpedLevel.child != null) {
+            int bitOffset = lastDumpedLevel.prefix.getBitLength();
+            BitString lastDumpedLevelBitsForChild = lastDumpedLevel.child.prefix.getBits(bitOffset, lastDumpedLevel.suffixLen);
+            
+            id = id.setBits(bitOffset, lastDumpedLevelBitsForChild);
+            lastDumpedLevel = root.findClosestNodesByLargestSharedPrefix(id, output, max);
         }
         
         return new ArrayList<>(output);
@@ -290,7 +285,7 @@ public final class RouteTree {
             }
         }
 
-        public void findClosestNodesByLargestSharedPrefix(Id id, LinkedHashSet<Activity> output, int max) {
+        public RouteTreeLevel findClosestNodesByLargestSharedPrefix(Id id, LinkedHashSet<Activity> output, int max) {
             // Other validation checks on args done by caller, no point in repeating this for an unchanging argument in recursive method
             Validate.isTrue(id.getBitString().getBits(0, prefix.getBitLength()).equals(prefix)); // ensure prefix matches
 
@@ -301,14 +296,17 @@ public final class RouteTree {
                 // Target kBucket is null, which means that nodes with this prefix can be found by continuing down child. In other words, we can
                 // continue down child to find more buckets with a larger prefix.
                 Validate.validState(child != null); // sanity check
-                child.findClosestNodesByLargestSharedPrefix(id, output, max);
+                RouteTreeLevel ret = child.findClosestNodesByLargestSharedPrefix(id, output, max);
 
                 // If we have more room available, scan buckets at this level and add nodes closest to id in to output
                 dumpCloseNodesFromKBucketsOnThisLevel(id, output, max);
+                
+                return ret;
             } else {
                 // Target kBucket found -- we've reached the end of how far we can go down the routing tree
                 // Scan buckets at this level and add nodes closes to id in to output
                 dumpCloseNodesFromKBucketsOnThisLevel(id, output, max);
+                return this;
             }
         }
 

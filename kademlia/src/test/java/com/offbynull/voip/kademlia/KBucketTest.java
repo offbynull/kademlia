@@ -652,20 +652,15 @@ public class KBucketTest {
     }
 
     @Test
-    public void mustAllowTouchingSelf() throws Throwable {
-        KBucketChangeSet res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_0000);
-        verifyActivityChangeSetCounts(res.getBucketChangeSet(), 1, 0, 0);
-        verifyActivityChangeSetAdded(res.getBucketChangeSet(), NODE_0000);
-        verifyActivityChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
+    public void mustNotAllowTouchingSelf() throws Throwable {
+        expectedException.expect(IllegalArgumentException.class);
+        fixture.touch(BASE_TIME.plusMillis(1L), NODE_0000);
     }
 
     @Test
-    public void mustAllowMarkingSelfAsStale() throws Throwable {
-        fixture.touch(BASE_TIME.plusMillis(1L), NODE_0000);
-        
-        KBucketChangeSet res = fixture.stale(NODE_0000);
-        verifyActivityChangeSetCounts(res.getBucketChangeSet(), 0, 0, 0);
-        verifyActivityChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
+    public void mustNotAllowMarkingSelfAsStale() throws Throwable {
+        expectedException.expect(IllegalArgumentException.class);
+        fixture.stale(NODE_0000);
     }
     
 }

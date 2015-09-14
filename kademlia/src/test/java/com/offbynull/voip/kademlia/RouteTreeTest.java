@@ -251,13 +251,13 @@ public final class RouteTreeTest {
         res = fixture.findStrict(NODE_0001.getId(), 5);
         verifyNodesInActivities(res, NODE_0001, NODE_0011, NODE_0010, NODE_0100, NODE_0111); 
         res = fixture.findStrict(NODE_0010.getId(), 5);
-        verifyNodesInActivities(res, NODE_0010, NODE_0011, NODE_0111, NODE_0100); 
+        verifyNodesInActivities(res, NODE_0010, NODE_0011, NODE_0111, NODE_0100, NODE_1110); 
         res = fixture.findStrict(NODE_0011.getId(), 5);
-        verifyNodesInActivities(res, NODE_0011, NODE_0010, NODE_0111, NODE_0100); 
+        verifyNodesInActivities(res, NODE_0011, NODE_0010, NODE_0111, NODE_0100, NODE_1110); 
         res = fixture.findStrict(NODE_0100.getId(), 5);
-        verifyNodesInActivities(res, NODE_0100, NODE_0111); 
+        verifyNodesInActivities(res, NODE_0100, NODE_0111, NODE_1100, NODE_1110, NODE_0001); 
         res = fixture.findStrict(NODE_1000.getId(), 5);
-        verifyNodesInActivities(res, NODE_1100, NODE_1110); 
+        verifyNodesInActivities(res, NODE_1100, NODE_1110, NODE_0001, NODE_0010, NODE_0011); 
     }
     
     @Test

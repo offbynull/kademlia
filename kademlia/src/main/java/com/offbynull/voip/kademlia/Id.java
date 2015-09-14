@@ -145,7 +145,7 @@ public final class Id implements Serializable {
     }
 
     /**
-     * Equivalent to {@link BitString#setBits(int, com.offbynull.voip.core.BitString) }.
+     * Equivalent to {@link BitString#setBits(int, com.offbynull.voip.core.BitString) }, but with a long.
      * @param offset offset of bit within this bitstring to write to
      * @param other bits to set
      * @param len number of bits to set
@@ -154,6 +154,18 @@ public final class Id implements Serializable {
      */
     public Id setBitsAsLong(long other, int offset, int len) {
         BitString modifiedBitString = bitString.setBits(offset, Id.createFromLong(other, len).bitString);
+        return new Id(modifiedBitString);
+    }
+
+    /**
+     * Equivalent to {@link BitString#setBits(int, com.offbynull.voip.core.BitString) }.
+     * @param offset offset of bit within this bitstring to write to
+     * @param bitString bits to set
+     * @return new id that has bit set
+     * @throws IllegalArgumentException if {@code offset < 0} or if {@code offset > bitLength} or {@code offset + other.bitLength > bitLength}
+     */
+    public Id setBits(int offset, BitString bitString) {
+        BitString modifiedBitString = this.bitString.setBits(offset, bitString);
         return new Id(modifiedBitString);
     }
     

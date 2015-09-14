@@ -44,8 +44,8 @@ public final class KBucket {
     public KBucket(Id baseId, BitString prefix, int maxBucketSize, int maxCacheSize) {
         Validate.notNull(baseId);
         Validate.isTrue(prefix.getBitLength() <= baseId.getBitLength());
-        // Let this thru anyways, because without it bucket splitting logic will become slightly more convolouted. But this may also
-        // introduce bugs if higher level code using this class isn't aware that this is allowed.
+        // Let this thru anyways, because without it bucket splitting logic will become slightly more convolouted. That is, in a certain
+        // case a bucket would be split such that one of the new buckets may == baseId.
 //        Validate.isTrue(!baseId.getBitString().equals(prefix)); // baseId cannot == prefix, because then you'd have an empty bucket that
 //                                                                // you can't add anything to ... no point in having a bucket with your
 //                                                                // own ID in it
@@ -67,8 +67,7 @@ public final class KBucket {
 
         Id nodeId = node.getId();
 
-        // Let this thru... it's up to the caller if it wants to keep self out of the bucket. Don't reject.
-//        Validate.isTrue(!nodeId.equals(baseId));
+        Validate.isTrue(!nodeId.equals(baseId));
         Validate.isTrue(nodeId.getBitLength() == baseId.getBitLength());
         
         Validate.isTrue(nodeId.getBitString().getBits(0, prefix.getBitLength()).equals(prefix)); // ensure prefix matches
@@ -111,9 +110,7 @@ public final class KBucket {
         
         Id nodeId = node.getId();
 
-        // Let this thru... if the caller can touch self, it should be able to mark self as stale and evict it... but it makes 0 sense to
-        // want to do this. It's up to the caller how to treat self. Don't reject.
-//        Validate.isTrue(!nodeId.equals(baseId));
+        Validate.isTrue(!nodeId.equals(baseId));
         Validate.isTrue(nodeId.getBitLength() == baseId.getBitLength());
         
         Validate.isTrue(nodeId.getBitString().getBits(0, prefix.getBitLength()).equals(prefix)); // ensure prefix matches
