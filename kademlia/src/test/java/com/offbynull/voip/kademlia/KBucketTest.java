@@ -551,6 +551,33 @@ public class KBucketTest {
     }
 
     @Test
+    public void mustSplitInTo2BucketsAndRetainStaleStates() throws Throwable {
+        fixture.touch(BASE_TIME.plusMillis(1L), NODE_1000);
+        fixture.touch(BASE_TIME.plusMillis(2L), NODE_1001);
+        fixture.touch(BASE_TIME.plusMillis(3L), NODE_1010);
+        fixture.touch(BASE_TIME.plusMillis(4L), NODE_1011);
+        
+        fixture.stale(NODE_1000);
+        fixture.stale(NODE_1010);
+        
+        KBucket[] buckets = fixture.split(1);
+        
+        KBucketChangeSet res;
+        
+        res = buckets[1].touch(BASE_TIME.plusMillis(5L), NODE_1100);
+        verifyActivityChangeSetCounts(res.getBucketChangeSet(), 1, 1, 0);
+        verifyActivityChangeSetRemoved(res.getBucketChangeSet(), NODE_1000);
+        verifyActivityChangeSetAdded(res.getBucketChangeSet(), NODE_1100);
+        verifyActivityChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
+
+        res = buckets[1].touch(BASE_TIME.plusMillis(6L), NODE_1101);
+        verifyActivityChangeSetCounts(res.getBucketChangeSet(), 1, 1, 0);
+        verifyActivityChangeSetRemoved(res.getBucketChangeSet(), NODE_1010);
+        verifyActivityChangeSetAdded(res.getBucketChangeSet(), NODE_1101);
+        verifyActivityChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
+    }
+
+    @Test
     public void mustSplitInTo2BucketsWhereBucket0IsEmpty() throws Throwable {
         fixture.touch(BASE_TIME.plusMillis(0L), NODE_1000);
         fixture.touch(BASE_TIME.plusMillis(1L), NODE_1001);
@@ -622,6 +649,23 @@ public class KBucketTest {
         assertEquals(buckets[1].getLastUpdateTime(), BASE_TIME.plusMillis(6L));
         assertEquals(buckets[2].getLastUpdateTime(), BASE_TIME.plusMillis(7L));
         assertEquals(buckets[3].getLastUpdateTime(), BASE_TIME.plusMillis(4L));
+    }
+
+    @Test
+    public void mustAllowTouchingSelf() throws Throwable {
+        KBucketChangeSet res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_0000);
+        verifyActivityChangeSetCounts(res.getBucketChangeSet(), 1, 0, 0);
+        verifyActivityChangeSetAdded(res.getBucketChangeSet(), NODE_0000);
+        verifyActivityChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
+    }
+
+    @Test
+    public void mustAllowMarkingSelfAsStale() throws Throwable {
+        fixture.touch(BASE_TIME.plusMillis(1L), NODE_0000);
+        
+        KBucketChangeSet res = fixture.stale(NODE_0000);
+        verifyActivityChangeSetCounts(res.getBucketChangeSet(), 0, 0, 0);
+        verifyActivityChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
     }
     
 }

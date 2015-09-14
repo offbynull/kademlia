@@ -20,25 +20,26 @@ import com.offbynull.voip.kademlia.RouteTreeBucketSpecificationSupplier.BucketPa
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import org.apache.commons.lang3.Validate;
 
 public final class RouteTree {
-    private final Id baseId;
+    private final Node baseNode;
     private final RouteTreeLevel root;
     private final TimeSet<BitString> bucketUpdateTimes;
     
     private Instant lastUpdateTime;
     
-    public RouteTree(Id baseId, // remember that baseId will always have a size of 1 or greater
+    public RouteTree(Node baseNode, // because id's are always > 0 in size -- it isn't possible for tree creation to mess up
             RouteTreeBranchSpecificationSupplier branchSpecSupplier,
             RouteTreeBucketSpecificationSupplier bucketSpecSupplier) {
-        Validate.notNull(baseId);
+        Validate.notNull(baseNode);
         Validate.notNull(branchSpecSupplier);
         Validate.notNull(bucketSpecSupplier);
         
-        this.baseId = baseId; // must be set before creating RouteTreeLevels
+        this.baseNode = baseNode; // must be set before creating RouteTreeLevels
         this.bucketUpdateTimes = new TimeSet<>();
 
         root = createRoot(branchSpecSupplier, bucketSpecSupplier);
@@ -50,20 +51,78 @@ public final class RouteTree {
         this.lastUpdateTime = Instant.MIN;
     }
 
-    public List<Activity> find(Id id, int max) {
+    public List<Activity> findStrict(Id id, int max) {
         Validate.notNull(id);
-        Validate.isTrue(!id.equals(baseId));
-        Validate.isTrue(id.getBitLength() == baseId.getBitLength());
+        Validate.isTrue(!id.equals(baseNode.getId()));
+        Validate.isTrue(id.getBitLength() == baseNode.getId().getBitLength());
         Validate.isTrue(max >= 0); // why would anyone want 0? let thru anyways
 
-        ArrayList<Activity> output = new ArrayList<>(max);
-        root.findClosestNodes(id, output, max);
-        return output;
+        LinkedHashSet<Activity> output = new LinkedHashSet<>(max); // LinkedHashSet because maintains order and keeps out duplicates
+        
+        // Go through all buckets with a matching prefix, starting from the largest matching prefix, and grab the 'closest' nodes to an ID.
+        // See IdClosenessComparator for description on how closeness is calculated.
+        root.findClosestNodesByLargestSharedPrefix(id, output, max);
+        if (output.size() >= max) { // should never extend past max, but just incase
+            return new ArrayList<>(output);
+        }
+        
+        // At this point, output will contain the closest nodes that share a prefix. However, if we still have room, re-do the search as if
+        // all the buckets accessed were empty -- flipping the bits corresponding to those empty buckets, as per Kademlia's notion of
+        // closeness. Why do you want to do this? A few reasons...
+        //
+        // 1. Highly unbalanced networks
+        // 2. Networks in their infancy (very few nodes in the network)
+        //
+        // Assume a 3-bit system with k = 1. Assume that all the 1xxb nodes are in the network, and no 0xxb nodes are present.
+        // 
+        //         0/ \1
+        //         /   \
+        //        /     \
+        //       /       \
+        //      /         \
+        //    0/ \1     0/ \1
+        //    /   \     /   \ 
+        //  0/\1 0/\1 0/\1 0/\1
+        //            * *  * *
+        //
+        // This is a highly unbalanced network
+        //
+        // Node 111b wants to store a value at 000b, but node 111b has nothing in its 0xxb bucket. The store could be important, so we
+        // follow this notion of closeness and flip the top bit, turning 000b to 100b. 100b then becomes the closest node. If it turns out
+        // that 100b isn't present in the network as well, we continually flip the next bit until we find a node that is (so if we were to
+        // flip again it would be 110b).
+        //
+        // How likely is this to happen in a real Kademlia network with a key size of 160-bits? Even if the RNG for node ID generation is
+        // biased, it probably won't be biased to the point where we have a massively lop-sided tree. But, networks just starting out with
+        // only a few nodes in them may encounter this scenario.
+
+
+        // Get longest common prefix from the currently found closest node (nodes that have a shared prefix in the routing table). If it's
+        // self, get next longest prefix.
+        int longestPrefixBitLen = output.stream()
+                .map(x -> id.getSharedPrefixLength(x.getNode().getId())) // map found id to shared prefix length
+                .filter(x -> x < id.getBitLength()) // throw out if self (if longest common prefix spans the entire id)
+                .max(Integer::compare) // get largest prefix
+                .orElseGet(() -> 0); // no largest prefix, return 0
+        // Start flipping bits at just after the largest prefix found in search aboveStart until we have an output that reaches max or we've
+        // exhausted the remaining bits we could flip.
+        int bitOffset = 0;
+        int bitLen = longestPrefixBitLen;
+        Id flippedId = id;
+        for (int i = bitLen - 1; i >= 0; i--) {
+            flippedId = flippedId.flipBit(i);
+            root.findClosestNodesByLargestSharedPrefix(flippedId, output, max);
+            if (output.size() >= max) { // should never extend past max, but just incase
+                return new ArrayList<>(output);
+            }
+        }
+        
+        return new ArrayList<>(output);
     }
 
     public List<Activity> dumpBucket(BitString prefix) {
         Validate.notNull(prefix);
-        Validate.isTrue(prefix.getBitLength() < baseId.getBitLength()); // cannot be == or >
+        Validate.isTrue(prefix.getBitLength() < baseNode.getId().getBitLength()); // cannot be == or >
 
         LinkedList<Activity> output = new LinkedList<>();
         root.dumpNodesInBucket(prefix, output);
@@ -75,8 +134,8 @@ public final class RouteTree {
         Validate.notNull(node);
         
         Id id = node.getId();
-        Validate.isTrue(!id.equals(baseId));
-        Validate.isTrue(id.getBitLength() == baseId.getBitLength());
+        Validate.isTrue(!id.equals(baseNode.getId()));
+        Validate.isTrue(id.getBitLength() == baseNode.getId().getBitLength());
         
         Validate.isTrue(!time.isBefore(lastUpdateTime)); // time must be >= lastUpdatedTime
 
@@ -87,8 +146,8 @@ public final class RouteTree {
         Validate.notNull(node);
 
         Id id = node.getId();
-        Validate.isTrue(!id.equals(baseId));
-        Validate.isTrue(id.getBitLength() == baseId.getBitLength());
+        Validate.isTrue(!id.equals(baseNode.getId()));
+        Validate.isTrue(id.getBitLength() == baseNode.getId().getBitLength());
             
         return root.stale(node);
     }
@@ -116,12 +175,12 @@ public final class RouteTree {
         Validate.isTrue(numOfBuckets != 0, "Root of tree must contain at least 1 branch, was %d", numOfBuckets);
         Validate.isTrue(Integer.bitCount(numOfBuckets) == 1, "Branch count must be power of 2");
         int suffixBitCount = Integer.bitCount(numOfBuckets - 1); // num of bits   e.g. 8 --> 1000 - 1 = 0111, bitcount(0111) = 3
-        Validate.isTrue(suffixBitCount <= baseId.getBitLength(),
-                "Attempting to branch too far (in root) %d bits extends past %d bits", suffixBitCount, baseId.getBitLength());
+        Validate.isTrue(suffixBitCount <= baseNode.getId().getBitLength(),
+                "Attempting to branch too far (in root) %d bits extends past %d bits", suffixBitCount, baseNode.getId().getBitLength());
 
         
         // Create buckets by creating a 0-sized top bucket and splitting it + resizing each split
-        KBucket[] newBuckets = new KBucket(baseId, EMPTY, 0, 0).split(suffixBitCount);
+        KBucket[] newBuckets = new KBucket(baseNode.getId(), EMPTY, 0, 0).split(suffixBitCount);
         for (int i = 0; i < newBuckets.length; i++) {
             BucketParameters bucketParams = bucketSpecSupplier.getBucketParameters(newBuckets[i].getPrefix());
             int bucketSize = bucketParams.getBucketSize();
@@ -151,13 +210,13 @@ public final class RouteTree {
         int parentSuffixBitCount = Integer.bitCount(parentNumOfBuckets - 1); // num of bits in parent's suffix
                                                                              // e.g. 8 --> 1000 - 1 = 0111, bitcount(0111) = 3
         
-        if (parentPrefixBitLen + parentSuffixBitCount >= baseId.getBitLength()) { // should never be >, only ==, but just in case
+        if (parentPrefixBitLen + parentSuffixBitCount >= baseNode.getId().getBitLength()) { // should never be >, only ==, but just in case
             // The parents prefix length + the number of bits the parent used for buckets > baseId's length. As such, it isn't possible to
             // grow any further, so don't even try.
             return null;
         }
         
-        int splitBucketIdx = (int) baseId.getBitString().getBitsAsLong(parentPrefixBitLen, parentSuffixBitCount);
+        int splitBucketIdx = (int) baseNode.getId().getBitString().getBitsAsLong(parentPrefixBitLen, parentSuffixBitCount);
         BitString splitBucketPrefix = parent.kBuckets.get(splitBucketIdx).getPrefix();
         
         
@@ -169,13 +228,13 @@ public final class RouteTree {
         }
         Validate.isTrue(Integer.bitCount(numOfBuckets) == 1, "Branch count must be power of 2");
         int suffixBitCount = Integer.bitCount(numOfBuckets - 1); // num of bits   e.g. 8 (1000) -- 1000 - 1 = 0111, bitcount(0111) = 3
-        Validate.isTrue(splitBucketPrefix.getBitLength() + suffixBitCount <= baseId.getBitLength(),
+        Validate.isTrue(splitBucketPrefix.getBitLength() + suffixBitCount <= baseNode.getId().getBitLength(),
                 "Attempting to branch too far %s with %d bits extends past %d bits", splitBucketPrefix, suffixBitCount,
-                baseId.getBitLength());
+                baseNode.getId().getBitLength());
         
         
         // Split parent bucket at that branch index
-        BitString newPrefix = baseId.getBitString().getBits(0, parentPrefixBitLen + suffixBitCount);
+        BitString newPrefix = baseNode.getId().getBitString().getBits(0, parentPrefixBitLen + suffixBitCount);
         KBucket[] newBuckets = parent.kBuckets.get(splitBucketIdx).split(suffixBitCount);
         for (int i = 0; i < newBuckets.length; i++) {
             BucketParameters bucketParams = bucketSpecSupplier.getBucketParameters(newBuckets[i].getPrefix());
@@ -227,12 +286,11 @@ public final class RouteTree {
                 child.dumpNodesInBucket(searchPrefix, output);
             } else {
                 // Target kBucket found -- we've reached the end of how far we can go down the routing tree
-                Validate.validState(child == null); // sanity check
                 output.addAll(targetKBucket.dumpBucket());
             }
         }
 
-        public void findClosestNodes(Id id, ArrayList<Activity> output, int max) {
+        public void findClosestNodesByLargestSharedPrefix(Id id, LinkedHashSet<Activity> output, int max) {
             // Other validation checks on args done by caller, no point in repeating this for an unchanging argument in recursive method
             Validate.isTrue(id.getBitString().getBits(0, prefix.getBitLength()).equals(prefix)); // ensure prefix matches
 
@@ -243,20 +301,18 @@ public final class RouteTree {
                 // Target kBucket is null, which means that nodes with this prefix can be found by continuing down child. In other words, we can
                 // continue down child to find more buckets with a larger prefix.
                 Validate.validState(child != null); // sanity check
-                child.findClosestNodes(id, output, max);
+                child.findClosestNodesByLargestSharedPrefix(id, output, max);
 
-                // If we have more room available, scan buckets at this level and add nodes closes to id in to output
+                // If we have more room available, scan buckets at this level and add nodes closest to id in to output
                 dumpCloseNodesFromKBucketsOnThisLevel(id, output, max);
             } else {
                 // Target kBucket found -- we've reached the end of how far we can go down the routing tree
-                Validate.validState(child == null); // sanity check
-
                 // Scan buckets at this level and add nodes closes to id in to output
                 dumpCloseNodesFromKBucketsOnThisLevel(id, output, max);
             }
         }
 
-        private void dumpCloseNodesFromKBucketsOnThisLevel(Id id, ArrayList<Activity> output, int max) {
+        private void dumpCloseNodesFromKBucketsOnThisLevel(Id id, LinkedHashSet<Activity> output, int max) {
             int remaining = max - output.size();
             if (remaining <= 0) {
                 return;
@@ -266,7 +322,7 @@ public final class RouteTree {
             kBuckets.stream()
                     .filter(x -> x != null) // skip null buckets -- if a bucket is null, the tree branches down at that prefix
                     .flatMap(x -> x.dumpBucket().stream()) // kbucket to nodes in kbuckets
-                    .sorted((x, y) -> -comparator.compare(x.getNode().getId(), y.getNode().getId())) // - to order nodes by biggest prefix first
+                    .sorted((x, y) -> comparator.compare(x.getNode().getId(), y.getNode().getId()))
                     .limit(remaining) // limit to amount of nodes we need to insert
                     .forEachOrdered(output::add); // add to output set
         }

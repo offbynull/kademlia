@@ -3,8 +3,11 @@ package com.offbynull.voip.kademlia;
 import static com.offbynull.voip.kademlia.TestUtils.verifyActivityChangeSetAdded;
 import static com.offbynull.voip.kademlia.TestUtils.verifyActivityChangeSetCounts;
 import static com.offbynull.voip.kademlia.TestUtils.verifyActivityChangeSetRemoved;
+import static com.offbynull.voip.kademlia.TestUtils.verifyNodesInActivities;
 import static com.offbynull.voip.kademlia.TestUtils.verifyPrefixMatches;
 import java.time.Instant;
+import java.util.List;
+import static org.junit.Assert.assertEquals;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -37,7 +40,7 @@ public final class RouteTreeTest {
     
     public RouteTreeTest() {
         SimpleRouteTreeSpecificationSupplier specSupplier = new SimpleRouteTreeSpecificationSupplier(NODE_0000.getId(), 2, 2, 2);
-        fixture = new RouteTree(NODE_0000.getId(), specSupplier, specSupplier);        
+        fixture = new RouteTree(NODE_0000, specSupplier, specSupplier);        
     }
 
     @Test
@@ -148,7 +151,121 @@ public final class RouteTreeTest {
         verifyActivityChangeSetRemoved(res.getKBucketChangeSet().getBucketChangeSet(), NODE_0101);
         verifyActivityChangeSetCounts(res.getKBucketChangeSet().getCacheChangeSet(), 0, 0, 0);
     }
+
+    @Test
+    public void mustReplaceCacheNodesInBucket() throws Throwable {
+        RouteTreeChangeSet res;
+        
+        res = fixture.touch(BASE_TIME.plusMillis(1L), NODE_1001);
+        verifyPrefixMatches(res.getKBucketPrefix(), "1");
+        verifyActivityChangeSetCounts(res.getKBucketChangeSet().getBucketChangeSet(), 1, 0, 0);
+        verifyActivityChangeSetAdded(res.getKBucketChangeSet().getBucketChangeSet(), NODE_1001);
+        verifyActivityChangeSetCounts(res.getKBucketChangeSet().getCacheChangeSet(), 0, 0, 0);
+        
+        res = fixture.touch(BASE_TIME.plusMillis(2L), NODE_1010);
+        verifyPrefixMatches(res.getKBucketPrefix(), "1");
+        verifyActivityChangeSetCounts(res.getKBucketChangeSet().getBucketChangeSet(), 1, 0, 0);
+        verifyActivityChangeSetAdded(res.getKBucketChangeSet().getBucketChangeSet(), NODE_1010);
+        verifyActivityChangeSetCounts(res.getKBucketChangeSet().getCacheChangeSet(), 0, 0, 0);
+        
+        res = fixture.touch(BASE_TIME.plusMillis(3L), NODE_1011);
+        verifyPrefixMatches(res.getKBucketPrefix(), "1");
+        verifyActivityChangeSetCounts(res.getKBucketChangeSet().getBucketChangeSet(), 0, 0, 0);
+        verifyActivityChangeSetCounts(res.getKBucketChangeSet().getCacheChangeSet(), 1, 0, 0);
+        verifyActivityChangeSetAdded(res.getKBucketChangeSet().getCacheChangeSet(), NODE_1011);
+        
+        res = fixture.touch(BASE_TIME.plusMillis(4L), NODE_1100);
+        verifyPrefixMatches(res.getKBucketPrefix(), "1");
+        verifyActivityChangeSetCounts(res.getKBucketChangeSet().getBucketChangeSet(), 0, 0, 0);
+        verifyActivityChangeSetCounts(res.getKBucketChangeSet().getCacheChangeSet(), 1, 0, 0);
+        verifyActivityChangeSetAdded(res.getKBucketChangeSet().getCacheChangeSet(), NODE_1100);
+        
+        res = fixture.touch(BASE_TIME.plusMillis(5L), NODE_1101);
+        verifyPrefixMatches(res.getKBucketPrefix(), "1");
+        verifyActivityChangeSetCounts(res.getKBucketChangeSet().getBucketChangeSet(), 0, 0, 0);
+        verifyActivityChangeSetCounts(res.getKBucketChangeSet().getCacheChangeSet(), 1, 1, 0);
+        verifyActivityChangeSetRemoved(res.getKBucketChangeSet().getCacheChangeSet(), NODE_1011);
+        verifyActivityChangeSetAdded(res.getKBucketChangeSet().getCacheChangeSet(), NODE_1101);
+        
+        res = fixture.touch(BASE_TIME.plusMillis(6L), NODE_1110);
+        verifyPrefixMatches(res.getKBucketPrefix(), "1");
+        verifyActivityChangeSetCounts(res.getKBucketChangeSet().getBucketChangeSet(), 0, 0, 0);
+        verifyActivityChangeSetCounts(res.getKBucketChangeSet().getCacheChangeSet(), 1, 1, 0);
+        verifyActivityChangeSetRemoved(res.getKBucketChangeSet().getCacheChangeSet(), NODE_1100);
+        verifyActivityChangeSetAdded(res.getKBucketChangeSet().getCacheChangeSet(), NODE_1110);
+        
+        res = fixture.touch(BASE_TIME.plusMillis(7L), NODE_1111);
+        verifyPrefixMatches(res.getKBucketPrefix(), "1");
+        verifyActivityChangeSetCounts(res.getKBucketChangeSet().getBucketChangeSet(), 0, 0, 0);
+        verifyActivityChangeSetCounts(res.getKBucketChangeSet().getCacheChangeSet(), 1, 1, 0);
+        verifyActivityChangeSetRemoved(res.getKBucketChangeSet().getCacheChangeSet(), NODE_1101);
+        verifyActivityChangeSetAdded(res.getKBucketChangeSet().getCacheChangeSet(), NODE_1111);
+        
+        
+        verifyNodesInActivities(fixture.dumpBucket(BitString.createFromString("1")), NODE_1001, NODE_1010);
+    }
+
+    @Test
+    public void mustFindClosestSingleNode() throws Throwable {
+        // all of the following nodes should be inserted in to buckets of kbuckets, not caches of kbuckets
+        fixture.touch(BASE_TIME.plusMillis(1L), NODE_0001);
+        fixture.touch(BASE_TIME.plusMillis(2L), NODE_0010);
+        fixture.touch(BASE_TIME.plusMillis(3L), NODE_0011);
+        fixture.touch(BASE_TIME.plusMillis(4L), NODE_0100);
+        fixture.touch(BASE_TIME.plusMillis(5L), NODE_0111);
+        fixture.touch(BASE_TIME.plusMillis(6L), NODE_1100);
+        fixture.touch(BASE_TIME.plusMillis(7L), NODE_1110);
+
+        Node res;
+        
+        res = fixture.findStrict(NODE_1000.getId(), 1).get(0).getNode();
+        assertEquals(res, NODE_1100);
+        res = fixture.findStrict(NODE_1001.getId(), 1).get(0).getNode();
+        assertEquals(res, NODE_1100);
+        res = fixture.findStrict(NODE_1010.getId(), 1).get(0).getNode();
+        assertEquals(res, NODE_1110); // this is correct ... remember bits are flipped if common prefixes are the same
+        res = fixture.findStrict(NODE_1100.getId(), 1).get(0).getNode();
+        assertEquals(res, NODE_1100);
+        res = fixture.findStrict(NODE_1101.getId(), 1).get(0).getNode();
+        assertEquals(res, NODE_1100);
+        res = fixture.findStrict(NODE_1110.getId(), 1).get(0).getNode();
+        assertEquals(res, NODE_1110);
+        res = fixture.findStrict(NODE_1111.getId(), 1).get(0).getNode();
+        assertEquals(res, NODE_1110);
+    }
+
+    @Test
+    public void mustFindClosestNodes() throws Throwable {
+        // all of the following nodes should be inserted in to buckets of kbuckets, not caches of kbuckets
+        fixture.touch(BASE_TIME.plusMillis(1L), NODE_0001);
+        fixture.touch(BASE_TIME.plusMillis(2L), NODE_0010);
+        fixture.touch(BASE_TIME.plusMillis(3L), NODE_0011);
+        fixture.touch(BASE_TIME.plusMillis(4L), NODE_0100);
+        fixture.touch(BASE_TIME.plusMillis(5L), NODE_0111);
+        fixture.touch(BASE_TIME.plusMillis(6L), NODE_1100);
+        fixture.touch(BASE_TIME.plusMillis(7L), NODE_1110);
+
+        List<Activity> res;
+        
+        // for all of these, res is correct ... remember bits are flipped if common prefixes are the same
+        res = fixture.findStrict(NODE_0001.getId(), 5);
+        verifyNodesInActivities(res, NODE_0001, NODE_0011, NODE_0010, NODE_0100, NODE_0111); 
+        res = fixture.findStrict(NODE_0010.getId(), 5);
+        verifyNodesInActivities(res, NODE_0010, NODE_0011, NODE_0111, NODE_0100); 
+        res = fixture.findStrict(NODE_0011.getId(), 5);
+        verifyNodesInActivities(res, NODE_0011, NODE_0010, NODE_0111, NODE_0100); 
+        res = fixture.findStrict(NODE_0100.getId(), 5);
+        verifyNodesInActivities(res, NODE_0100, NODE_0111); 
+        res = fixture.findStrict(NODE_1000.getId(), 5);
+        verifyNodesInActivities(res, NODE_1100, NODE_1110); 
+    }
     
+    @Test
+    public void mustRejectIfFindingSelfId() throws Throwable {
+        expectedException.expect(IllegalArgumentException.class);
+        fixture.findStrict(NODE_0000.getId(), 1);
+    }
+
     @Test
     public void mustRejectIfTouchingSelfId() throws Throwable {
         expectedException.expect(IllegalArgumentException.class);

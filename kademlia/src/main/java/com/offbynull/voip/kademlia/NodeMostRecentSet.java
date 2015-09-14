@@ -49,7 +49,7 @@ public final class NodeMostRecentSet {
         String nodeLink = node.getLink();
         
         Validate.isTrue(nodeId.getBitLength() == baseId.getBitLength());
-        Validate.isTrue(!nodeId.equals(baseId));
+//        Validate.isTrue(!nodeId.equals(baseId)); // Don't reject adding self
         
         // TODO: You can make this way more efficient if you used something like MultiTreeSet (guava) and sorted based on entry time
 

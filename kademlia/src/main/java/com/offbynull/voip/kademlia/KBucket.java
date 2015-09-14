@@ -67,7 +67,8 @@ public final class KBucket {
 
         Id nodeId = node.getId();
 
-        Validate.isTrue(!nodeId.equals(baseId));
+        // Let this thru... it's up to the caller if it wants to keep self out of the bucket. Don't reject.
+//        Validate.isTrue(!nodeId.equals(baseId));
         Validate.isTrue(nodeId.getBitLength() == baseId.getBitLength());
         
         Validate.isTrue(nodeId.getBitString().getBits(0, prefix.getBitLength()).equals(prefix)); // ensure prefix matches
@@ -110,7 +111,9 @@ public final class KBucket {
         
         Id nodeId = node.getId();
 
-        Validate.isTrue(!nodeId.equals(baseId));
+        // Let this thru... if the caller can touch self, it should be able to mark self as stale and evict it... but it makes 0 sense to
+        // want to do this. It's up to the caller how to treat self. Don't reject.
+//        Validate.isTrue(!nodeId.equals(baseId));
         Validate.isTrue(nodeId.getBitLength() == baseId.getBitLength());
         
         Validate.isTrue(nodeId.getBitString().getBits(0, prefix.getBitLength()).equals(prefix)); // ensure prefix matches
@@ -222,10 +225,15 @@ public final class KBucket {
             Id id = node.getId();
             int idx = (int) id.getBitsAsLong(prefix.getBitLength(), bitCount);
             
-            // Touch bucket
+            // Touch bucket and mark as stale
             ActivityChangeSet res;
             try {
                 res = newKBuckets[idx].bucket.touch(entry.getTime(), node);
+                // FYI: If there are stale items, it means the cache is empty. Otherwise they would have been replaced if as soon as a cache
+                // node entered the bucket.
+                if (staleSet.contains(node)) {
+                    newKBuckets[idx].staleSet.add(node);
+                }
             } catch (LinkConflictException ece) {
                 // should never happen
                 throw new IllegalStateException(ece);
@@ -317,7 +325,7 @@ public final class KBucket {
         return new KBucketChangeSet(ActivityChangeSet.NO_CHANGE, res);
     }
 
-    public List<Activity> dumpBucket() {
+    public List<Activity> dumpBucket() { // includes stales
         return bucket.dump();
     }
 
