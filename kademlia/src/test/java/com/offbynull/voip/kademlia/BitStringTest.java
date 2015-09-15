@@ -224,6 +224,78 @@ public class BitStringTest {
         assertEquals(10, baseBitString.getSharedPrefixLength(partialMatchBitString2));
     }
     
+    @Test
+    public void mustIdentifyCommonPrefixLengthWhenDealingWithEdgeBits() {
+        // impelemtnation uses bytes ... groups of 8 bits
+        BitString baseBitString = BitString.createFromString("100000000");
+        
+        assertEquals(9, BitString.createFromString("100000000").getSharedPrefixLength(baseBitString));
+        assertEquals(8, BitString.createFromString("10000000").getSharedPrefixLength(baseBitString));
+        assertEquals(7, BitString.createFromString("1000000").getSharedPrefixLength(baseBitString));
+        assertEquals(6, BitString.createFromString("100000").getSharedPrefixLength(baseBitString));
+        assertEquals(5, BitString.createFromString("10000").getSharedPrefixLength(baseBitString));
+        assertEquals(4, BitString.createFromString("1000").getSharedPrefixLength(baseBitString));
+        assertEquals(3, BitString.createFromString("100").getSharedPrefixLength(baseBitString));
+        assertEquals(2, BitString.createFromString("10").getSharedPrefixLength(baseBitString));
+        assertEquals(1, BitString.createFromString("1").getSharedPrefixLength(baseBitString));
+        assertEquals(0, BitString.createFromString("").getSharedPrefixLength(baseBitString));
+
+    }
+
+    @Test
+    public void mustIdentifyCommonSuffixLength() {
+        BitString baseBitString = BitString.createFromString("000000000001");
+        BitString noMatchBitString = BitString.createFromString("000000000000");
+        BitString partialMatchBitString = BitString.createFromString("000010000001");
+        BitString fullMatchBitString = BitString.createFromString("000000000001");
+        
+        assertEquals(0, baseBitString.getSharedSuffixLength(noMatchBitString));
+        assertEquals(7, baseBitString.getSharedSuffixLength(partialMatchBitString));
+        assertEquals(12, baseBitString.getSharedSuffixLength(fullMatchBitString));
+    }
+
+    @Test
+    public void mustIdentifyCommonSuffixLengthOnSmallerSizes() {
+        BitString baseBitString = BitString.createFromString("000000000001");
+        BitString noMatchBitString = BitString.createFromString("0");
+        BitString partialMatchBitString1 = BitString.createFromString("110000001");
+        BitString partialMatchBitString2 = BitString.createFromString("000000001");
+        
+        assertEquals(0, baseBitString.getSharedSuffixLength(noMatchBitString));
+        assertEquals(7, baseBitString.getSharedSuffixLength(partialMatchBitString1));
+        assertEquals(9, baseBitString.getSharedSuffixLength(partialMatchBitString2));
+    }
+
+    @Test
+    public void mustIdentifyCommonSuffixLengthOnLargerSizes() {
+        BitString baseBitString = BitString.createFromString("000000000001");
+        BitString noMatchBitString = BitString.createFromString("0000000000000000");
+        BitString partialMatchBitString1 = BitString.createFromString("0000000010000001");
+        BitString partialMatchBitString2 = BitString.createFromString("0000010000000001");
+        
+        assertEquals(0, baseBitString.getSharedSuffixLength(noMatchBitString));
+        assertEquals(7, baseBitString.getSharedSuffixLength(partialMatchBitString1));
+        assertEquals(10, baseBitString.getSharedSuffixLength(partialMatchBitString2));
+    }
+
+    @Test
+    public void mustIdentifyCommonSuffixLengthWhenDealingWithEdgeBits() {
+        // impelemtnation uses bytes ... groups of 8 bits
+        BitString baseBitString = BitString.createFromString("000000001");
+        
+        assertEquals(9, BitString.createFromString("000000001").getSharedSuffixLength(baseBitString));
+        assertEquals(8, BitString.createFromString("00000001").getSharedSuffixLength(baseBitString));
+        assertEquals(7, BitString.createFromString("0000001").getSharedSuffixLength(baseBitString));
+        assertEquals(6, BitString.createFromString("000001").getSharedSuffixLength(baseBitString));
+        assertEquals(5, BitString.createFromString("00001").getSharedSuffixLength(baseBitString));
+        assertEquals(4, BitString.createFromString("0001").getSharedSuffixLength(baseBitString));
+        assertEquals(3, BitString.createFromString("001").getSharedSuffixLength(baseBitString));
+        assertEquals(2, BitString.createFromString("01").getSharedSuffixLength(baseBitString));
+        assertEquals(1, BitString.createFromString("1").getSharedSuffixLength(baseBitString));
+        assertEquals(0, BitString.createFromString("").getSharedSuffixLength(baseBitString));
+
+    }
+    
     private static byte[] toBytes(long data) { // returns in big endian format
         byte[] bytes = new byte[8];
         for (int i = 0; i < 8; i++) {

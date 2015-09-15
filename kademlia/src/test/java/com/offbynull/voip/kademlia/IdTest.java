@@ -105,4 +105,16 @@ public class IdTest {
         assertEquals(7, baseId.getSharedPrefixLength(partialMatchId));
         assertEquals(12, baseId.getSharedPrefixLength(fullMatchId));
     }
+
+    @Test
+    public void mustIdentifyCommonSuffixLength() {
+        Id baseId = Id.create(BitString.createFromString("101000101111"));
+        Id noMatchId = Id.create(BitString.createFromString("000000000000"));
+        Id partialMatchId = Id.create(BitString.createFromString("101000111111"));
+        Id fullMatchId = Id.create(BitString.createFromString("101000101111"));
+        
+        assertEquals(0, baseId.getSharedSuffixLength(noMatchId));
+        assertEquals(4, baseId.getSharedSuffixLength(partialMatchId));
+        assertEquals(12, baseId.getSharedSuffixLength(fullMatchId));
+    }
 }

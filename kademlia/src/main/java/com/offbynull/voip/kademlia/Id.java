@@ -124,6 +124,20 @@ public final class Id implements Serializable {
     }
 
     /**
+     * Equivalent to {@link BitString#getSharedSuffixLength(com.offbynull.voip.core.BitString) }.
+     * @param other other ID to test against
+     * @return number of common suffix bits
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if the bitlength from {@code this} doesn't match the bitlength from {@code other}
+     */
+    public int getSharedSuffixLength(Id other) {
+        Validate.notNull(other);
+        Validate.isTrue(bitString.getBitLength() == other.bitString.getBitLength());
+
+        return bitString.getSharedSuffixLength(other.bitString);
+    }
+
+    /**
      * Equivalent to {@link BitString#flipBit(int) }.
      * @param offset offset of bit
      * @return new id that has bit flipped

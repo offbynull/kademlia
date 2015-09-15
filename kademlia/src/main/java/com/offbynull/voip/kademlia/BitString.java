@@ -321,7 +321,7 @@ public final class BitString implements Serializable {
         }
         
         if (nextByteIdx == maxCompareLenAsBytes) {
-            // All bytes matched, both strings match entirely
+            // All bytes matched, both string prefixes match entirely
             return maxCompareLenAsBits;
         }
         
@@ -329,7 +329,7 @@ public final class BitString implements Serializable {
         int otherLastByte = other.data[nextByteIdx] & 0xFF;
       
         int bitMatchCount = 0;
-        for (int i = 0; i < 7; i++) {
+        for (int i = 0; i <= 7; i++) {
             int thisBit = (thisLastByte >> i) & 0x01;
             int otherBit = (otherLastByte >> i) & 0x01;
             if (thisBit != otherBit) {
@@ -341,6 +341,34 @@ public final class BitString implements Serializable {
         int finalBitMatchCount = (nextByteIdx * 8) + bitMatchCount;
         
         return finalBitMatchCount;
+    }
+    
+    /**
+     * Get the number of bits that are that this bitstring's suffix shares with another bitstring.
+     * @param other other bitstring to test against
+     * @return number of common suffix bits
+     * @throws NullPointerException if any argument is {@code null}
+     */
+    public int getSharedSuffixLength(BitString other) {
+        Validate.notNull(other);
+        
+        // You can make this more efficient by doing something similar to getSharedPrefixLength()
+        
+        int thisBitOffset = bitLength - 1;
+        int otherBitOffset = other.bitLength - 1;
+        int bitMatchCount = 0;
+        while (thisBitOffset >= 0 && otherBitOffset >= 0) {
+            boolean thisBit = getBit(thisBitOffset);
+            boolean otherBit = other.getBit(otherBitOffset);
+            if (thisBit != otherBit) {
+                break;
+            }
+            bitMatchCount++;
+            thisBitOffset--;
+            otherBitOffset--;
+        }
+        
+        return bitMatchCount;
     }
     
     /**
