@@ -1,6 +1,5 @@
 package com.offbynull.voip.kademlia;
 
-import com.offbynull.voip.kademlia.Id;
 import static org.junit.Assert.assertEquals;
 import org.junit.Rule;
 import org.junit.Test;
