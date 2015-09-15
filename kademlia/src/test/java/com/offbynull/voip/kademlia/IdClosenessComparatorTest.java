@@ -17,7 +17,7 @@ public class IdClosenessComparatorTest {
     private static final Node NODE_0101 = new Node(Id.createFromLong(0x05L, 4), "5");
     private static final Node NODE_0110 = new Node(Id.createFromLong(0x06L, 4), "6");
     private static final Node NODE_0111 = new Node(Id.createFromLong(0x07L, 4), "7");
-    private static final Node NODE_1000 = new Node(Id.createFromLong(0x08L, 4), "8"); // 0000
+    private static final Node NODE_1000 = new Node(Id.createFromLong(0x08L, 4), "8");
     private static final Node NODE_1001 = new Node(Id.createFromLong(0x09L, 4), "9");
     private static final Node NODE_1010 = new Node(Id.createFromLong(0x0AL, 4), "A");
     private static final Node NODE_1011 = new Node(Id.createFromLong(0x0BL, 4), "B");
@@ -26,12 +26,10 @@ public class IdClosenessComparatorTest {
     private static final Node NODE_1110 = new Node(Id.createFromLong(0x0EL, 4), "E");
     private static final Node NODE_1111 = new Node(Id.createFromLong(0x0FL, 4), "F");
     
-    private IdClosenessComparator fixture = new IdClosenessComparator(NODE_0000.getId()); // 000
+    private IdClosenessComparator fixture = new IdClosenessComparator(NODE_0000.getId()); // 0000
     
     @Test
     public void mustIdentifyWhenEqual() {
-        Id o1 = Id.createFromLong(0x1L, 3); // 0001
-        
         int res = fixture.compare(NODE_0001.getId(), NODE_0001.getId());
         assertEquals(0, res);
     }
@@ -48,7 +46,7 @@ public class IdClosenessComparatorTest {
     }
     
     @Test
-    public void mustFlipBitsToIdentifyWhenArgumentsHaveEqualPrefix() {
+    public void mustIdentifyLesserWhenPrefixesAreEqual() {
         Id o1 = NODE_1100.getId(); // 1100
         Id o2 = NODE_1110.getId(); // 1110
         
@@ -59,29 +57,32 @@ public class IdClosenessComparatorTest {
     }
 
     @Test
-    public void mustProperlySortWhenNoPrefixPresent() {
+    public void mustProperlySortLargeIdSpace() {
         List<Id> list = new ArrayList<>();
         
-        fixture = new IdClosenessComparator(NODE_0000.getId());
+        // 1100 repeated multiple times
+        Id baseId = Id.create(BitString.createFromString(
+                "110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100"
+                + "11001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100"
+                + "1100110011001100110011001100"));
         
-        list.add(NODE_0000.getId());
-        list.add(NODE_0001.getId());
-        list.add(NODE_0010.getId());
-        list.add(NODE_0011.getId());
-        list.add(NODE_0100.getId());
-        list.add(NODE_0101.getId());
-        list.add(NODE_0110.getId());
-        list.add(NODE_0111.getId());
-        list.add(NODE_1000.getId());
-        list.add(NODE_1001.getId());
-        list.add(NODE_1010.getId());
-        list.add(NODE_1011.getId());
-        list.add(NODE_1100.getId());
-        list.add(NODE_1101.getId());
-        list.add(NODE_1110.getId());
-        list.add(NODE_1111.getId());
+        fixture = new IdClosenessComparator(baseId);
+        
+        list.add(baseId.setBitsAsLong(0x00L, 0, 4));// first 4 bits turned to 0000
+        list.add(baseId.setBitsAsLong(0x04L, 0, 4));// first 4 bits turned to 0100
+        list.add(baseId.setBitsAsLong(0x08L, 0, 4));// first 4 bits turned to 1000
+        list.add(baseId.setBitsAsLong(0x0CL, 0, 4));// first 4 bits turned to 1100 (nochange)
+        list.add(baseId.setBitsAsLong(0x0EL, 0, 4));// first 4 bits turned to 1110
+        list.add(baseId.setBitsAsLong(0x0FL, 0, 4));// first 4 bits turned to 1111
         
         Collections.sort(list, fixture);
+        
+        assertEquals(0x0CL, list.get(0).getBitsAsLong(0, 4));
+        assertEquals(0x0EL, list.get(1).getBitsAsLong(0, 4));
+        assertEquals(0x0FL, list.get(2).getBitsAsLong(0, 4));
+        assertEquals(0x08L, list.get(3).getBitsAsLong(0, 4));
+        assertEquals(0x04L, list.get(4).getBitsAsLong(0, 4));
+        assertEquals(0x00L, list.get(5).getBitsAsLong(0, 4));
         
         list.forEach(System.out::println);
     }

@@ -30,53 +30,42 @@ public final class IdClosenessComparator implements Comparator<Id>, Serializable
         this.baseId = baseId;
     }
 
+
+    // This is the XOR metric
     @Override
     public int compare(Id o1, Id o2) {
         Validate.notNull(o1);
         Validate.notNull(o2);
+        Validate.isTrue(o1.getBitLength() == baseId.getBitLength(), "Bitlengths between IDs must be equal to that of base ID");
+        Validate.isTrue(o2.getBitLength() == baseId.getBitLength(), "Bitlengths between IDs must be equal to that of base ID");
         
-        System.out.println(o1);
-        System.out.println(o2);
-        // If the two IDs contain all the same bits, then they're equal
-        if (o1.equals(o2)) {
-            return 0;
-        }
+        int bitLen = baseId.getBitLength();
         
-        // If one ID contains a larger common prefix with base ID than the other ID, that one with the larger prefix is the greater one
-        int simpleCompareRes = compareBySharedPrefixLength(o1, o2);
-        if (simpleCompareRes != 0) {
-            return simpleCompareRes;
-        }
-        
-        // If the prefixes are equal, start flipping bits after sharedPrefixLen until one comes out greater than the other...
-        // See section in notes about notion of closeness to understand why this is being done
-        int offset = o1.getSharedPrefixLength(baseId);
-        int end = baseId.getBitLength();
-        for (int i = offset; i < end; i++) {
-            o1 = o1.flipBit(i);
-            o2 = o2.flipBit(i);
+        int offset = 0;
+        while (offset < bitLen) {
+            // read as much as possible, up to 63 bits
+            // 63 because the 64th bit will be the sign bit, and we don't want to deal negatives
+            int readLen = Math.min(bitLen - offset, 63);
             
-            int prefixLenCompareRes = compareBySharedPrefixLength(o1, o2);
-            if (prefixLenCompareRes != 0) {
-                return prefixLenCompareRes;
+            // xor blocks together
+            long xorBlock1 = o1.getBitsAsLong(offset, readLen) ^ baseId.getBitsAsLong(offset, readLen);
+            long xorBlock2 = o2.getBitsAsLong(offset, readLen) ^ baseId.getBitsAsLong(offset, readLen);
+            
+            // move offset by the amount we read
+            offset += readLen;
+            
+            // if we read hte full 64 bits, we'd have to use compareUnsigned? we don't want to do that because behind the scenes if creates
+            // a BigInteger and does the comparison using that.
+            //
+            // compare 63 bits together, if not equal, we've found a "greater" one
+            int res = Long.compare(xorBlock1, xorBlock2);
+            if (res != 0) {
+                return res;
             }
         }
         
-        // At this point it means that o1 and o2 have an equal prefix to baseId after all bits have been flipped.
+        // Reaching this point means that o1 and o2 match baseId.
         return 0;
-    }
-
-    private int compareBySharedPrefixLength(Id o1, Id o2) {
-        int sharedPrefixLen1 = o1.getSharedPrefixLength(baseId);
-        int sharedPrefixLen2 = o2.getSharedPrefixLength(baseId);
-        
-        if (sharedPrefixLen1 > sharedPrefixLen2) {
-            return -1; // -1 because its closer
-        } else if (sharedPrefixLen1 < sharedPrefixLen2) {
-            return 1; // 1 because its farther
-        } else {
-            return 0;
-        }
     }
     
 }

@@ -474,10 +474,10 @@ public final class BitString implements Serializable {
             int writeBitPos = (len - i) - 1;
             
             if (bit) {
-                long bitMask = 1 << writeBitPos;
+                long bitMask = 1L << writeBitPos;
                 dataCopy |= bitMask;
             } else {
-                long bitMask = ~(1 << writeBitPos);
+                long bitMask = ~(1L << writeBitPos);
                 dataCopy &= bitMask;
             }
         }
