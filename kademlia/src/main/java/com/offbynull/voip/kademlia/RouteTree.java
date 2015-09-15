@@ -20,12 +20,8 @@ import com.offbynull.voip.kademlia.RouteTreeBucketSpecificationSupplier.BucketPa
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
-import static java.util.Collections.max;
-import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.TreeSet;
 import org.apache.commons.lang3.Validate;
 
 public final class RouteTree {
@@ -60,163 +56,70 @@ public final class RouteTree {
         Validate.isTrue(id.getBitLength() == baseNode.getId().getBitLength());
         Validate.isTrue(max >= 0); // why would anyone want 0? let thru anyways
 
-        // Create collection to hold closest nodes -- TreeSet because maintains order and keeps out duplicates
-        IdClosenessComparator comparator = new IdClosenessComparator(id);
-        TreeSet<Activity> output = new TreeSet<>((x, y) -> comparator.compare(x.getNode().getId(), y.getNode().getId()));
+        // Target kBucket found -- we've reached the bucket with the largest common prefix.
+        //
+        // How does this work?
+        //
+        // For example, assume an id space of 6 bits and a routing tree that handles 2 bits at a time (branches 4 times per level).
+        // Let's say we're looking for the closest nodes to ID 000110. The largest matching prefix for this is 0001xx, which is
+        // found on the second level. Dump the bucket for 0001xx.
+        //
+        // If we still have room left, then go down branch 0000xx and dump in all the buckets you can find (recursively if the tree)
+        // is larger) until you run out of room -- because buckets under 0000xx share the next largest prefix with the ID we're
+        // searching for (000110 and 0000xx share the first 3 bits: 000xxx).
+        //
+        // If we still have even more room after that, we need to come back up the tree and dump remaining branches: 0010xx and
+        // 0011xx -- because these two buckets share the next largest prefix prefixes with the ID we're searching for (share the
+        // first 2 bits).
+        //
+        // If we still ahve even more room after that, come up to the first level and target 01xxxx (shares 1 bit), and after that
+        // 10xxxx and 11xxxx (shares 0 bits).
+        //
+        // If you follow this order of doing things, you're ensured that youre list will contain largest matching prefix to least
+        // matching prefix.
+        //
+        //                                   /\
+        //                                  / |\
+        //                                 /  | \
+        //                                /  / \ \
+        //                               /   | |  \
+        //                              /    | |   \
+        //                           00/  01/  \10  \11
+        //                            /\
+        //                           / |\
+        //                          /  | \
+        //                         /  / \ \
+        //                        /   | |  \
+        //                       /    | |   \
+        //                    00/  01/  \10  \11
+        //                     /\
+        //                    / |\
+        //                   /  | \
+        //                  /  / \ \
+        //                 /   | |  \
+        //                /    | |   \
+        //             00/  01/  \10  \11
+        //
+        //
+        // Can this be generalized to an algorithm?
+        //
+        // Find the level that has the bucket with the largest matching prefix. Sort the branches at that level by matching prefix.
+        // Go through the sorted branches in order...
+        //
+        //   If it's a bucket: dump it.
+        //   If it's a branch: recursively descend down the branch (breadth first) and dump each bucket
+        //
+        // At this point you're at the same level you started from. Assuming that you still don't have the max elements you want.
+        // Go back up parent, sort the branches at that level by matching prefix, and go through the sorted branches in order just
+        // like you originally did. BUT don't recurse down the branch you just returned from!
+        //
+        //
+        
+        LinkedList<Activity> output = new LinkedList<>();
         
         
-        // How does this method work? It grabs nodes from the bucket with the largest possible prefix, and then it begins successfully
-        // accessing buckets with smaller and smaller prefixes. For example, assume a 4-bit system where you are 0000...
-        //
-        //                   0/ \1
-        //                   /   \
-        //                  /     \
-        //                 /        
-        //                /          
-        //               /             
-        //              /              
-        //             /                
-        //            /                  
-        //           /                    
-        //         0/ \1                              
-        //         /   \                              
-        //        /     \                    
-        //       /                            
-        //      /                              
-        //    0/ \1                              
-        //    /   \                               
-        //  0/\1                                   
-        //  *
-        //
-        // Now lets say you wanted to find the 5 closest nodes (closest in this case means largest possible prefix) to 0010...
-        // 
-        //
-        // 1. Start: The bucket with the largest prefix to node 0010 is the bucket 001x
-        //     -- Note that this step is accessing nodes in the routing table with the largest possible prefix (001x)
-        //
-        // 2. Remove the 3rd bit from the prefix to search all buckets under 00xx (0000/0001):
-        //     -- Note that this step is accessing ALL nodes in the routing table with the 2nd largest possible prefix (00xx)
-        //
-        // 3. Remove the 2nd bit from the prefix to search all buckets under 0xxx (0000/0001/001x/01xx):
-        //     -- Note that this step is accessing ALL nodes in the routing table with the 3rd largest possible prefix (0xxx)
-        //
-        // 4. Remove the 1st bit from the prefix to search all buckets under xxxx (0000/0001/001x/01xx/1xxx):
-        //     -- Note that this step is accessing ALL nodes in the routing table with the 4th largest possible prefix (xxxx) AKA no prefix
-        // 
         
-        // Dump out nodes in bucket with largest matching prefix
-        dumpBucketToOutput(id, output, max);
-        
-        // Dump out nodes in buckets with smaller matching prefixes
-        int maxPrefixMatchLen = root.findBucketWithLargestSharedPrefix(id).getPrefix().getBitLength();
-        int nextPrefixLen = maxPrefixMatchLen - 1;
-        while (nextPrefixLen >= 0 && output.size() < max) {
-            dumpAllBucketsWithPrefixToOutput(id, nextPrefixLen, output, max);
-        }
-        
-        
-        
-        
-        
-        return new ArrayList<>(output);
-
-        
-        // At this point, output will contain the closest nodes that share a prefix. However, if we still have room, re-do the search as if
-        // all the buckets accessed were empty -- flipping the bits corresponding to those empty buckets, as per Kademlia's notion of
-        // closeness. 
-        //
-        // IMPORTANT NOTE: If we've more than 2 branches per level, the bit flipping is not bit flipping but changing the bits such that we
-        //                 traverse further down the tree. Also, when at the k-bucket with the largest common shared prefix, every k-bucket
-        //                 at that level is scanned and sorted by shared common prefix length
-        //
-        //
-        // Why do you want to do this? A few reasons...
-        //
-        // 1. Highly unbalanced networks
-        // 2. Networks in their infancy (very few nodes in the network)
-        //
-        // Assume a 3-bit system with k = 1. Assume that the network only has nodes in the 11x range present.
-        // 
-        //                   0/ \1
-        //                   /   \
-        //                  /     \
-        //                 /       \
-        //                /         \
-        //               /           \ 
-        //              /             \
-        //             /               \
-        //            /                 \
-        //           /                   \
-        //         0/ \1               0/ \1          
-        //         /   \               /   \          
-        //        /     \             /     \
-        //       /       \           /       \
-        //      /         \         /         \
-        //    0/ \1     0/ \1     0/ \1     0/ \1
-        //    /   \     /   \     /   \     /   \ 
-        //  0/\1 0/\1 0/\1 0/\1 0/\1 0/\1 0/\1 0/\1
-        //
-        // This is a highly unbalanced network
-        //
-        // Node 111b wants to store a value at 000b, but node 111b has nothing in its 0xxb bucket. The store could be important, so we
-        // follow this notion of closeness and flip the top bit, turning 000b to 100b. 100b then becomes the ID to search for. It turns out
-        // that 100b isn't present in the network as well, so we  flip the next bit and turn 100b to 110b. 110b exists and is found.
-        //
-        // How likely is this to happen in a real Kademlia network with a key size of 160-bits? Even if the RNG for node ID generation is
-        // biased, it probably won't be biased to the point where we have a massively lop-sided tree. But, networks just starting out with
-        // only a few nodes in them may encounter this scenario.
-//
-//
-//
-//        while (output.size() < max && lastDumpedLevel.child != null) {
-//            int bitOffset = lastDumpedLevel.prefix.getBitLength();
-//            BitString lastDumpedLevelBitsForChild = lastDumpedLevel.child.prefix.getBits(bitOffset, lastDumpedLevel.suffixLen);
-//            
-//            id = id.setBits(bitOffset, lastDumpedLevelBitsForChild);
-//            lastDumpedLevel = root.findClosestNodesByLargestSharedPrefix(id, output, max);
-//        }
-//        
-//        return new ArrayList<>(output);
-    }
-
-    private void dumpBucketToOutput(Id id, Collection<Activity> output, int max) {
-        IdClosenessComparator closenessComparator = new IdClosenessComparator(id);
-        if (id.equals(baseNode.getId())) {
-            // SPECIAL CASE: If searchId is self, add self to output and continue
-            output.add(new Activity(baseNode, Instant.MIN));
-        } else {
-            // Get bucket associated with search id
-            KBucket closestBucket = root.findBucketWithLargestSharedPrefix(id);
-            List<Activity> closestBucketNodes = closestBucket.dumpBucket();
-
-            // Sort that bucket based on "closeness"
-            closestBucketNodes.sort((x, y) -> closenessComparator.compare(x.getNode().getId(), y.getNode().getId()));
-
-            // Add the appropriate number of elements to fill up output as much as we can (get it as close to max len as possible)
-            int remaining = max - output.size();
-            int amountToAdd = Math.min(remaining, closestBucketNodes.size());
-            output.addAll(closestBucketNodes.subList(0, amountToAdd));
-        }
-    }
-
-    private void dumpAllBucketsWithPrefixToOutput(Id id, int prefixLen, TreeSet<Activity> output, int max) {
-        BitString searchPrefix = id.getBitString().getBits(0, prefixLen);
-        if (id.equals(baseNode.getId())) {
-            // SPECIAL CASE: If searchId is self, add self to output and continue
-            output.add(new Activity(baseNode, Instant.MIN));
-        } else {
-            // Get all buckets with this prefix
-            LinkedList<KBucket> foundKBuckets = new LinkedList<>();
-            root.findBucketsWithPrefix(searchPrefix, foundKBuckets);
-            
-            for (KBucket foundKBucket : foundKBuckets) {
-                output.addAll(foundKBucket.dumpBucket());
-                // if we've exceeded max, discard thes that are farthest away, keeping only the max closest elements
-                while (output.size() > max) {
-                    output.pollLast();
-                }
-            }
-        }
+        return output;
     }
     
     public List<Activity> dumpBucket(BitString prefix) {
@@ -303,7 +206,7 @@ public final class RouteTree {
 
         
         // Calculate which bucket from parent to split
-        int parentNumOfBuckets = parent.kBuckets.size();
+        int parentNumOfBuckets = parent.branches.size();
         Validate.validState(Integer.bitCount(parentNumOfBuckets) == 1); // sanity check numofbuckets is pow of 2
         int parentPrefixBitLen = parent.prefix.getBitLength(); // num of bits in parent's prefix
         int parentSuffixBitCount = Integer.bitCount(parentNumOfBuckets - 1); // num of bits in parent's suffix
@@ -316,7 +219,8 @@ public final class RouteTree {
         }
         
         int splitBucketIdx = (int) baseNode.getId().getBitString().getBitsAsLong(parentPrefixBitLen, parentSuffixBitCount);
-        BitString splitBucketPrefix = parent.kBuckets.get(splitBucketIdx).getPrefix();
+        KBucket splitBucket = ((KBucket) parent.branches.get(splitBucketIdx));
+        BitString splitBucketPrefix = splitBucket.getPrefix();
         
         
         // Get number of buckets to create for new level
@@ -334,7 +238,7 @@ public final class RouteTree {
         
         // Split parent bucket at that branch index
         BitString newPrefix = baseNode.getId().getBitString().getBits(0, parentPrefixBitLen + suffixBitCount);
-        KBucket[] newBuckets = parent.kBuckets.get(splitBucketIdx).split(suffixBitCount);
+        KBucket[] newBuckets = splitBucket.split(suffixBitCount);
         for (int i = 0; i < newBuckets.length; i++) {
             BucketParameters bucketParams = bucketSpecSupplier.getBucketParameters(newBuckets[i].getPrefix());
             int bucketSize = bucketParams.getBucketSize();
@@ -347,12 +251,11 @@ public final class RouteTree {
 
         // Get rid of parent bucket we just split. It branches down at that point, and any nodes that were contained within will be in the
         // newly created buckets
-        bucketUpdateTimes.remove(parent.kBuckets.get(splitBucketIdx).getPrefix());
-        parent.kBuckets.set(splitBucketIdx, null);
+        bucketUpdateTimes.remove(splitBucketPrefix);
 
         // Create new level and set as child
         RouteTreeLevel ret = new RouteTreeLevel(newPrefix, suffixBitCount, new ArrayList<>(Arrays.asList(newBuckets)));
-        parent.child = ret;
+        parent.branches.set(splitBucketIdx, ret);
         
         return ret;
     }
@@ -361,14 +264,12 @@ public final class RouteTree {
         private final BitString prefix;
         private final int suffixLen;
 
-        private final List<KBucket> kBuckets;
+        private final List<Object> branches; // branches can contain KBuckets or RouteTreeLevels that are further down
 
-        private RouteTreeLevel child;
-
-        private RouteTreeLevel(BitString prefix, int suffixLen, List<KBucket> kBuckets) {
+        private RouteTreeLevel(BitString prefix, int suffixLen, List<Object> branches) {
             this.prefix = prefix;
             this.suffixLen = suffixLen;
-            this.kBuckets = kBuckets;
+            this.branches = branches;
         }
 
         public void dumpNodesInBucket(BitString searchPrefix, LinkedList<Activity> output) {
@@ -376,146 +277,30 @@ public final class RouteTree {
             Validate.isTrue(searchPrefix.getBits(0, prefix.getBitLength()).equals(prefix)); // ensure prefix of searchPrefix matches
 
             int bucketIdx = (int) searchPrefix.getBitsAsLong(prefix.getBitLength(), suffixLen);
-            KBucket targetKBucket = kBuckets.get(bucketIdx);
+            Object branch = branches.get(bucketIdx);
 
-            if (targetKBucket == null) {
+            if (branch instanceof RouteTreeLevel) {
                 // Target kBucket is null, which means that nodes with this prefix can be found by continuing down child. In other words, we can
                 // continue down child to find more buckets with a larger prefix.
-                Validate.validState(child != null); // sanity check
-                child.dumpNodesInBucket(searchPrefix, output);
+                ((RouteTreeLevel) branch).dumpNodesInBucket(searchPrefix, output);
             } else {
                 // Target kBucket found -- we've reached the end of how far we can go down the routing tree
-                output.addAll(targetKBucket.dumpBucket());
-            }
-        }
-
-        public void dumpNodesWithSharedPrefix(Id id, TreeSet<Activity> output, int max) {
-            // Other validation checks on args done by caller, no point in repeating this for an unchanging argument in recursive method
-            Validate.isTrue(id.getBitString().getBits(0, prefix.getBitLength()).equals(prefix)); // ensure prefix matches
-
-            int bucketIdx = (int) id.getBitsAsLong(prefix.getBitLength(), suffixLen);
-            KBucket targetKBucket = kBuckets.get(bucketIdx);
-
-            if (targetKBucket == null) {
-                // Target kBucket is null, which means that nodes with this prefix can be found by continuing down child. In other words, we
-                // can continue down child to find more buckets with a larger prefix.
-                Validate.validState(child != null); // sanity check
-                child.dumpNodesWithSharedPrefix(id, output, max);
-                
-                this.dumpAllNodesWithinBranch(output, max);
-            } else {
-                // Target kBucket found -- we've reached the bucket with the largest common prefix.
-                //
-                // How does this work?
-                //
-                // For example, assume an id space of 6 bits and a routing tree that handles 2 bits at a time (branches 4 times per level).
-                // Let's say we're looking for the closest nodes to ID 000110. The largest matching prefix for this is 0001xx, which is
-                // found on the second level. Dump the bucket for 0001xx.
-                //
-                // If we still have room left, then go down branch 0000xx and dump in all the buckets you can find (recursively if the tree)
-                // is larger) until you run out of room -- because buckets under 0000xx share the next largest prefix with the ID we're
-                // searching for (000110 and 0000xx share the first 3 bits: 000xxx).
-                //
-                // If we still have even more room after that, we need to come back up the tree and dump remaining branches: 0010xx and
-                // 0011xx -- because these two buckets share the next largest prefix prefixes with the ID we're searching for (share the
-                // first 2 bits).
-                //
-                // If we still ahve even more room after that, come up to the first level and target 01xxxx (shares 1 bit), and after that
-                // 10xxxx and 11xxxx (shares 0 bits).
-                //
-                // If you follow this order of doing things, you're ensured that youre list will contain largest matching prefix to least
-                // matching prefix.
-                //
-                //                                   /\
-                //                                  / |\
-                //                                 /  | \
-                //                                /  / \ \
-                //                               /   | |  \
-                //                              /    | |   \
-                //                           00/  01/  \10  \11
-                //                            /\
-                //                           / |\
-                //                          /  | \
-                //                         /  / \ \
-                //                        /   | |  \
-                //                       /    | |   \
-                //                    00/  01/  \10  \11
-                //                     /\
-                //                    / |\
-                //                   /  | \
-                //                  /  / \ \
-                //                 /   | |  \
-                //                /    | |   \
-                //             00/  01/  \10  \11
-                //
-                //
-                // Can this be generalized to an algorithm?
-                //
-                // Find the level that has the bucket with the largest matching prefix. Sort the branches at that level by matching prefix.
-                // Go through the sorted branches in order...
-                //
-                //   If it's a bucket: dump it.
-                //   If it's a branch: recursively descend down the branch (breadth first) and dump each bucket
-                //
-                // At this point you're at the same level you started from. Assuming that you still don't have the max elements you want.
-                // Go back up parent, sort the branches at that level by matching prefix, and go through the sorted branches in order just
-                // like you originally did. BUT don't recurse don't the branch you just returned from!
-                //
-                //
-                kBuckets.stream()
-                        .filter(x -> x != null)
-                        .sorted((x, y) -> Integer.compare(x.getPrefix().getSharedPrefixLength(id.getBitString()), y.getPrefix().getSharedPrefixLength(id.getBitString())))
-//                        .flatMap(x -> x.dumpBucket().stream())
-                        .forEachOrdered(output::add);
-                
-                
-                if (child != null) {
-                    child.dumpAllNodesWithinBranch(output, max);
-                }
+                output.addAll(((KBucket) branch).dumpBucket());
             }
         }
         
-        public void dumpAllNodesWithinBranch(TreeSet<Activity> output, int max) {
-                kBuckets.stream()
-                        .filter(x -> x != null)
-                        .flatMap(x -> x.dumpBucket().stream())
-                        .forEach(output::add);
-                
-                if (child != null) {
-                    child.dumpAllNodesWithinBranch(output, max);
-                }
-        }
-
-        public KBucket findBucketWithLargestSharedPrefix(Id id) {
-            // Other validation checks on args done by caller, no point in repeating this for an unchanging argument in recursive method
-            Validate.isTrue(id.getBitString().getBits(0, prefix.getBitLength()).equals(prefix)); // ensure prefix matches
-
-            int bucketIdx = (int) id.getBitsAsLong(prefix.getBitLength(), suffixLen);
-            KBucket targetKBucket = kBuckets.get(bucketIdx);
-
-            if (targetKBucket == null) {
-                // Target kBucket is null, which means that nodes with this prefix can be found by continuing down child. In other words, we
-                // can continue down child to find more buckets with a larger prefix.
-                Validate.validState(child != null); // sanity check
-                return child.findBucketWithLargestSharedPrefix(id);
-            } else {
-                // Target kBucket found -- we've reached the end of how far we can go down the routing tree
-                return targetKBucket;
-            }
-        }
-
         public RouteTreeChangeSet touch(Instant time, Node node) throws LinkConflictException {
             // Other validation checks on args done by caller, no point in repeating this for an unchanging argument in recursive method
             Id id = node.getId();
             Validate.isTrue(id.getBitString().getBits(0, prefix.getBitLength()).equals(prefix)); // ensure prefix matches
 
             int bucketIdx = (int) id.getBitsAsLong(prefix.getBitLength(), suffixLen);
-            KBucket bucket = kBuckets.get(bucketIdx);
+            Object branch = branches.get(bucketIdx);
 
-            if (bucket == null) {
-                Validate.validState(child != null); // sanity check
-                return child.touch(time, node);
-            } else {
+            if (branch instanceof RouteTreeLevel) {
+                return ((RouteTreeLevel) branch).touch(time, node);
+            } else if (branch instanceof KBucket) {
+                KBucket bucket = (KBucket) branch;
                 KBucketChangeSet kBucketChangeSet = bucket.touch(time, node);
                 BitString kBucketPrefix = bucket.getPrefix();
                 Instant kBucketLastUpdateTime = bucket.getLastUpdateTime();
@@ -527,6 +312,8 @@ public final class RouteTree {
                 }
                 
                 return new RouteTreeChangeSet(kBucketPrefix, kBucketChangeSet);
+            } else {
+                throw new IllegalStateException(); // should never happen
             }
         }
 
@@ -536,12 +323,12 @@ public final class RouteTree {
             Validate.isTrue(id.getBitString().getBits(0, prefix.getBitLength()).equals(prefix)); // ensure prefix matches
 
             int bucketIdx = (int) id.getBitsAsLong(prefix.getBitLength(), suffixLen);
-            KBucket bucket = kBuckets.get(bucketIdx);
+            Object branch = branches.get(bucketIdx);
 
-            if (bucket == null) {
-                Validate.validState(child != null); // sanity check
-                return child.stale(node);
-            } else {
+            if (branch instanceof RouteTreeLevel) {
+                return ((RouteTreeLevel) branch).stale(node);
+            } if (branch instanceof KBucket) {
+                KBucket bucket = (KBucket) branch;
                 KBucketChangeSet kBucketChangeSet = bucket.stale(node);
                 BitString kBucketPrefix = bucket.getPrefix();
                 Instant kBucketLastUpdateTime = bucket.getLastUpdateTime();
@@ -553,6 +340,8 @@ public final class RouteTree {
                 }
                 
                 return new RouteTreeChangeSet(kBucketPrefix, kBucketChangeSet);
+            } else {
+                throw new IllegalStateException(); // should never happen
             }
         }
     }
