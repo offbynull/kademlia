@@ -60,9 +60,8 @@ public final class IdClosenessComparator implements Comparator<Id>, Serializable
             }
         }
         
-        // You should never make it to this point, since this means that o1 and o2 are equal. We have earlier checks that should return
-        // if o1 and o2 are equal
-        throw new IllegalStateException();
+        // At this point it means that o1 and o2 have an equal prefix to baseId after all bits have been flipped.
+        return 0;
     }
 
     private int compareBySharedPrefixLength(Id o1, Id o2) {
