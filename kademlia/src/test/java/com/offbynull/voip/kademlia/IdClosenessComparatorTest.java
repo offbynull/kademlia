@@ -62,7 +62,7 @@ public class IdClosenessComparatorTest {
     public void mustProperlySortWhenNoPrefixPresent() {
         List<Id> list = new ArrayList<>();
         
-        fixture = new IdClosenessComparator(NODE_1010.getId());
+        fixture = new IdClosenessComparator(NODE_0000.getId());
         
         list.add(NODE_0000.getId());
         list.add(NODE_0001.getId());

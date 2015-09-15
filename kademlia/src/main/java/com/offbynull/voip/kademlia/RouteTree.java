@@ -20,13 +20,17 @@ import com.offbynull.voip.kademlia.RouteTreeBucketSpecificationSupplier.BucketPa
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import static java.util.Collections.emptySet;
+import static java.util.Collections.singleton;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import org.apache.commons.lang3.Validate;
 
 public final class RouteTree {
     private final Node baseNode;
-    private final RouteTreeLevel root;
+    private final TreeNode root;
     private final TimeSet<BitString> bucketUpdateTimes;
     
     private Instant lastUpdateTime;
@@ -42,7 +46,7 @@ public final class RouteTree {
         this.bucketUpdateTimes = new TimeSet<>();
 
         root = createRoot(branchSpecSupplier, bucketSpecSupplier);
-        RouteTreeLevel child = root;
+        TreeNode child = root;
         while (child != null) {
             child = growParent(child, branchSpecSupplier, bucketSpecSupplier);
         }
@@ -103,7 +107,7 @@ public final class RouteTree {
         //
         // Can this be generalized to an algorithm?
         //
-        // Find the level that has the bucket with the largest matching prefix. Sort the branches at that level by matching prefix.
+        // Find the treenode that has the bucket with the largest matching prefix. Sort the branches at that treenode by matching prefix.
         // Go through the sorted branches in order...
         //
         //   If it's a bucket: dump it.
@@ -117,9 +121,9 @@ public final class RouteTree {
         
         LinkedList<Activity> output = new LinkedList<>();
         
+        root.findNodesWithLargestPossiblePrefix(id, output, max);
         
-        
-        return output;
+        return new ArrayList<>(output);
     }
     
     public List<Activity> dumpBucket(BitString prefix) {
@@ -164,7 +168,7 @@ public final class RouteTree {
     
     private static final BitString EMPTY = BitString.createFromString("");
 
-    private RouteTreeLevel createRoot(
+    private TreeNode createRoot(
             RouteTreeBranchSpecificationSupplier branchSpecSupplier,
             RouteTreeBucketSpecificationSupplier bucketSpecSupplier) {
         Validate.notNull(branchSpecSupplier);
@@ -194,10 +198,14 @@ public final class RouteTree {
         }
 
         // Create root
-        return new RouteTreeLevel(EMPTY, suffixBitCount, new ArrayList<>(Arrays.asList(newBuckets)));
+        List<TreeBranch> newBranches = new ArrayList<>(newBuckets.length);
+        Arrays.stream(newBuckets)
+                .map(x -> new BucketTreeBranch(x))
+                .forEachOrdered(newBranches::add);
+        return new TreeNode(EMPTY, suffixBitCount, newBranches);
     }
 
-    private RouteTreeLevel growParent(RouteTreeLevel parent,
+    private TreeNode growParent(TreeNode parent,
             RouteTreeBranchSpecificationSupplier branchSpecSupplier,
             RouteTreeBucketSpecificationSupplier bucketSpecSupplier) {
         Validate.notNull(parent);
@@ -219,7 +227,7 @@ public final class RouteTree {
         }
         
         int splitBucketIdx = (int) baseNode.getId().getBitString().getBitsAsLong(parentPrefixBitLen, parentSuffixBitCount);
-        KBucket splitBucket = ((KBucket) parent.branches.get(splitBucketIdx));
+        KBucket splitBucket = parent.branches.get(splitBucketIdx).getItem();
         BitString splitBucketPrefix = splitBucket.getPrefix();
         
         
@@ -254,22 +262,188 @@ public final class RouteTree {
         bucketUpdateTimes.remove(splitBucketPrefix);
 
         // Create new level and set as child
-        RouteTreeLevel ret = new RouteTreeLevel(newPrefix, suffixBitCount, new ArrayList<>(Arrays.asList(newBuckets)));
-        parent.branches.set(splitBucketIdx, ret);
+        List<TreeBranch> newBranches = new ArrayList<>(newBuckets.length);
+        Arrays.stream(newBuckets)
+                .map(x -> new BucketTreeBranch(x))
+                .forEachOrdered(newBranches::add);
+        TreeNode newNode = new TreeNode(newPrefix, suffixBitCount, newBranches);
         
-        return ret;
+        parent.branches.set(splitBucketIdx, new NodeTreeBranch(newNode));
+        
+        return newNode;
     }
     
-    private final class RouteTreeLevel {
+    private final class TreeNode {
         private final BitString prefix;
         private final int suffixLen;
 
-        private final List<Object> branches; // branches can contain KBuckets or RouteTreeLevels that are further down
+        private final List<TreeBranch> branches; // branches can contain KBuckets or RouteTreeLevels that are further down
 
-        private RouteTreeLevel(BitString prefix, int suffixLen, List<Object> branches) {
+        private TreeNode(BitString prefix, int suffixLen, List<TreeBranch> branches) {
             this.prefix = prefix;
             this.suffixLen = suffixLen;
             this.branches = branches;
+        }
+
+        public void findNodesWithLargestPossiblePrefix(Id id, LinkedList<Activity> output, int max) {
+            // Other validation checks on args done by caller, no point in repeating this for an unchanging argument in recursive method
+            Validate.isTrue(id.getBitString().getBits(0, prefix.getBitLength()).equals(prefix)); // ensure prefix matches
+
+            int traverseIdx = (int) id.getBitsAsLong(prefix.getBitLength(), suffixLen);
+            TreeBranch traverseBranch = branches.get(traverseIdx);
+            BitString traversePrefix = traverseBranch.getPrefix(); //id.getBitString().getBits(0, prefix.getBitLength() + suffixLen);
+
+            if (traverseBranch instanceof NodeTreeBranch) {
+                TreeNode treeNode = traverseBranch.getItem();
+                treeNode.findNodesWithLargestPossiblePrefix(id, output, max);
+                
+                dumpAllNodesUnderTreeNode(id, output, max, singleton(traversePrefix));
+            } else if (traverseBranch instanceof BucketTreeBranch) {
+                dumpAllNodesUnderTreeNode(id, output, max, emptySet());
+            } else {
+                throw new IllegalStateException(); // should never happen
+            }
+        }
+
+        public void dumpAllNodesUnderTreeNode(Id id, LinkedList<Activity> output, int max, Set<BitString> skipPrefixes) {
+            // Other validation checks on args done by caller, no point in repeating this for an unchanging argument in recursive method
+            Validate.isTrue(id.getBitString().getBits(0, prefix.getBitLength()).equals(prefix)); // ensure prefix matches
+            
+            // No more room in bucket? just leave right away.
+            if (output.size() >= max) {
+                return;
+            }
+
+            // What is the point of taking in an ID and doing this preferedPrefix calculation?? When we dump all the nodes in a branch, we
+            // want to access the branches that are closer to the suffix of the ID first. We do this for multiple reasons:
+            //
+            // 1. Given the same prefix, we don't end up accessing the exact same set of nodes given. For example...
+            //
+            //      0/\1
+            //      /  EMPTY
+            //    0/\1
+            //    /  FULL
+            //  0/\1
+            // ME  FULL
+            //
+            // Assume the routing tree above. We want to route to node 111, but bucket 1xx is empty. We then go down the other branch and
+            // start grabbing nodes starting with prefix 0xx. We then use the suffix of 111 (x11) to determine which branches to traverse
+            // down first for our 0xx nodes to return. We do this because we don't want to return the same set of nodes everytime someone
+            // tries to access a 1xx node and we have an empty branch.
+            //
+            // For example...
+            // if someone wanted 111 and 1xx was empty, path to search under 0xx would be 011, then 001, then 000.
+            // if someone wanted 101 and 1xx was empty, path to search under 0xx would be 001, then 000, then 011.
+            //
+            // If we did something like a depth-first search, we'd always target 000 first, then 001, then 011. We don't want to do that
+            // because we don't want to return the same set of nodes everytime. It would end up being an undue burden on those nodes.
+            //
+            //
+            // 2. It meshes well with the "notion of closeness" we derived in IdClosenessComparator, which states that...
+            // 
+            // Assume nodes A, B, and C. According to Kademlia's notion of distance, the larger the prefix shared between two nodes, the
+            // closer those nodes are to eachother. So if distance(A,B) == distance(A,C), it means that A, B, and C all share the same
+            // prefix and as such are equal distance from each other. 
+            //
+            // IdClosenessComparator extends this such that, given that B and C share the same common prefix with A, we start successively
+            // flipping bits in the suffix until one of them ends up having a larger prefix. The one with the larger prefix after the
+            // bit flip(s) will be the closer one.
+            //
+            // Now assume the same scenario shown in the example above...
+            //
+            //      0/\1
+            //      /  EMPTY
+            //    0/\1
+            //    /  FULL
+            //  0/\1
+            // ME  FULL
+            //
+            // We want to route to 111 but 111 is empty, so we flip to the other branch and take the suffix from 11, meaning that we're now
+            // attempting to go to 011. This is exactly what our "notion of closeness" describes above... we have no matching prefix (there
+            // are no nodes in 1xx) bucket, so we've "flipped" our first bit (by going to the adjacent branch: 0xx) and now we're searching
+            // for 011 instead. Now, if bucket 01x were empty as well, we'd "flip" the second bit (by going to the adjacent branch: 00x) and
+            // searching for 001... and so on and so forth.
+            //
+            // This notion of closeness becomes useful when we're dealing with highly unbalanced trees or networks in their infancy.
+            //
+            // For example, imagine the following tree. It's representative of a network that's either highly unbalanced on in its infancy
+            // (not many nodes available).
+            //
+            //         0/ \1
+            //         /   \
+            //        /     \
+            //       /       \
+            //      /         \
+            //    0/ \1     0/ \1
+            //    /   \     /   \ 
+            //  0/\1 0/\1 0/\1 0/\1
+            //  *          * *  * *
+            //
+            // All the 1xx nodes are in the network, and node 000 is also in the network. Since k=1, each bucket can only hold 1 node. Node
+            // 000 can only maintain 1 contact out of all nodes that have prefix 1xx, and the 1xx nodes can only maintain 1 contact in their
+            // 0xx bucket.
+            //
+            // Lets say that thus far only 111 know about 000 each other. 000 has 111 in its 1xx bucket, and 111 has 000 in its 0xx bucket.
+            // NO OTHER 1xx nodes know about 000, and as such their 0xx buckets are empty.
+            // 
+            // Now, if node 110 wanted to route to 000, it will never get that opportunity...
+            // 
+            // - 110 will look in to the bucket that 000b should be in and will see that it's empty. It will return the node "closest" to
+            //   000b: 100b (see section above on "Notion of Closeness" to see how this is calculated).
+            // - 100b will also look in to the bucket that 000 should be in and will see that it's empty. It has no where closer to route
+            //   to, so it sticks with itself.
+            //
+            // We can solve this problem by having a special bucket that maintains the closest nodes (as defined by our notion of
+            // closeness). So for example, node 000 would maintain the 1 closest node it knows of to it. Let's say node 000 has node 111 in
+            // its node bucket, but other 1xx nodes start touching it as well. Node 000's 1xx bucket will stay the same, but its special
+            // bucket will get updated such that it holds on to the closest nodes...
+            //
+            // So, assume that 111 is in 000's 1xx bucket and it's in the special bucket as well. Assume the special bucket only has a size
+            // of 1.
+            //
+            // 1. 101 touches node 000 -- We compare the node that just touched us (101) against the node in our special bucket that
+            //                            maintains the closest nodes... using our "notion of closeness" metric, it turns out that 101 is
+            //                            closer to us (000) then 101, so we put 101 and evict 111.
+            //
+            // 2. 100 touches node 000 -- We compare the node that just touched us (100) against the node in our special bucket that
+            //                            maintains the closest nodes... using our "notion of closeness" metric, it turns out that 100 is
+            //                            closer to us (000) then 101, so we put 100 and evict 101.
+            //
+            // We send bucket refreshed periodically to this special bucket, so node 100 will always point to us in its 0xx bucket. Now, if
+            // any other 1xx node wanted to get to 000 but its 0xx bucket was empty, it would route to 100 instead (remember notion of
+            // closeness, bits after shared common prefix, 0 in this case, start getting flipped until a match can be found), and 100 would
+            // route to 000 (we're in its 0xx bucket because of our special bucket of closest nodes).
+            //
+            BitString preferedPrefix = id.getBitString().getBits(0, prefix.getBitLength() + suffixLen);
+            ArrayList<TreeBranch> sortedBranches = new ArrayList<>(branches);
+            Collections.sort(sortedBranches,
+                    (x, y) -> {
+                        return -Integer.compare(
+                                preferedPrefix.getSharedPrefixLength(x.getPrefix()),
+                                preferedPrefix.getSharedPrefixLength(y.getPrefix()));
+                    }
+            );
+                
+            for (TreeBranch sortedBranch : sortedBranches) {
+                if (skipPrefixes.contains(sortedBranch.getPrefix())) {
+                    continue;
+                }
+                
+                if (sortedBranch instanceof NodeTreeBranch) {
+                    TreeNode node = sortedBranch.getItem();
+                    node.dumpAllNodesUnderTreeNode(id, output, max, emptySet()); // dont propogate skipPrefixes -- not relevent deeper
+                } else if (sortedBranch instanceof BucketTreeBranch) {
+                    KBucket bucket = sortedBranch.getItem();
+                    output.addAll(bucket.dumpBucket());
+                    
+                    // Bucket's full after that add. No point in continued processing.
+                    if (output.size() >= max) {
+                        return;
+                    }
+                } else {
+                    throw new IllegalStateException(); // should never happen
+                }
+            }
         }
 
         public void dumpNodesInBucket(BitString searchPrefix, LinkedList<Activity> output) {
@@ -277,15 +451,16 @@ public final class RouteTree {
             Validate.isTrue(searchPrefix.getBits(0, prefix.getBitLength()).equals(prefix)); // ensure prefix of searchPrefix matches
 
             int bucketIdx = (int) searchPrefix.getBitsAsLong(prefix.getBitLength(), suffixLen);
-            Object branch = branches.get(bucketIdx);
+            TreeBranch branch = branches.get(bucketIdx);
 
-            if (branch instanceof RouteTreeLevel) {
-                // Target kBucket is null, which means that nodes with this prefix can be found by continuing down child. In other words, we can
-                // continue down child to find more buckets with a larger prefix.
-                ((RouteTreeLevel) branch).dumpNodesInBucket(searchPrefix, output);
+            if (branch instanceof NodeTreeBranch) {
+                TreeNode node = branch.getItem();
+                node.dumpNodesInBucket(searchPrefix, output);
+            } else if (branch instanceof BucketTreeBranch) {
+                KBucket bucket = branch.getItem();
+                output.addAll(bucket.dumpBucket());
             } else {
-                // Target kBucket found -- we've reached the end of how far we can go down the routing tree
-                output.addAll(((KBucket) branch).dumpBucket());
+                throw new IllegalStateException(); // should never happen
             }
         }
         
@@ -295,12 +470,13 @@ public final class RouteTree {
             Validate.isTrue(id.getBitString().getBits(0, prefix.getBitLength()).equals(prefix)); // ensure prefix matches
 
             int bucketIdx = (int) id.getBitsAsLong(prefix.getBitLength(), suffixLen);
-            Object branch = branches.get(bucketIdx);
+            TreeBranch branch = branches.get(bucketIdx);
 
-            if (branch instanceof RouteTreeLevel) {
-                return ((RouteTreeLevel) branch).touch(time, node);
-            } else if (branch instanceof KBucket) {
-                KBucket bucket = (KBucket) branch;
+            if (branch instanceof NodeTreeBranch) {
+                TreeNode treeNode = branch.getItem();
+                return treeNode.touch(time, node);
+            } else if (branch instanceof BucketTreeBranch) {
+                KBucket bucket = branch.getItem();
                 KBucketChangeSet kBucketChangeSet = bucket.touch(time, node);
                 BitString kBucketPrefix = bucket.getPrefix();
                 Instant kBucketLastUpdateTime = bucket.getLastUpdateTime();
@@ -323,12 +499,13 @@ public final class RouteTree {
             Validate.isTrue(id.getBitString().getBits(0, prefix.getBitLength()).equals(prefix)); // ensure prefix matches
 
             int bucketIdx = (int) id.getBitsAsLong(prefix.getBitLength(), suffixLen);
-            Object branch = branches.get(bucketIdx);
+            TreeBranch branch = branches.get(bucketIdx);
 
-            if (branch instanceof RouteTreeLevel) {
-                return ((RouteTreeLevel) branch).stale(node);
-            } if (branch instanceof KBucket) {
-                KBucket bucket = (KBucket) branch;
+            if (branch instanceof NodeTreeBranch) {
+                TreeNode treeNode = branch.getItem();
+                return treeNode.stale(node);
+            } if (branch instanceof BucketTreeBranch) {
+                KBucket bucket = branch.getItem();
                 KBucketChangeSet kBucketChangeSet = bucket.stale(node);
                 BitString kBucketPrefix = bucket.getPrefix();
                 Instant kBucketLastUpdateTime = bucket.getLastUpdateTime();
@@ -343,6 +520,54 @@ public final class RouteTree {
             } else {
                 throw new IllegalStateException(); // should never happen
             }
+        }
+    }
+    
+    
+    private static interface TreeBranch {
+        BitString getPrefix();
+        <T> T getItem(); // why type parameter? hack to prevent explicit casting
+    }
+    
+    private static final class BucketTreeBranch implements TreeBranch {
+
+        private final KBucket kBucket;
+
+        public BucketTreeBranch(KBucket kBucket) {
+            Validate.notNull(kBucket);
+            this.kBucket = kBucket;
+        }
+        
+        @Override
+        public BitString getPrefix() {
+            return kBucket.getPrefix();
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public KBucket getItem() {
+            return kBucket;
+        }
+    }
+
+    private static final class NodeTreeBranch implements TreeBranch {
+
+        private final TreeNode node;
+
+        public NodeTreeBranch(TreeNode node) {
+            Validate.notNull(node);
+            this.node = node;
+        }
+        
+        @Override
+        public BitString getPrefix() {
+            return node.prefix;
+        }
+
+        @Override
+        @SuppressWarnings("unchecked")
+        public TreeNode getItem() {
+            return node;
         }
     }
 }
