@@ -17,6 +17,7 @@
 package com.offbynull.voip.kademlia;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import java.util.Iterator;
@@ -312,8 +313,18 @@ public final class KBucket {
         return new KBucketChangeSet(ActivityChangeSet.NO_CHANGE, res);
     }
 
-    public List<Activity> dumpBucket() { // includes stales
-        return bucket.dump();
+    public List<Activity> dumpBucket(boolean includeStale) { // includes stales
+        List<Activity> dumpedNodes = bucket.dump();
+        if (includeStale) {
+            return dumpedNodes;
+        }
+        
+        List<Activity> filteredDumpedNodes = new ArrayList<>(dumpedNodes.size());
+        dumpedNodes.stream()
+                .filter(x -> !staleSet.contains(x.getNode()))
+                .forEachOrdered(filteredDumpedNodes::add);
+        
+        return filteredDumpedNodes;
     }
 
     public List<Activity> dumpCache() {
