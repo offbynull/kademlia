@@ -31,20 +31,20 @@ import java.util.TreeSet;
 import org.apache.commons.lang3.Validate;
 
 public final class RouteTree {
-    private final Node baseNode;
+    private final Id baseId;
     private final TreeNode root;
     private final TimeSet<BitString> bucketUpdateTimes;
     
     private Instant lastUpdateTime;
     
-    public RouteTree(Node baseNode, // because id's are always > 0 in size -- it isn't possible for tree creation to mess up
+    public RouteTree(Id baseId, // because id's are always > 0 in size -- it isn't possible for tree creation to mess up
             RouteTreeBranchSpecificationSupplier branchSpecSupplier,
             RouteTreeBucketSpecificationSupplier bucketSpecSupplier) {
-        Validate.notNull(baseNode);
+        Validate.notNull(baseId);
         Validate.notNull(branchSpecSupplier);
         Validate.notNull(bucketSpecSupplier);
         
-        this.baseNode = baseNode; // must be set before creating RouteTreeLevels
+        this.baseId = baseId; // must be set before creating RouteTreeLevels
         this.bucketUpdateTimes = new TimeSet<>();
 
         root = createRoot(branchSpecSupplier, bucketSpecSupplier);
@@ -58,8 +58,8 @@ public final class RouteTree {
 
     public List<Activity> find(Id id, int max) {
         Validate.notNull(id);
-//        Validate.isTrue(!id.equals(baseNode.getId())); // you can search for yourself, although no point
-        Validate.isTrue(id.getBitLength() == baseNode.getId().getBitLength());
+        Validate.isTrue(!id.equals(baseId));
+        Validate.isTrue(id.getBitLength() == baseId.getBitLength());
         Validate.isTrue(max >= 0); // why would anyone want 0? let thru anyways
 
         IdClosenessComparator comparator = new IdClosenessComparator(id);
@@ -80,7 +80,7 @@ public final class RouteTree {
     
     public List<Activity> dumpBucket(BitString prefix) {
         Validate.notNull(prefix);
-        Validate.isTrue(prefix.getBitLength() < baseNode.getId().getBitLength()); // cannot be == or >
+        Validate.isTrue(prefix.getBitLength() < baseId.getBitLength()); // cannot be == or >
 
         LinkedList<Activity> output = new LinkedList<>();
         root.dumpNodesInBucket(prefix, output);
@@ -92,8 +92,8 @@ public final class RouteTree {
         Validate.notNull(node);
         
         Id id = node.getId();
-        Validate.isTrue(!id.equals(baseNode.getId()));
-        Validate.isTrue(id.getBitLength() == baseNode.getId().getBitLength());
+        Validate.isTrue(!id.equals(baseId));
+        Validate.isTrue(id.getBitLength() == baseId.getBitLength());
         
         Validate.isTrue(!time.isBefore(lastUpdateTime)); // time must be >= lastUpdatedTime
 
@@ -104,8 +104,8 @@ public final class RouteTree {
         Validate.notNull(node);
 
         Id id = node.getId();
-        Validate.isTrue(!id.equals(baseNode.getId()));
-        Validate.isTrue(id.getBitLength() == baseNode.getId().getBitLength());
+        Validate.isTrue(!id.equals(baseId));
+        Validate.isTrue(id.getBitLength() == baseId.getBitLength());
             
         return root.stale(node);
     }
@@ -133,12 +133,12 @@ public final class RouteTree {
         Validate.isTrue(numOfBuckets != 0, "Root of tree must contain at least 1 branch, was %d", numOfBuckets);
         Validate.isTrue(Integer.bitCount(numOfBuckets) == 1, "Branch count must be power of 2");
         int suffixBitCount = Integer.bitCount(numOfBuckets - 1); // num of bits   e.g. 8 --> 1000 - 1 = 0111, bitcount(0111) = 3
-        Validate.isTrue(suffixBitCount <= baseNode.getId().getBitLength(),
-                "Attempting to branch too far (in root) %d bits extends past %d bits", suffixBitCount, baseNode.getId().getBitLength());
+        Validate.isTrue(suffixBitCount <= baseId.getBitLength(),
+                "Attempting to branch too far (in root) %d bits extends past %d bits", suffixBitCount, baseId.getBitLength());
 
         
         // Create buckets by creating a 0-sized top bucket and splitting it + resizing each split
-        KBucket[] newBuckets = new KBucket(baseNode.getId(), EMPTY, 0, 0).split(suffixBitCount);
+        KBucket[] newBuckets = new KBucket(baseId, EMPTY, 0, 0).split(suffixBitCount);
         for (int i = 0; i < newBuckets.length; i++) {
             BucketParameters bucketParams = bucketSpecSupplier.getBucketParameters(newBuckets[i].getPrefix());
             int bucketSize = bucketParams.getBucketSize();
@@ -172,13 +172,13 @@ public final class RouteTree {
         int parentSuffixBitCount = Integer.bitCount(parentNumOfBuckets - 1); // num of bits in parent's suffix
                                                                              // e.g. 8 --> 1000 - 1 = 0111, bitcount(0111) = 3
         
-        if (parentPrefixBitLen + parentSuffixBitCount >= baseNode.getId().getBitLength()) { // should never be >, only ==, but just in case
+        if (parentPrefixBitLen + parentSuffixBitCount >= baseId.getBitLength()) { // should never be >, only ==, but just in case
             // The parents prefix length + the number of bits the parent used for buckets > baseId's length. As such, it isn't possible to
             // grow any further, so don't even try.
             return null;
         }
         
-        int splitBucketIdx = (int) baseNode.getId().getBitString().getBitsAsLong(parentPrefixBitLen, parentSuffixBitCount);
+        int splitBucketIdx = (int) baseId.getBitString().getBitsAsLong(parentPrefixBitLen, parentSuffixBitCount);
         KBucket splitBucket = parent.branches.get(splitBucketIdx).getItem();
         BitString splitBucketPrefix = splitBucket.getPrefix();
         
@@ -191,13 +191,13 @@ public final class RouteTree {
         }
         Validate.isTrue(Integer.bitCount(numOfBuckets) == 1, "Branch count must be power of 2");
         int suffixBitCount = Integer.bitCount(numOfBuckets - 1); // num of bits   e.g. 8 (1000) -- 1000 - 1 = 0111, bitcount(0111) = 3
-        Validate.isTrue(splitBucketPrefix.getBitLength() + suffixBitCount <= baseNode.getId().getBitLength(),
+        Validate.isTrue(splitBucketPrefix.getBitLength() + suffixBitCount <= baseId.getBitLength(),
                 "Attempting to branch too far %s with %d bits extends past %d bits", splitBucketPrefix, suffixBitCount,
-                baseNode.getId().getBitLength());
+                baseId.getBitLength());
         
         
         // Split parent bucket at that branch index
-        BitString newPrefix = baseNode.getId().getBitString().getBits(0, parentPrefixBitLen + suffixBitCount);
+        BitString newPrefix = baseId.getBitString().getBits(0, parentPrefixBitLen + suffixBitCount);
         KBucket[] newBuckets = splitBucket.split(suffixBitCount);
         for (int i = 0; i < newBuckets.length; i++) {
             BucketParameters bucketParams = bucketSpecSupplier.getBucketParameters(newBuckets[i].getPrefix());

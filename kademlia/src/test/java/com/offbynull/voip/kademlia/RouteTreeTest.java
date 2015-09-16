@@ -40,7 +40,7 @@ public final class RouteTreeTest {
     
     public RouteTreeTest() {
         SimpleRouteTreeSpecificationSupplier specSupplier = new SimpleRouteTreeSpecificationSupplier(NODE_0000.getId(), 2, 2, 2);
-        fixture = new RouteTree(NODE_0000, specSupplier, specSupplier);        
+        fixture = new RouteTree(NODE_0000.getId(), specSupplier, specSupplier);        
     }
 
     @Test
@@ -248,9 +248,11 @@ public final class RouteTreeTest {
         List<Activity> res;
         
         // for all of these, res is correct ... remember the XOR metric
-        // also keep in mind that routetree will never return self
-        res = fixture.find(NODE_0000.getId(), 5);
-        verifyNodesInActivities(res, NODE_0001, NODE_0010, NODE_0011, NODE_0100, NODE_0111);  // correct, routetree doesn't contain self
+        // also keep in mind that routetree will never return self and will never let you search for self
+        
+        // search for self not allowed
+//        res = fixture.find(NODE_0000.getId(), 5);
+//        verifyNodesInActivities(res, NODE_0001, NODE_0010, NODE_0011, NODE_0100, NODE_0111);  // correct, routetree doesn't contain self
         res = fixture.find(NODE_0001.getId(), 5);
         verifyNodesInActivities(res, NODE_0001, NODE_0011, NODE_0010, NODE_0100, NODE_0111); 
         res = fixture.find(NODE_0010.getId(), 5);
@@ -265,6 +267,20 @@ public final class RouteTreeTest {
         verifyNodesInActivities(res, NODE_1100, NODE_1110, NODE_0001, NODE_0010, NODE_0011); 
         res = fixture.find(NODE_1111.getId(), 5);
         verifyNodesInActivities(res, NODE_1110, NODE_1100, NODE_0111, NODE_0100, NODE_0011); 
+    }
+
+    @Test
+    public void mustReturnStagnantBuckets() throws Throwable {
+        // all of the following nodes should be inserted in to buckets of kbuckets, not caches of kbuckets
+        fixture.touch(BASE_TIME.plusMillis(1L), NODE_0001);
+        fixture.touch(BASE_TIME.plusMillis(2L), NODE_0010);
+        fixture.touch(BASE_TIME.plusMillis(3L), NODE_0011);
+        fixture.touch(BASE_TIME.plusMillis(4L), NODE_0100);
+        fixture.touch(BASE_TIME.plusMillis(5L), NODE_0111);
+        fixture.touch(BASE_TIME.plusMillis(6L), NODE_1100);
+        fixture.touch(BASE_TIME.plusMillis(7L), NODE_1110);
+
+        System.out.println(fixture.getBucketsUpdatedBefore(BASE_TIME.plusMillis(3L)));
     }
     
     @Test
