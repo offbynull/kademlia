@@ -92,7 +92,8 @@ public class KBucketTest {
                 BASE_TIME.plusMillis(5L),
                 BASE_TIME.plusMillis(6L),
                 BASE_TIME.plusMillis(7L));
-        assertEquals(BASE_TIME.plusMillis(7L), fixture.getLastUpdateTime());
+        assertEquals(BASE_TIME.plusMillis(4L), fixture.getLatestBucketActivityTime());
+        assertEquals(BASE_TIME.plusMillis(7L), fixture.getLatestCacheActivityTime());
     }
 
     @Test
@@ -124,7 +125,8 @@ public class KBucketTest {
                 BASE_TIME.plusMillis(6L),
                 BASE_TIME.plusMillis(7L),
                 BASE_TIME.plusMillis(8L));
-        assertEquals(BASE_TIME.plusMillis(8L), fixture.getLastUpdateTime());
+        assertEquals(BASE_TIME.plusMillis(4L), fixture.getLatestBucketActivityTime());
+        assertEquals(BASE_TIME.plusMillis(8L), fixture.getLatestCacheActivityTime());
     }
 
     @Test
@@ -155,7 +157,8 @@ public class KBucketTest {
                 BASE_TIME.plusMillis(5L),
                 BASE_TIME.plusMillis(6L),
                 BASE_TIME.plusMillis(7L));
-        assertEquals(BASE_TIME.plusMillis(8L), fixture.getLastUpdateTime());
+        assertEquals(BASE_TIME.plusMillis(8L), fixture.getLatestBucketActivityTime());
+        assertEquals(BASE_TIME.plusMillis(7L), fixture.getLatestCacheActivityTime());
     }
 
     @Test
@@ -255,7 +258,8 @@ public class KBucketTest {
         verifyNodesInActivities(fixture.dumpCache(), NODE_1101);
         verifyTimeInActivities(fixture.dumpCache(),
                 BASE_TIME.plusMillis(7L));
-        assertEquals(BASE_TIME.plusMillis(7L), fixture.getLastUpdateTime());
+        assertEquals(BASE_TIME.plusMillis(6L), fixture.getLatestBucketActivityTime());
+        assertEquals(BASE_TIME.plusMillis(7L), fixture.getLatestCacheActivityTime());
     }
     
     @Test
@@ -286,7 +290,8 @@ public class KBucketTest {
                 BASE_TIME.plusMillis(7L));
         verifyNodesInActivities(fixture.dumpCache(), NODE_1111);
         verifyTimeInActivities(fixture.dumpCache(), BASE_TIME.plusMillis(5L));
-        assertEquals(BASE_TIME.plusMillis(7L), fixture.getLastUpdateTime());
+        assertEquals(BASE_TIME.plusMillis(7L), fixture.getLatestBucketActivityTime());
+        assertEquals(BASE_TIME.plusMillis(5L), fixture.getLatestCacheActivityTime());
     }
 
     @Test
@@ -315,7 +320,8 @@ public class KBucketTest {
                 BASE_TIME.plusMillis(5L),
                 BASE_TIME.plusMillis(6L),
                 BASE_TIME.plusMillis(7L));
-        assertEquals(BASE_TIME.plusMillis(7L), fixture.getLastUpdateTime());
+        assertEquals(BASE_TIME.plusMillis(4L), fixture.getLatestBucketActivityTime());
+        assertEquals(BASE_TIME.plusMillis(7L), fixture.getLatestCacheActivityTime());
     }
 
     @Test
@@ -363,7 +369,8 @@ public class KBucketTest {
                 BASE_TIME.plusMillis(8L),
                 BASE_TIME.plusMillis(9L),
                 BASE_TIME.plusMillis(10L));
-        assertEquals(BASE_TIME.plusMillis(10L), fixture.getLastUpdateTime());
+        assertEquals(BASE_TIME.plusMillis(4L), fixture.getLatestBucketActivityTime());
+        assertEquals(BASE_TIME.plusMillis(10L), fixture.getLatestCacheActivityTime());
     }
 
     @Test
@@ -392,7 +399,8 @@ public class KBucketTest {
         verifyNodesInActivities(fixture.dumpCache(), NODE_1101);
         verifyTimeInActivities(fixture.dumpCache(),
                 BASE_TIME.plusMillis(7L));
-        assertEquals(BASE_TIME.plusMillis(7L), fixture.getLastUpdateTime());
+        assertEquals(BASE_TIME.plusMillis(4L), fixture.getLatestBucketActivityTime());
+        assertEquals(BASE_TIME.plusMillis(7L), fixture.getLatestCacheActivityTime());
     }
 
     @Test
@@ -424,7 +432,8 @@ public class KBucketTest {
         verifyTimeInActivities(fixture.dumpCache(),
                 BASE_TIME.plusMillis(5L),
                 BASE_TIME.plusMillis(6L));
-        assertEquals(BASE_TIME.plusMillis(7L), fixture.getLastUpdateTime());
+        assertEquals(BASE_TIME.plusMillis(7L), fixture.getLatestBucketActivityTime());
+        assertEquals(BASE_TIME.plusMillis(6L), fixture.getLatestCacheActivityTime());
     }
 
     @Test
@@ -460,7 +469,8 @@ public class KBucketTest {
         verifyTimeInActivities(fixture.dumpCache(),
                 BASE_TIME.plusMillis(6L),
                 BASE_TIME.plusMillis(7L));
-        assertEquals(BASE_TIME.plusMillis(7L), fixture.getLastUpdateTime());
+        assertEquals(BASE_TIME.plusMillis(5L), fixture.getLatestBucketActivityTime());
+        assertEquals(BASE_TIME.plusMillis(7L), fixture.getLatestCacheActivityTime());
     }
 
     @Test
@@ -499,7 +509,8 @@ public class KBucketTest {
                 BASE_TIME.plusMillis(4L));
         verifyNodesInActivities(fixture.dumpCache());
         verifyTimeInActivities(fixture.dumpCache());
-        assertEquals(BASE_TIME.plusMillis(4L), fixture.getLastUpdateTime());
+        assertEquals(BASE_TIME.plusMillis(4L), fixture.getLatestBucketActivityTime());
+        assertEquals(null, fixture.getLatestCacheActivityTime());
     }
     
     @Test
@@ -518,7 +529,8 @@ public class KBucketTest {
         
         assertEquals(fixture.dumpBucket(), buckets[0].dumpBucket());
         assertEquals(fixture.dumpCache(), buckets[0].dumpCache());
-        assertEquals(fixture.getLastUpdateTime(), buckets[0].getLastUpdateTime());
+        assertEquals(BASE_TIME.plusMillis(4L), buckets[0].getLatestBucketActivityTime());
+        assertEquals(BASE_TIME.plusMillis(7L), buckets[0].getLatestCacheActivityTime());
     }
 
     @Test
@@ -546,8 +558,10 @@ public class KBucketTest {
         assertEquals(1, buckets[1].dumpCache().size());
         assertEquals(NODE_1111, buckets[1].dumpCache().get(0).getNode());
         
-        assertEquals(buckets[0].getLastUpdateTime(), BASE_TIME.plusMillis(3L));
-        assertEquals(buckets[1].getLastUpdateTime(), BASE_TIME.plusMillis(7L));
+        assertEquals(BASE_TIME.plusMillis(3L), buckets[0].getLatestBucketActivityTime());
+        assertEquals(null, buckets[0].getLatestCacheActivityTime());
+        assertEquals(BASE_TIME.plusMillis(7L), buckets[1].getLatestBucketActivityTime());
+        assertEquals(BASE_TIME.plusMillis(5L), buckets[1].getLatestCacheActivityTime());
     }
 
     @Test
@@ -606,8 +620,10 @@ public class KBucketTest {
         assertEquals(NODE_1110, buckets[1].dumpCache().get(1).getNode());
         assertEquals(NODE_1111, buckets[1].dumpCache().get(2).getNode());
         
-        assertEquals(buckets[0].getLastUpdateTime(), Instant.MIN);
-        assertEquals(buckets[1].getLastUpdateTime(), BASE_TIME.plusMillis(7L));
+        assertEquals(null, buckets[0].getLatestBucketActivityTime());
+        assertEquals(null, buckets[0].getLatestCacheActivityTime());
+        assertEquals(BASE_TIME.plusMillis(3L), buckets[1].getLatestBucketActivityTime());
+        assertEquals(BASE_TIME.plusMillis(7L), buckets[1].getLatestCacheActivityTime());
     }
 
     @Test
@@ -645,10 +661,14 @@ public class KBucketTest {
 
         assertEquals(NODE_1101, buckets[3].dumpBucket().get(0).getNode());
         
-        assertEquals(buckets[0].getLastUpdateTime(), BASE_TIME.plusMillis(5L));
-        assertEquals(buckets[1].getLastUpdateTime(), BASE_TIME.plusMillis(6L));
-        assertEquals(buckets[2].getLastUpdateTime(), BASE_TIME.plusMillis(7L));
-        assertEquals(buckets[3].getLastUpdateTime(), BASE_TIME.plusMillis(4L));
+        assertEquals(BASE_TIME.plusMillis(5L), buckets[0].getLatestBucketActivityTime());
+        assertEquals(null, buckets[0].getLatestCacheActivityTime());
+        assertEquals(BASE_TIME.plusMillis(6L), buckets[1].getLatestBucketActivityTime());
+        assertEquals(null, buckets[1].getLatestCacheActivityTime());
+        assertEquals(BASE_TIME.plusMillis(7L), buckets[2].getLatestBucketActivityTime());
+        assertEquals(null, buckets[2].getLatestCacheActivityTime());
+        assertEquals(BASE_TIME.plusMillis(4L), buckets[3].getLatestBucketActivityTime());
+        assertEquals(null, buckets[3].getLatestCacheActivityTime());
     }
 
     @Test

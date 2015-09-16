@@ -39,7 +39,7 @@ public final class KBucket {
     // the way things are done, stale set should only ever contain nodes from bucket
     private final Set<Node> staleSet;
 
-    private Instant lastUpdateTime;
+    private Instant lastTouchAttemptTime;
 
     public KBucket(Id baseId, BitString prefix, int maxBucketSize, int maxCacheSize) {
         Validate.notNull(baseId);
@@ -58,7 +58,7 @@ public final class KBucket {
         this.cache = new NodeMostRecentSet(baseId, maxCacheSize);
         this.staleSet = new LinkedHashSet<>(); // linked to maintain order of items as they're added
         
-        lastUpdateTime = Instant.MIN;
+        lastTouchAttemptTime = Instant.MIN;
     }
 
     public KBucketChangeSet touch(Instant time, Node node) throws LinkConflictException {
@@ -72,7 +72,8 @@ public final class KBucket {
         
         Validate.isTrue(nodeId.getBitString().getBits(0, prefix.getBitLength()).equals(prefix)); // ensure prefix matches
 
-        Validate.isTrue(!time.isBefore(lastUpdateTime)); // time must be >= lastUpdatedTime
+        Validate.isTrue(!time.isBefore(lastTouchAttemptTime)); // time must be >= lastTouchAttemptTime
+        lastTouchAttemptTime = time;
         
         // Touch the bucket
         ActivityChangeSet bucketTouchRes = bucket.touch(time, node);
@@ -80,13 +81,11 @@ public final class KBucket {
         if (!bucketTouchRes.viewAdded().isEmpty() || !bucketTouchRes.viewUpdated().isEmpty()) {
             // node was added to bucket, or node was already in bucket and was updated
             staleSet.remove(node); // if being updated, node may have been stale... unstale it here because it's being touched
-            lastUpdateTime = time;
             return new KBucketChangeSet(bucketTouchRes, ActivityChangeSet.NO_CHANGE);
         }
         
         // Touch the cache
         ActivityChangeSet cacheTouchRes = cache.touch(time, node);
-        lastUpdateTime = time;
         
         // There may be something in the cache now, so if we have any stale nodes, replace them with this new cache item. We should never
         // ever be in a state where !cache.isEmpty() && !staleSet.isEmpty(). If we are then something's gone wrong.
@@ -206,6 +205,7 @@ public final class KBucket {
             BitString numAsBitString = toBitString(i, bitCount);
             BitString appendedBitString = prefix.appendBits(numAsBitString);
             newKBuckets[i] = new KBucket(baseId, appendedBitString, maxBucketSize, maxCacheSize);
+            newKBuckets[i].lastTouchAttemptTime = lastTouchAttemptTime; // keep touch attempt time updated
         }
         
         
@@ -236,11 +236,6 @@ public final class KBucket {
                 throw new IllegalStateException(ece);
             }
             Validate.validState(!res.viewAdded().isEmpty()); // sanity check, should always add
-            
-            // Update lastUpdateTime if entry's timestamp is greater than the kbucket's timestamp
-            if (entry.getTime().isAfter(newKBuckets[idx].lastUpdateTime)) {
-                newKBuckets[idx].lastUpdateTime = entry.getTime();
-            }
         }
 
         
@@ -266,11 +261,6 @@ public final class KBucket {
                 throw new IllegalStateException(ece);
             }
             Validate.validState(!res.viewAdded().isEmpty()); // sanity check, should always add
-            
-            // Update lastUpdateTime if entry's timestamp is greater than the kbucket's timestamp
-            if (entry.getTime().isAfter(newKBuckets[idx].lastUpdateTime)) {
-                newKBuckets[idx].lastUpdateTime = entry.getTime();
-            }
         }
         
         
@@ -330,8 +320,12 @@ public final class KBucket {
         return cache.dump();
     }
     
-    public Instant getLastUpdateTime() {
-        return lastUpdateTime;
+    public Instant getLatestBucketActivityTime() {
+        return bucket.lastestActivityTime();
+    }
+
+    public Instant getLatestCacheActivityTime() {
+        return cache.lastestActivityTime();
     }
 
     public BitString getPrefix() {
@@ -401,7 +395,7 @@ public final class KBucket {
     @Override
     public String toString() {
         return "KBucket{" + "baseId=" + baseId + ", prefix=" + prefix + ", bucket=" + bucket + ", cache=" + cache + ", staleSet=" + staleSet
-                + ", lastUpdateTime=" + lastUpdateTime + '}';
+                + ", lastUpdateTime=" + lastTouchAttemptTime + '}';
     }
     
     

@@ -6,6 +6,7 @@ import static com.offbynull.voip.kademlia.TestUtils.verifyActivityChangeSetRemov
 import static com.offbynull.voip.kademlia.TestUtils.verifyActivityChangeSetUpdated;
 import java.time.Instant;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -360,5 +361,22 @@ public final class NodeMostRecentSetTest {
         
         expectedException.expect(LinkConflictException.class);
         fixture.touch(BASE_TIME.plusMillis(1L), new Node(NODE_1111.getId(), "fakelink"));
+    }
+
+    @Test
+    public void mustGetLatestActivityTime() throws Throwable {
+        fixture.touch(BASE_TIME.plusMillis(5L), NODE_1111);
+        fixture.touch(BASE_TIME.plusMillis(4L), NODE_1100);
+        fixture.touch(BASE_TIME.plusMillis(3L), NODE_1000);
+        fixture.touch(BASE_TIME.plusMillis(2L), NODE_0100);
+        fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
+        fixture.touch(BASE_TIME.plusMillis(4L), NODE_0010);
+
+        assertEquals(BASE_TIME.plusMillis(5L), fixture.lastestActivityTime());
+    }
+
+    @Test
+    public void mustGetNullForLatestActivityTimeIfEmpty() throws Throwable {
+        assertNull(fixture.lastestActivityTime());
     }
 }

@@ -200,6 +200,15 @@ public final class NodeLeastRecentSet {
         return new ArrayList<>(entries);
     }
     
+    public Instant lastestActivityTime() { // time of the latest entry in this set, or null if set is empty
+        if (entries.isEmpty()) {
+            return null;
+        }
+        
+        return entries.getLast().getTime();
+    }
+
+    
     public int size() {
         return entries.size();
     }

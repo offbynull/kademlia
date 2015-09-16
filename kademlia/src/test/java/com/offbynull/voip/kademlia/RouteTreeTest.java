@@ -436,18 +436,21 @@ public final class RouteTreeTest {
 
     @Test
     public void mustReturnStagnantBucketsInOrder() throws Throwable {
-        fixture.touch(BASE_TIME.plusMillis(1L), NODE_0111);
-        fixture.touch(BASE_TIME.plusMillis(2L), NODE_0011);
-        fixture.touch(BASE_TIME.plusMillis(3L), NODE_0100);
-        fixture.touch(BASE_TIME.plusMillis(4L), NODE_0001);
-        fixture.touch(BASE_TIME.plusMillis(5L), NODE_0010);
-        fixture.touch(BASE_TIME.plusMillis(6L), NODE_1100);
-        fixture.touch(BASE_TIME.plusMillis(7L), NODE_1110);
+        fixture.touch(BASE_TIME.plusMillis(1L), NODE_1100);
+        fixture.touch(BASE_TIME.plusMillis(2L), NODE_1110);
+        fixture.touch(BASE_TIME.plusMillis(3L), NODE_0111);
+        fixture.touch(BASE_TIME.plusMillis(4L), NODE_0011);
+        fixture.touch(BASE_TIME.plusMillis(5L), NODE_0100);
+        fixture.touch(BASE_TIME.plusMillis(6L), NODE_0001);
+        fixture.touch(BASE_TIME.plusMillis(7L), NODE_0010);
+        fixture.touch(BASE_TIME.plusMillis(8L), NODE_1101);
+        fixture.touch(BASE_TIME.plusMillis(9L), NODE_1111);
 
         
-        List<BitString> bitStringsOlderThan5L = fixture.getBucketsUpdatedBefore(BASE_TIME.plusMillis(5L));
+        List<BitString> bitStringsOlderThan5L = fixture.getBucketsUpdatedBefore(BASE_TIME.plusMillis(7L));
         assertEquals(
                 Arrays.asList(
+                        BitString.createFromString("1"),
                         BitString.createFromString("01"),
                         BitString.createFromString("0001"),
                         BitString.createFromString("001")), 
