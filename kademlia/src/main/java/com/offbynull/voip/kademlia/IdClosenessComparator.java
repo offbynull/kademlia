@@ -31,7 +31,32 @@ public final class IdClosenessComparator implements Comparator<Id>, Serializable
     }
 
 
-    // This is the XOR metric
+    // This is the XOR metric...
+    //
+    // Remember how this works... If you're testing against A and B against C to see which is closer to C...
+    //
+    // resAC = XOR(A,C);
+    // resBC = XOR(B,C);
+    //
+    // if resAC < resAC then A is closer to C
+    // if resBC < resAB then B is closer to C
+    // if resAB == resBC then A and B are of the same distance from C
+    //
+    //
+    // Example...
+    // C=0111
+    // A=0001
+    // B=0000
+    //
+    // resAC = XOR(0001,0111) = 0110
+    // resBC = XOR(0000,0111) = 0111
+    //
+    // In this case, resAC is closer than resBC because it is less.
+    //
+    //
+    // Remember how < works... go compare each single bit from the beginning until you come across a pair of bits that aren't equal (one is
+    // 0 and the other is 1). The ID with 0 at that position is less than the other one. So in the example above, after the XORs, offset
+    // 3 contains the first differing bit.
     @Override
     public int compare(Id o1, Id o2) {
         Validate.notNull(o1);

@@ -249,7 +249,7 @@ public final class RouteTreeTest {
         
         // for all of these, res is correct ... remember bits are flipped if common prefixes are the same
         res = fixture.find(NODE_0000.getId(), 5);
-        verifyNodesInActivities(res, NODE_0000, NODE_0001, NODE_0011, NODE_0010, NODE_0111); 
+        verifyNodesInActivities(res, NODE_0000, NODE_0001, NODE_0010, NODE_0011, NODE_0100); 
 //        res = fixture.find(NODE_0001.getId(), 5);
 //        verifyNodesInActivities(res, NODE_0001, NODE_0011, NODE_0010, NODE_0100, NODE_0111); 
 //        res = fixture.find(NODE_0010.getId(), 5);

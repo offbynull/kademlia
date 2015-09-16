@@ -23,9 +23,11 @@ import java.util.Arrays;
 import java.util.Collections;
 import static java.util.Collections.emptySet;
 import static java.util.Collections.singleton;
+import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
 import org.apache.commons.lang3.Validate;
 
 public final class RouteTree {
@@ -60,68 +62,18 @@ public final class RouteTree {
         Validate.isTrue(id.getBitLength() == baseNode.getId().getBitLength());
         Validate.isTrue(max >= 0); // why would anyone want 0? let thru anyways
 
-        // Target kBucket found -- we've reached the bucket with the largest common prefix.
-        //
-        // How does this work?
-        //
-        // For example, assume an id space of 6 bits and a routing tree that handles 2 bits at a time (branches 4 times per level).
-        // Let's say we're looking for the closest nodes to ID 000110. The largest matching prefix for this is 0001xx, which is
-        // found on the second level. Dump the bucket for 0001xx.
-        //
-        // If we still have room left, then go down branch 0000xx and dump in all the buckets you can find (recursively if the tree)
-        // is larger) until you run out of room -- because buckets under 0000xx share the next largest prefix with the ID we're
-        // searching for (000110 and 0000xx share the first 3 bits: 000xxx).
-        //
-        // If we still have even more room after that, we need to come back up the tree and dump remaining branches: 0010xx and
-        // 0011xx -- because these two buckets share the next largest prefix prefixes with the ID we're searching for (share the
-        // first 2 bits).
-        //
-        // If we still ahve even more room after that, come up to the first level and target 01xxxx (shares 1 bit), and after that
-        // 10xxxx and 11xxxx (shares 0 bits).
-        //
-        // If you follow this order of doing things, you're ensured that youre list will contain largest matching prefix to least
-        // matching prefix.
-        //
-        //                                   /\
-        //                                  / |\
-        //                                 /  | \
-        //                                /  / \ \
-        //                               /   | |  \
-        //                              /    | |   \
-        //                           00/  01/  \10  \11
-        //                            /\
-        //                           / |\
-        //                          /  | \
-        //                         /  / \ \
-        //                        /   | |  \
-        //                       /    | |   \
-        //                    00/  01/  \10  \11
-        //                     /\
-        //                    / |\
-        //                   /  | \
-        //                  /  / \ \
-        //                 /   | |  \
-        //                /    | |   \
-        //             00/  01/  \10  \11
-        //
-        //
-        // Can this be generalized to an algorithm?
-        //
-        // Find the treenode that has the bucket with the largest matching prefix. Sort the branches at that treenode by matching prefix.
-        // Go through the sorted branches in order...
-        //
-        //   If it's a bucket: dump it.
-        //   If it's a branch: recursively descend down the branch (breadth first) and dump each bucket
-        //
-        // At this point you're at the same level you started from. Assuming that you still don't have the max elements you want.
-        // Go back up parent, sort the branches at that level by matching prefix, and go through the sorted branches in order just
-        // like you originally did. BUT don't recurse down the branch you just returned from!
-        //
-        //
-        
-        LinkedList<Activity> output = new LinkedList<>();
+        IdClosenessComparator comparator = new IdClosenessComparator(id);
+        TreeSet<Activity> output = new TreeSet<>((x, y) -> comparator.compare(x.getNode().getId(), y.getNode().getId()));
         
         root.findNodesWithLargestPossiblePrefix(id, output, max);
+  
+        // DONT DO THIS. DO NOT INCLUDE SELF. ADD IT AT LAYERS ABOVE.
+//        // We don't keep ourself in the buckets in the routing tree, but we may be one of the closest nodes to id. As such, add ourself to
+//        // the output list and evict excess (if any)
+//        output.add(new Activity(baseNode, Instant.MIN));
+//        while (output.size() > max) {
+//            output.pollLast();
+//        }
         
         return new ArrayList<>(output);
     }
@@ -285,10 +237,15 @@ public final class RouteTree {
             this.branches = branches;
         }
 
-        public void findNodesWithLargestPossiblePrefix(Id id, LinkedList<Activity> output, int max) {
+        //treeset compares by id
+        public void findNodesWithLargestPossiblePrefix(Id id, TreeSet<Activity> output, int max) {
             // Other validation checks on args done by caller, no point in repeating this for an unchanging argument in recursive method
             Validate.isTrue(id.getBitString().getBits(0, prefix.getBitLength()).equals(prefix)); // ensure prefix matches
 
+            // Recursively go down the until you find the branch with the largest matching prefix to ID. Once you find it, call
+            // dumpAllNodesUnderTreeNode, and as you pop back up call dumpAllNodesUnderTreeNode again (making sure to not recurse back in to
+            // the branch you're coming out of).
+            
             int traverseIdx = (int) id.getBitsAsLong(prefix.getBitLength(), suffixLen);
             TreeBranch traverseBranch = branches.get(traverseIdx);
             BitString traversePrefix = traverseBranch.getPrefix(); //id.getBitString().getBits(0, prefix.getBitLength() + suffixLen);
@@ -305,7 +262,8 @@ public final class RouteTree {
             }
         }
 
-        public void dumpAllNodesUnderTreeNode(Id id, LinkedList<Activity> output, int max, Set<BitString> skipPrefixes) {
+        //treeset compares by id
+        public void dumpAllNodesUnderTreeNode(Id id, TreeSet<Activity> output, int max, Set<BitString> skipPrefixes) {
             // Other validation checks on args done by caller, no point in repeating this for an unchanging argument in recursive method
             Validate.isTrue(id.getBitString().getBits(0, prefix.getBitLength()).equals(prefix)); // ensure prefix matches
             
@@ -314,8 +272,18 @@ public final class RouteTree {
                 return;
             }
 
-            // What is the point of taking in an ID and doing this preferedPrefix calculation?? When we dump all the nodes in a branch, we
-            // want to access the branches that are closer to the suffix of the ID first. We do this for multiple reasons:
+            // Sort branches at this treenode by how close the are to the ID we're searching for... Go through the sorted branches in
+            // order...
+            //
+            //   If it's a bucket: dump it.
+            //   If it's a branch: recurse in to the branch and repeat
+            //
+            ArrayList<TreeBranch> sortedBranches = new ArrayList<>(branches);
+            Collections.sort(sortedBranches, new PrefixClosenessComparator(id, prefix.getBitLength(), suffixLen));
+            
+            // What is the point of taking in an ID and sorting the branches in this tree node such that the we access the "closer" prefixes
+            // first? We want to access the branches that are closer to the suffix of the ID first because ...
+            //
             //
             // 1. Given the same prefix, we don't end up accessing the exact same set of nodes given. For example...
             //
@@ -339,90 +307,41 @@ public final class RouteTree {
             // because we don't want to return the same set of nodes everytime. It would end up being an undue burden on those nodes.
             //
             //
-            // 2. It meshes well with the "notion of closeness" we derived in IdClosenessComparator, which states that...
+            //
+            // 2. Remember our notion of closeness: XOR and normal integer less-than to see which is closer. So for example, lets say we're
+            // looking for ID 111110 and the prefix at this point in the tree is is 110xxx. Even though the prefix 110 doesn't match, we
+            // still want to match as closely to the remaining suffix as possible, because when we XOR those extra 0's at the beginning of 
+            // the suffix mean that we're closer.
+            //
+            // For example...
+            //
+            // This tree node has the prefix 110xxx and the ID we're searching for is 111110. There are 2 branches at this tree node:
+            // 1100xx and 1101xx
+            //
+            //      110xxx
+            //        /\
+            //       /  \
+            //      /    \
+            //   0 /      \ 1
+            //    /        \
+            // 1100xx    1101xx
+            //
+            // We know that the IDs under 1101xx WILL ALWAYS BE CLOSER than the IDs at 1100xx.
+            //
+            // XORing with the 1100xx bucket ... XOR(111110, 1100xx) = 0011xx
             // 
-            // Assume nodes A, B, and C. According to Kademlia's notion of distance, the larger the prefix shared between two nodes, the
-            // closer those nodes are to eachother. So if distance(A,B) == distance(A,C), it means that A, B, and C all share the same
-            // prefix and as such are equal distance from each other. 
+            // XORing with the 1101xx bucket ... XOR(111110, 1101xx) = 0010xx
             //
-            // IdClosenessComparator extends this such that, given that B and C share the same common prefix with A, we start successively
-            // flipping bits in the suffix until one of them ends up having a larger prefix. The one with the larger prefix after the
-            // bit flip(s) will be the closer one.
             //
-            // Now assume the same scenario shown in the example above...
+            //     Remember how < works... go compare each single bit from the beginning until you come across a pair of bits that aren't
+            //     equal (one is 0 and the other is 1). The ID with 0 at that position is less-than the other one.
             //
-            //      0/\1
-            //      /  EMPTY
-            //    0/\1
-            //    /  FULL
-            //  0/\1
-            // ME  FULL
             //
-            // We want to route to 111 but 111 is empty, so we flip to the other branch and take the suffix from 11, meaning that we're now
-            // attempting to go to 011. This is exactly what our "notion of closeness" describes above... we have no matching prefix (there
-            // are no nodes in 1xx) bucket, so we've "flipped" our first bit (by going to the adjacent branch: 0xx) and now we're searching
-            // for 011 instead. Now, if bucket 01x were empty as well, we'd "flip" the second bit (by going to the adjacent branch: 00x) and
-            // searching for 001... and so on and so forth.
+            // The one on the bottom (1101xx) will ALWAYS CONTAIN CLOSER IDs...
             //
-            // This notion of closeness becomes useful when we're dealing with highly unbalanced trees or networks in their infancy.
-            //
-            // For example, imagine the following tree. It's representative of a network that's either highly unbalanced on in its infancy
-            // (not many nodes available).
-            //
-            //         0/ \1
-            //         /   \
-            //        /     \
-            //       /       \
-            //      /         \
-            //    0/ \1     0/ \1
-            //    /   \     /   \ 
-            //  0/\1 0/\1 0/\1 0/\1
-            //  *          * *  * *
-            //
-            // All the 1xx nodes are in the network, and node 000 is also in the network. Since k=1, each bucket can only hold 1 node. Node
-            // 000 can only maintain 1 contact out of all nodes that have prefix 1xx, and the 1xx nodes can only maintain 1 contact in their
-            // 0xx bucket.
-            //
-            // Lets say that thus far only 111 know about 000 each other. 000 has 111 in its 1xx bucket, and 111 has 000 in its 0xx bucket.
-            // NO OTHER 1xx nodes know about 000, and as such their 0xx buckets are empty.
+            // An example ID in top:    110011 ... XOR(111110, 110011) = 001101 = 13
+            // An exmaple ID in bottom: 110100 ... XOR(111110, 110100) = 001010 = 9
             // 
-            // Now, if node 110 wanted to route to 000, it will never get that opportunity...
-            // 
-            // - 110 will look in to the bucket that 000b should be in and will see that it's empty. It will return the node "closest" to
-            //   000b: 100b (see section above on "Notion of Closeness" to see how this is calculated).
-            // - 100b will also look in to the bucket that 000 should be in and will see that it's empty. It has no where closer to route
-            //   to, so it sticks with itself.
-            //
-            // We can solve this problem by having a special bucket that maintains the closest nodes (as defined by our notion of
-            // closeness). So for example, node 000 would maintain the 1 closest node it knows of to it. Let's say node 000 has node 111 in
-            // its node bucket, but other 1xx nodes start touching it as well. Node 000's 1xx bucket will stay the same, but its special
-            // bucket will get updated such that it holds on to the closest nodes...
-            //
-            // So, assume that 111 is in 000's 1xx bucket and it's in the special bucket as well. Assume the special bucket only has a size
-            // of 1.
-            //
-            // 1. 101 touches node 000 -- We compare the node that just touched us (101) against the node in our special bucket that
-            //                            maintains the closest nodes... using our "notion of closeness" metric, it turns out that 101 is
-            //                            closer to us (000) then 101, so we put 101 and evict 111.
-            //
-            // 2. 100 touches node 000 -- We compare the node that just touched us (100) against the node in our special bucket that
-            //                            maintains the closest nodes... using our "notion of closeness" metric, it turns out that 100 is
-            //                            closer to us (000) then 101, so we put 100 and evict 101.
-            //
-            // We send bucket refreshed periodically to this special bucket, so node 100 will always point to us in its 0xx bucket. Now, if
-            // any other 1xx node wanted to get to 000 but its 0xx bucket was empty, it would route to 100 instead (remember notion of
-            // closeness, bits after shared common prefix, 0 in this case, start getting flipped until a match can be found), and 100 would
-            // route to 000 (we're in its 0xx bucket because of our special bucket of closest nodes).
-            //
-            BitString preferedPrefix = id.getBitString().getBits(0, prefix.getBitLength() + suffixLen);
-            ArrayList<TreeBranch> sortedBranches = new ArrayList<>(branches);
-            Collections.sort(sortedBranches,
-                    (x, y) -> {
-                        return -Integer.compare(
-                                preferedPrefix.getSharedPrefixLength(x.getPrefix()),
-                                preferedPrefix.getSharedPrefixLength(y.getPrefix()));
-                    }
-            );
                 
             for (TreeBranch sortedBranch : sortedBranches) {
                 if (skipPrefixes.contains(sortedBranch.getPrefix())) {
@@ -432,12 +351,21 @@ public final class RouteTree {
                 if (sortedBranch instanceof NodeTreeBranch) {
                     TreeNode node = sortedBranch.getItem();
                     node.dumpAllNodesUnderTreeNode(id, output, max, emptySet()); // dont propogate skipPrefixes -- not relevent deeper
+                    
+                    // Bucket's full after dumping nodes in that branch. No point in continued processing.
+                    if (output.size() >= max) {
+                        return;
+                    }
                 } else if (sortedBranch instanceof BucketTreeBranch) {
                     KBucket bucket = sortedBranch.getItem();
                     output.addAll(bucket.dumpBucket());
                     
                     // Bucket's full after that add. No point in continued processing.
                     if (output.size() >= max) {
+                        // If we have more than max elements from that last add, start evicting farthest away nodes
+                        while (output.size() > max) {
+                            output.pollLast();
+                        }
                         return;
                     }
                 } else {
@@ -569,5 +497,36 @@ public final class RouteTree {
         public TreeNode getItem() {
             return node;
         }
+    }
+    
+    private static final class PrefixClosenessComparator implements Comparator<TreeBranch> {
+        // This is a hacky way to compare bitstrings using the XOR metric intended for IDs
+        private final int prefixLen;
+        private final int suffixLen;
+        private final IdClosenessComparator partialIdClosenessComparator;
+
+        public PrefixClosenessComparator(Id id, int prefixLen, int suffixLen) {
+            Validate.notNull(id);
+            Validate.isTrue(prefixLen >= 0);
+            Validate.isTrue(suffixLen > 0);
+            Validate.isTrue(id.getBitLength() <= prefixLen + suffixLen);
+            
+            this.prefixLen = prefixLen;
+            this.suffixLen = suffixLen;
+            
+            Id partialId = Id.create(id.getBitString().getBits(prefixLen, suffixLen));
+            this.partialIdClosenessComparator = new IdClosenessComparator(partialId);
+        }
+
+        @Override
+        public int compare(TreeBranch o1, TreeBranch o2) {
+            Validate.isTrue(o1.getPrefix().getBitLength() == prefixLen + suffixLen);
+            Validate.isTrue(o2.getPrefix().getBitLength() == prefixLen + suffixLen);
+            
+            return partialIdClosenessComparator.compare(
+                    Id.create(o1.getPrefix().getBits(prefixLen, suffixLen)),
+                    Id.create(o2.getPrefix().getBits(prefixLen, suffixLen)));
+        }
+        
     }
 }
