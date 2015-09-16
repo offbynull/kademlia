@@ -6,6 +6,7 @@ import static com.offbynull.voip.kademlia.TestUtils.verifyActivityChangeSetRemov
 import static com.offbynull.voip.kademlia.TestUtils.verifyNodesInActivities;
 import static com.offbynull.voip.kademlia.TestUtils.verifyPrefixMatches;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.List;
 import static org.junit.Assert.assertEquals;
 import org.junit.Rule;
@@ -270,8 +271,27 @@ public final class RouteTreeTest {
     }
 
     @Test
-    public void mustReturnStagnantBuckets() throws Throwable {
-        // all of the following nodes should be inserted in to buckets of kbuckets, not caches of kbuckets
+    public void mustReturnStagnantBucketsInOrder() throws Throwable {
+        fixture.touch(BASE_TIME.plusMillis(1L), NODE_0111);
+        fixture.touch(BASE_TIME.plusMillis(2L), NODE_0011);
+        fixture.touch(BASE_TIME.plusMillis(3L), NODE_0100);
+        fixture.touch(BASE_TIME.plusMillis(4L), NODE_0001);
+        fixture.touch(BASE_TIME.plusMillis(5L), NODE_0010);
+        fixture.touch(BASE_TIME.plusMillis(6L), NODE_1100);
+        fixture.touch(BASE_TIME.plusMillis(7L), NODE_1110);
+
+        
+        List<BitString> bitStringsOlderThan5L = fixture.getBucketsUpdatedBefore(BASE_TIME.plusMillis(5L));
+        assertEquals(
+                Arrays.asList(
+                        BitString.createFromString("01"),
+                        BitString.createFromString("0001"),
+                        BitString.createFromString("001")), 
+                bitStringsOlderThan5L);
+    }
+
+    @Test
+    public void mustReturnLastUpdateTime() throws Throwable {
         fixture.touch(BASE_TIME.plusMillis(1L), NODE_0001);
         fixture.touch(BASE_TIME.plusMillis(2L), NODE_0010);
         fixture.touch(BASE_TIME.plusMillis(3L), NODE_0011);
@@ -280,7 +300,7 @@ public final class RouteTreeTest {
         fixture.touch(BASE_TIME.plusMillis(6L), NODE_1100);
         fixture.touch(BASE_TIME.plusMillis(7L), NODE_1110);
 
-        System.out.println(fixture.getBucketsUpdatedBefore(BASE_TIME.plusMillis(3L)));
+        assertEquals(BASE_TIME.plusMillis(7L), fixture.getLastUpdateTime());
     }
     
     @Test

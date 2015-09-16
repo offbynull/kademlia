@@ -53,6 +53,10 @@ public final class RouteTree {
             child = growParent(child, branchSpecSupplier, bucketSpecSupplier);
         }
         
+        // Special case: the routing tree, if large enough, may have a bucket for baseId. Nothing can ever access that bucket (calls to
+        // touch/stale/find with your own ID will result an exception) and it'll always be empty, so remove it from bucketUpdateTimes.
+        bucketUpdateTimes.remove(baseId.getBitString());
+        
         this.lastUpdateTime = Instant.MIN;
     }
 
@@ -111,7 +115,10 @@ public final class RouteTree {
     }
 
     public List<BitString> getBucketsUpdatedBefore(Instant time) {
-        return bucketUpdateTimes.getBefore(time, true);
+        Validate.notNull(time);
+        
+        List<BitString> prefixes = bucketUpdateTimes.getBefore(time, true);
+        return prefixes;
     }
     
     public Instant getLastUpdateTime() {

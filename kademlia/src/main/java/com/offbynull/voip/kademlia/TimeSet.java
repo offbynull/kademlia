@@ -67,7 +67,7 @@ final class TimeSet<V> {
         LinkedList<V> ret = new LinkedList<>();
         subMap.entrySet().stream()
                 .flatMap(x -> x.getValue().stream())
-                .forEach(ret::add);
+                .forEachOrdered(ret::add);
         
         return new ArrayList<>(ret);
     }
@@ -80,7 +80,7 @@ final class TimeSet<V> {
         LinkedList<V> ret = new LinkedList<>();
         subMap.entrySet().stream()
                 .flatMap(x -> x.getValue().stream())
-                .forEach(ret::add);
+                .forEachOrdered(ret::add);
         
         return new ArrayList<>(ret);
     }
