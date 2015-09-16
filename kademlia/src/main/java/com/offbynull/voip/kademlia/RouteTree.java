@@ -326,7 +326,7 @@ public final class RouteTree {
             //    /        \
             // 1100xx    1101xx
             //
-            // We know that the IDs under 1101xx WILL ALWAYS BE CLOSER than the IDs at 1100xx.
+            // We know that for ID 111110, the IDs under 1101xx WILL ALWAYS BE CLOSER than the IDs at 1100xx.
             //
             // XORing with the 1100xx bucket ... XOR(111110, 1100xx) = 0011xx
             // 
