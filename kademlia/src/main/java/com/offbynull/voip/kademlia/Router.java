@@ -38,13 +38,17 @@ public final class Router {
     
     private Instant lastUpdateTime;
     
-    public Router(Id baseId, RouteTreeSpecificationSupplier specSupplier, int maxNearNodes) {
+    public Router(Id baseId,
+            RouteTreeBranchSpecificationSupplier branchSpecSupplier,
+            RouteTreeBucketSpecificationSupplier bucketSpecSupplier,
+            int maxNearNodes) {
         Validate.notNull(baseId);
-        Validate.notNull(specSupplier);
+        Validate.notNull(branchSpecSupplier);
+        Validate.notNull(bucketSpecSupplier);
         Validate.isTrue(maxNearNodes >= 0);
         
         this.baseId = baseId;
-        this.routeTree = RouteTree.create(baseId, specSupplier);
+        this.routeTree = new RouteTree(baseId, branchSpecSupplier, bucketSpecSupplier);
         this.nearBucket = new NearBucket(baseId, maxNearNodes);
         this.activitySet = new NodeActivitySet(baseId);
         this.dataSet = new NodeDataSet(baseId);
@@ -52,6 +56,7 @@ public final class Router {
 
     public Router(Id baseId, int bucketsPerLevel, int maxNodesPerBucket, int maxCacheNodesPerBucket, int maxNearNodes) {
         this(baseId,
+                new SimpleRouteTreeSpecificationSupplier(baseId, bucketsPerLevel, maxNodesPerBucket, maxCacheNodesPerBucket),
                 new SimpleRouteTreeSpecificationSupplier(baseId, bucketsPerLevel, maxNodesPerBucket, maxCacheNodesPerBucket),
                 maxNearNodes);
     }

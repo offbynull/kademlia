@@ -236,8 +236,8 @@ public final class RouteTreeTest {
     }
 
     @Test
-    public void mustFindClosestNodes() throws Throwable {
-        // all of the following nodes should be inserted in to buckets of kbuckets, not caches of kbuckets
+    public void mustFindClosestNodesFirstExhaustive() throws Throwable {
+        // all of the following nodes should be inserted in to buckets of kbuckets, they won't overflow in to the caches of kbuckets
         fixture.touch(BASE_TIME.plusMillis(1L), NODE_0001);
         fixture.touch(BASE_TIME.plusMillis(2L), NODE_0010);
         fixture.touch(BASE_TIME.plusMillis(3L), NODE_0011);
@@ -248,26 +248,190 @@ public final class RouteTreeTest {
 
         List<Activity> res;
         
-        // for all of these, res is correct ... remember the XOR metric
-        // also keep in mind that routetree will never return self and will never let you search for self
+        // NOTE THAT THIS TEST SHOWS SOMETHING REALLY IMPORTANT... it shows that the routetree will return the closest nodes (as defined by
+        // the XOR metric) first, not just any node out of the buckets that the search hits.
         
-        // search for self not allowed
-//        res = fixture.find(NODE_0000.getId(), 5);
-//        verifyNodesInActivities(res, NODE_0001, NODE_0010, NODE_0011, NODE_0100, NODE_0111);  // correct, routetree doesn't contain self
-        res = fixture.find(NODE_0001.getId(), 5);
-        verifyNodesInActivities(res, NODE_0001, NODE_0011, NODE_0010, NODE_0100, NODE_0111); 
-        res = fixture.find(NODE_0010.getId(), 5);
-        verifyNodesInActivities(res, NODE_0010, NODE_0011, NODE_0001, NODE_0111, NODE_0100); 
-        res = fixture.find(NODE_0011.getId(), 5);
-        verifyNodesInActivities(res, NODE_0011, NODE_0010, NODE_0001, NODE_0111, NODE_0100); 
-        res = fixture.find(NODE_0100.getId(), 5);
-        verifyNodesInActivities(res, NODE_0100, NODE_0111, NODE_0001, NODE_0010, NODE_0011); 
-        res = fixture.find(NODE_0111.getId(), 5);
-        verifyNodesInActivities(res, NODE_0111, NODE_0100, NODE_0011, NODE_0010, NODE_0001); 
-        res = fixture.find(NODE_1000.getId(), 5);
-        verifyNodesInActivities(res, NODE_1100, NODE_1110, NODE_0001, NODE_0010, NODE_0011); 
-        res = fixture.find(NODE_1111.getId(), 5);
-        verifyNodesInActivities(res, NODE_1110, NODE_1100, NODE_0111, NODE_0100, NODE_0011); 
+        
+        // for all of these, res is correct ... remember the XOR metric... comments are provided after each check showing the calculations
+        // are correct
+        //
+        // also keep in mind that routetree will never return self and will never let you search for self
+        res = fixture.find(NODE_0001.getId(), 7);
+        verifyNodesInActivities(res, NODE_0001, NODE_0011, NODE_0010, NODE_0100, NODE_0111, NODE_1100, NODE_1110); 
+        //                       XOR      0001       0001       0001       0001       0001       0001       0001
+        //                                ----       ----       ----       ----       ----       ----       ----
+        //                                0000       0010       0011       0101       0110       1101       1110
+        //       (result in decimal)         0          2          3          5          6         13         14
+        res = fixture.find(NODE_0010.getId(), 7);
+        verifyNodesInActivities(res, NODE_0010, NODE_0011, NODE_0001, NODE_0111, NODE_0100, NODE_1110, NODE_1100); 
+        //                       XOR      0010       0010       0010       0010       0010       0010       0010
+        //                                ----       ----       ----       ----       ----       ----       ----
+        //                                0000       0001       0011       0101       0110       1100       1110
+        //       (result in decimal)         0          1          3          5          6         12         14
+        res = fixture.find(NODE_0011.getId(), 7);
+        verifyNodesInActivities(res, NODE_0011, NODE_0010, NODE_0001, NODE_0111, NODE_0100, NODE_1110, NODE_1100); 
+        //                       XOR      0011       0011       0011       0011       0011       0011       0011
+        //                                ----       ----       ----       ----       ----       ----       ----
+        //                                0000       0001       0010       0100       0111       1101       1111
+        //       (result in decimal)         0          1          2          4          7         13         15
+        res = fixture.find(NODE_0100.getId(), 7);
+        verifyNodesInActivities(res, NODE_0100, NODE_0111, NODE_0001, NODE_0010, NODE_0011, NODE_1100, NODE_1110); 
+        //                       XOR      0100       0100       0100       0100       0100       0100       0100
+        //                                ----       ----       ----       ----       ----       ----       ----
+        //                                0000       0011       0101       0110       0111       1000       1010
+        //       (result in decimal)         0          3          5          6          7          8         10
+        res = fixture.find(NODE_0111.getId(), 7);
+        verifyNodesInActivities(res, NODE_0111, NODE_0100, NODE_0011, NODE_0010, NODE_0001, NODE_1110, NODE_1100); 
+        //                       XOR      0111       0111       0111       0111       0111       0111       0111
+        //                                ----       ----       ----       ----       ----       ----       ----
+        //                                0000       0011       0100       0101       0110       1001       1011
+        //       (result in decimal)         0          3          4          5          6          9         11
+        res = fixture.find(NODE_1000.getId(), 7);
+        verifyNodesInActivities(res, NODE_1100, NODE_1110, NODE_0001, NODE_0010, NODE_0011, NODE_0100, NODE_0111); 
+        //                       XOR      1000       1000       1000       1000       1000       1000       1000
+        //                                ----       ----       ----       ----       ----       ----       ----
+        //                                0100       0110       1001       1010       1011       1100       1111
+        //       (result in decimal)         4          6          9         10         11         12         15
+        res = fixture.find(NODE_1111.getId(), 7);
+        verifyNodesInActivities(res, NODE_1110, NODE_1100, NODE_0111, NODE_0100, NODE_0011, NODE_0010, NODE_0001); 
+        //                       XOR      1111       1111       1111       1111       1111       1111       1111
+        //                                ----       ----       ----       ----       ----       ----       ----
+        //                                0001       0011       1000       1011       1100       1101       1110
+        //       (result in decimal)         1          3          8         11         12         13         14
+    }
+    
+    @Test
+    public void mustFindClosestNodesFirst() throws Throwable {
+        // all of the following nodes should be inserted in to buckets of kbuckets, they won't overflow in to the caches of kbuckets
+        fixture.touch(BASE_TIME.plusMillis(1L), NODE_0001);
+        fixture.touch(BASE_TIME.plusMillis(2L), NODE_0010);
+        fixture.touch(BASE_TIME.plusMillis(3L), NODE_0011);
+        fixture.touch(BASE_TIME.plusMillis(4L), NODE_0100);
+        fixture.touch(BASE_TIME.plusMillis(5L), NODE_0111);
+        fixture.touch(BASE_TIME.plusMillis(6L), NODE_1100);
+        fixture.touch(BASE_TIME.plusMillis(7L), NODE_1110);
+
+        List<Activity> res;
+        
+        // NOTE THAT THIS TEST SHOWS SOMETHING REALLY IMPORTANT... it shows that the routetree will return the closest nodes (as defined by
+        // the XOR metric) first, not just any node out of the buckets that the search hits.
+        
+        
+        // for all of these, res is correct ... remember the XOR metric... comments are provided after each check showing the calculations
+        // are correct
+        //
+        // also keep in mind that routetree will never return self and will never let you search for self
+        res = fixture.find(NODE_0001.getId(), 3);
+        verifyNodesInActivities(res, NODE_0001, NODE_0011, NODE_0010); 
+        //                       XOR      0001       0001       0001
+        //                                ----       ----       ----
+        //                                0000       0010       0011
+        //       (result in decimal)         0          2          3
+        res = fixture.find(NODE_0010.getId(), 3);
+        verifyNodesInActivities(res, NODE_0010, NODE_0011, NODE_0001); 
+        //                       XOR      0010       0010       0010
+        //                                ----       ----       ----
+        //                                0000       0001       0011
+        //       (result in decimal)         0          1          3
+        res = fixture.find(NODE_0011.getId(), 3);
+        verifyNodesInActivities(res, NODE_0011, NODE_0010, NODE_0001); 
+        //                       XOR      0011       0011       0011
+        //                                ----       ----       ----
+        //                                0000       0001       0010
+        //       (result in decimal)         0          1          2
+        res = fixture.find(NODE_0100.getId(), 3);
+        verifyNodesInActivities(res, NODE_0100, NODE_0111, NODE_0001); 
+        //                       XOR      0100       0100       0100
+        //                                ----       ----       ----
+        //                                0000       0011       0101
+        //       (result in decimal)         0          3          5
+        res = fixture.find(NODE_0111.getId(), 3);
+        verifyNodesInActivities(res, NODE_0111, NODE_0100, NODE_0011); 
+        //                       XOR      0111       0111       0111
+        //                                ----       ----       ----
+        //                                0000       0011       0100
+        //       (result in decimal)         0          3          4
+        res = fixture.find(NODE_1000.getId(), 3);
+        verifyNodesInActivities(res, NODE_1100, NODE_1110, NODE_0001); 
+        //                       XOR      1000       1000       1000
+        //                                ----       ----       ----
+        //                                0100       0110       1001
+        //       (result in decimal)         4          6          9
+        res = fixture.find(NODE_1111.getId(), 3);
+        verifyNodesInActivities(res, NODE_1110, NODE_1100, NODE_0111); 
+        //                       XOR      1111       1111       1111
+        //                                ----       ----       ----
+        //                                0001       0011       1000
+        //       (result in decimal)         1          3          8
+    }
+
+    @Test
+    public void mustFindClosestNodesFirstInTreeWithLargerBranching() throws Throwable {
+        // recreate fixture to have 4 branches per node instead of 2, then do the same test as mustFindClosestNodesFirst
+        SimpleRouteTreeSpecificationSupplier specSupplier = new SimpleRouteTreeSpecificationSupplier(NODE_0000.getId(), 4, 2, 2);
+        fixture = new RouteTree(NODE_0000.getId(), specSupplier, specSupplier);        
+        
+        // all of the following nodes should be inserted in to buckets of kbuckets, they won't overflow in to the caches of kbuckets
+        fixture.touch(BASE_TIME.plusMillis(1L), NODE_0001);
+        fixture.touch(BASE_TIME.plusMillis(2L), NODE_0010);
+        fixture.touch(BASE_TIME.plusMillis(3L), NODE_0011);
+        fixture.touch(BASE_TIME.plusMillis(4L), NODE_0100);
+        fixture.touch(BASE_TIME.plusMillis(5L), NODE_0111);
+        fixture.touch(BASE_TIME.plusMillis(6L), NODE_1100);
+        fixture.touch(BASE_TIME.plusMillis(7L), NODE_1110);
+
+        List<Activity> res;
+        
+        // NOTE THAT THIS TEST SHOWS SOMETHING REALLY IMPORTANT... it shows that the routetree will return the closest nodes (as defined by
+        // the XOR metric) first, not just any node out of the buckets that the search hits.
+        
+        
+        // for all of these, res is correct ... remember the XOR metric... comments are provided after each check showing the calculations
+        // are correct
+        //
+        // also keep in mind that routetree will never return self and will never let you search for self
+        res = fixture.find(NODE_0001.getId(), 3);
+        verifyNodesInActivities(res, NODE_0001, NODE_0011, NODE_0010); 
+        //                       XOR      0001       0001       0001
+        //                                ----       ----       ----
+        //                                0000       0010       0011
+        //       (result in decimal)         0          2          3
+        res = fixture.find(NODE_0010.getId(), 3);
+        verifyNodesInActivities(res, NODE_0010, NODE_0011, NODE_0001); 
+        //                       XOR      0010       0010       0010
+        //                                ----       ----       ----
+        //                                0000       0001       0011
+        //       (result in decimal)         0          1          3
+        res = fixture.find(NODE_0011.getId(), 3);
+        verifyNodesInActivities(res, NODE_0011, NODE_0010, NODE_0001); 
+        //                       XOR      0011       0011       0011
+        //                                ----       ----       ----
+        //                                0000       0001       0010
+        //       (result in decimal)         0          1          2
+        res = fixture.find(NODE_0100.getId(), 3);
+        verifyNodesInActivities(res, NODE_0100, NODE_0111, NODE_0001); 
+        //                       XOR      0100       0100       0100
+        //                                ----       ----       ----
+        //                                0000       0011       0101
+        //       (result in decimal)         0          3          5
+        res = fixture.find(NODE_0111.getId(), 3);
+        verifyNodesInActivities(res, NODE_0111, NODE_0100, NODE_0011); 
+        //                       XOR      0111       0111       0111
+        //                                ----       ----       ----
+        //                                0000       0011       0100
+        //       (result in decimal)         0          3          4
+        res = fixture.find(NODE_1000.getId(), 3);
+        verifyNodesInActivities(res, NODE_1100, NODE_1110, NODE_0001); 
+        //                       XOR      1000       1000       1000
+        //                                ----       ----       ----
+        //                                0100       0110       1001
+        //       (result in decimal)         4          6          9
+        res = fixture.find(NODE_1111.getId(), 3);
+        verifyNodesInActivities(res, NODE_1110, NODE_1100, NODE_0111); 
+        //                       XOR      1111       1111       1111
+        //                                ----       ----       ----
+        //                                0001       0011       1000
+        //       (result in decimal)         1          3          8
     }
 
     @Test
