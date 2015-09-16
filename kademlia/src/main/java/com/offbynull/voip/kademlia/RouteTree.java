@@ -33,9 +33,9 @@ import org.apache.commons.lang3.Validate;
 public final class RouteTree {
     private final Id baseId;
     private final TreeNode root;
-    private final TimeSet<BitString> bucketUpdateTimes;
+    private final TimeSet<BitString> bucketUpdateTimes; // prefix to when the prefix's bucket was last updated (not cache)
     
-    private Instant lastUpdateTime;
+    private Instant lastTouchTime;
     
     public RouteTree(Id baseId, // because id's are always > 0 in size -- it isn't possible for tree creation to mess up
             RouteTreeBranchSpecificationSupplier branchSpecSupplier,
@@ -57,7 +57,7 @@ public final class RouteTree {
         // touch/stale/find with your own ID will result an exception) and it'll always be empty, so remove it from bucketUpdateTimes.
         bucketUpdateTimes.remove(baseId.getBitString());
         
-        this.lastUpdateTime = Instant.MIN;
+        this.lastTouchTime = Instant.MIN;
     }
 
     public List<Activity> find(Id id, int max) {
@@ -99,7 +99,8 @@ public final class RouteTree {
         Validate.isTrue(!id.equals(baseId));
         Validate.isTrue(id.getBitLength() == baseId.getBitLength());
         
-        Validate.isTrue(!time.isBefore(lastUpdateTime)); // time must be >= lastUpdatedTime
+        Validate.isTrue(!time.isBefore(lastTouchTime)); // time must be >= lastTouchTime, to prevent from going backward in time
+        lastTouchTime = time;
 
         return root.touch(time, node);
     }
@@ -114,15 +115,11 @@ public final class RouteTree {
         return root.stale(node);
     }
 
-    public List<BitString> getBucketsUpdatedBefore(Instant time) {
+    public List<BitString> getStagnantBuckets(Instant time) { // is inclusive
         Validate.notNull(time);
         
         List<BitString> prefixes = bucketUpdateTimes.getBefore(time, true);
         return prefixes;
-    }
-    
-    public Instant getLastUpdateTime() {
-        return lastUpdateTime;
     }
     
     private static final BitString EMPTY = BitString.createFromString("");
@@ -153,7 +150,13 @@ public final class RouteTree {
             newBuckets[i].resizeBucket(bucketSize);
             newBuckets[i].resizeCache(cacheSize);
             
-            bucketUpdateTimes.insert(newBuckets[i].getLastUpdateTime(), newBuckets[i].getPrefix());
+            // insert last bucket activity time in to bucket update times... it may be null if bucket has never been accessed, in which case
+            // we insert MIN instead
+            Instant lastBucketActivityTime = newBuckets[i].getLatestBucketActivityTime();
+            if (lastBucketActivityTime == null) {
+                lastBucketActivityTime = Instant.MIN;
+            }
+            bucketUpdateTimes.insert(lastBucketActivityTime, newBuckets[i].getPrefix());
         }
 
         // Create root
@@ -212,8 +215,12 @@ public final class RouteTree {
             int cacheSize = bucketParams.getCacheSize();
             newBuckets[i].resizeBucket(bucketSize);
             newBuckets[i].resizeCache(cacheSize);
-            
-            bucketUpdateTimes.insert(newBuckets[i].getLastUpdateTime(), newBuckets[i].getPrefix());
+
+            Instant lastBucketActivityTime = newBuckets[i].getLatestBucketActivityTime();
+            if (lastBucketActivityTime == null) {
+                lastBucketActivityTime = Instant.MIN;
+            }
+            bucketUpdateTimes.insert(lastBucketActivityTime, newBuckets[i].getPrefix());
         }
 
         // Get rid of parent bucket we just split. It branches down at that point, and any nodes that were contained within will be in the
@@ -415,13 +422,15 @@ public final class RouteTree {
                 KBucket bucket = branch.getItem();
                 KBucketChangeSet kBucketChangeSet = bucket.touch(time, node);
                 BitString kBucketPrefix = bucket.getPrefix();
-                Instant kBucketLastUpdateTime = bucket.getLastUpdateTime();
                 
-                if (kBucketLastUpdateTime.isAfter(lastUpdateTime)) {
-                    lastUpdateTime = kBucketLastUpdateTime;
-                    bucketUpdateTimes.remove(kBucketPrefix);
-                    bucketUpdateTimes.insert(lastUpdateTime, kBucketPrefix);
+                // insert last bucket activity time in to bucket update times... it may be null if bucket has never been accessed, in which case
+                // we insert MIN instead
+                Instant lastBucketActivityTime = bucket.getLatestBucketActivityTime();
+                if (lastBucketActivityTime == null) {
+                    lastBucketActivityTime = Instant.MIN;
                 }
+                bucketUpdateTimes.remove(kBucketPrefix);
+                bucketUpdateTimes.insert(lastBucketActivityTime, kBucketPrefix);
                 
                 return new RouteTreeChangeSet(kBucketPrefix, kBucketChangeSet);
             } else {
@@ -444,13 +453,18 @@ public final class RouteTree {
                 KBucket bucket = branch.getItem();
                 KBucketChangeSet kBucketChangeSet = bucket.stale(node);
                 BitString kBucketPrefix = bucket.getPrefix();
-                Instant kBucketLastUpdateTime = bucket.getLastUpdateTime();
-                
-                if (kBucketLastUpdateTime.isAfter(lastUpdateTime)) { // should never change from call to kbucket.stale(), but just incase
-                    lastUpdateTime = kBucketLastUpdateTime;
-                    bucketUpdateTimes.remove(kBucketPrefix);
-                    bucketUpdateTimes.insert(lastUpdateTime, kBucketPrefix);
+
+                // insert last bucket activity time in to bucket update times... it may be null if bucket has never been accessed, in which
+                // case we insert MIN instead
+                //
+                // note that marking a node as stale may have replaced it in the bucket with another node in the cache. That cache node
+                // could have an older time than the stale node, meaning that bucketUpdateTimes may actually be older after the replacement!
+                Instant lastBucketActivityTime = bucket.getLatestBucketActivityTime();
+                if (lastBucketActivityTime == null) {
+                    lastBucketActivityTime = Instant.MIN;
                 }
+                bucketUpdateTimes.remove(kBucketPrefix);
+                bucketUpdateTimes.insert(lastBucketActivityTime, kBucketPrefix);
                 
                 return new RouteTreeChangeSet(kBucketPrefix, kBucketChangeSet);
             } else {
