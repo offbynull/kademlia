@@ -247,19 +247,24 @@ public final class RouteTreeTest {
 
         List<Activity> res;
         
-        // for all of these, res is correct ... remember bits are flipped if common prefixes are the same
+        // for all of these, res is correct ... remember the XOR metric
+        // also keep in mind that routetree will never return self
         res = fixture.find(NODE_0000.getId(), 5);
-        verifyNodesInActivities(res, NODE_0000, NODE_0001, NODE_0010, NODE_0011, NODE_0100); 
-//        res = fixture.find(NODE_0001.getId(), 5);
-//        verifyNodesInActivities(res, NODE_0001, NODE_0011, NODE_0010, NODE_0100, NODE_0111); 
-//        res = fixture.find(NODE_0010.getId(), 5);
-//        verifyNodesInActivities(res, NODE_0010, NODE_0011, NODE_0111, NODE_0100, NODE_1110); 
-//        res = fixture.find(NODE_0011.getId(), 5);
-//        verifyNodesInActivities(res, NODE_0011, NODE_0010, NODE_0111, NODE_0100, NODE_1110); 
-//        res = fixture.find(NODE_0100.getId(), 5);
-//        verifyNodesInActivities(res, NODE_0100, NODE_0111, NODE_0001, NODE_1100, NODE_1110); 
-//        res = fixture.find(NODE_1000.getId(), 5);
-//        verifyNodesInActivities(res, NODE_1100, NODE_1110, NODE_0000); 
+        verifyNodesInActivities(res, NODE_0001, NODE_0010, NODE_0011, NODE_0100, NODE_0111);  // correct, routetree doesn't contain self
+        res = fixture.find(NODE_0001.getId(), 5);
+        verifyNodesInActivities(res, NODE_0001, NODE_0011, NODE_0010, NODE_0100, NODE_0111); 
+        res = fixture.find(NODE_0010.getId(), 5);
+        verifyNodesInActivities(res, NODE_0010, NODE_0011, NODE_0001, NODE_0111, NODE_0100); 
+        res = fixture.find(NODE_0011.getId(), 5);
+        verifyNodesInActivities(res, NODE_0011, NODE_0010, NODE_0001, NODE_0111, NODE_0100); 
+        res = fixture.find(NODE_0100.getId(), 5);
+        verifyNodesInActivities(res, NODE_0100, NODE_0111, NODE_0001, NODE_0010, NODE_0011); 
+        res = fixture.find(NODE_0111.getId(), 5);
+        verifyNodesInActivities(res, NODE_0111, NODE_0100, NODE_0011, NODE_0010, NODE_0001); 
+        res = fixture.find(NODE_1000.getId(), 5);
+        verifyNodesInActivities(res, NODE_1100, NODE_1110, NODE_0001, NODE_0010, NODE_0011); 
+        res = fixture.find(NODE_1111.getId(), 5);
+        verifyNodesInActivities(res, NODE_1110, NODE_1100, NODE_0111, NODE_0100, NODE_0011); 
     }
     
     @Test

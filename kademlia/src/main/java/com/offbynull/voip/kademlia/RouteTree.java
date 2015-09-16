@@ -237,7 +237,8 @@ public final class RouteTree {
             this.branches = branches;
         }
 
-        //treeset compares by id
+        // id is the id we're trying to find
+        // treeset compares against id
         public void findNodesWithLargestPossiblePrefix(Id id, TreeSet<Activity> output, int max) {
             // Other validation checks on args done by caller, no point in repeating this for an unchanging argument in recursive method
             Validate.isTrue(id.getBitString().getBits(0, prefix.getBitLength()).equals(prefix)); // ensure prefix matches
@@ -262,10 +263,10 @@ public final class RouteTree {
             }
         }
 
-        //treeset compares by id
+        // id is the id we're trying to find
+        // treeset compares against id
         public void dumpAllNodesUnderTreeNode(Id id, TreeSet<Activity> output, int max, Set<BitString> skipPrefixes) {
             // Other validation checks on args done by caller, no point in repeating this for an unchanging argument in recursive method
-            Validate.isTrue(id.getBitString().getBits(0, prefix.getBitLength()).equals(prefix)); // ensure prefix matches
             
             // No more room in bucket? just leave right away.
             if (output.size() >= max) {
@@ -509,7 +510,7 @@ public final class RouteTree {
             Validate.notNull(id);
             Validate.isTrue(prefixLen >= 0);
             Validate.isTrue(suffixLen > 0);
-            Validate.isTrue(id.getBitLength() <= prefixLen + suffixLen);
+            Validate.isTrue(id.getBitLength() >= prefixLen + suffixLen);
             
             this.prefixLen = prefixLen;
             this.suffixLen = suffixLen;
