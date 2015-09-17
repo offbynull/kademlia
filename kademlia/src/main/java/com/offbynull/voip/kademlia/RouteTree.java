@@ -96,7 +96,7 @@ public final class RouteTree {
         Validate.isTrue(!time.isBefore(lastTouchTime)); // time must be >= lastTouchTime, to prevent from going backward in time
         lastTouchTime = time;
 
-        KBucket bucket = root.getBucketFor(node);
+        KBucket bucket = root.getBucketFor(node.getId());
         KBucketChangeSet kBucketChangeSet = bucket.touch(time, node);
         BitString kBucketPrefix = bucket.getPrefix();
 
@@ -119,7 +119,7 @@ public final class RouteTree {
         Validate.isTrue(!id.equals(baseId));
         Validate.isTrue(id.getBitLength() == baseId.getBitLength());
             
-        KBucket bucket = root.getBucketFor(node);
+        KBucket bucket = root.getBucketFor(node.getId());
         KBucketChangeSet kBucketChangeSet = bucket.stale(node);
         BitString kBucketPrefix = bucket.getPrefix();
 
@@ -145,7 +145,7 @@ public final class RouteTree {
         Validate.isTrue(!id.equals(baseId));
         Validate.isTrue(id.getBitLength() == baseId.getBitLength());
             
-        root.getBucketFor(node).lock(node);
+        root.getBucketFor(node.getId()).lock(node);
     }
 
     public void unlock(Node node) throws LinkConflictException {
@@ -155,7 +155,7 @@ public final class RouteTree {
         Validate.isTrue(!id.equals(baseId));
         Validate.isTrue(id.getBitLength() == baseId.getBitLength());
             
-        root.getBucketFor(node).unlock(node);
+        root.getBucketFor(node.getId()).unlock(node);
     }
 
     public List<BitString> getStagnantBuckets(Instant time) { // is inclusive
