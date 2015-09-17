@@ -125,6 +125,16 @@ public final class RouteTree {
         root.lock(node);
     }
 
+    public void unlock(Node node) throws LinkConflictException {
+        Validate.notNull(node);
+
+        Id id = node.getId();
+        Validate.isTrue(!id.equals(baseId));
+        Validate.isTrue(id.getBitLength() == baseId.getBitLength());
+            
+        root.unlock(node);
+    }
+
     public List<BitString> getStagnantBuckets(Instant time) { // is inclusive
         Validate.notNull(time);
         
@@ -504,6 +514,25 @@ public final class RouteTree {
             } else if (branch instanceof BucketTreeBranch) {
                 KBucket bucket = branch.getItem();
                 bucket.lock(node); // should have no effect on bucketUpdateTime or anything -- node is still present in bucket, just locked
+            } else {
+                throw new IllegalStateException(); // should never happen
+            }
+        }
+
+        public void unlock(Node node) throws LinkConflictException {
+            // Other validate checks done by caller, no point in repeating this for an unchanging argument in recursive method
+            Id id = node.getId();
+            Validate.isTrue(id.getBitString().getBits(0, prefix.getBitLength()).equals(prefix)); // ensure prefix matches
+
+            int bucketIdx = (int) id.getBitsAsLong(prefix.getBitLength(), suffixLen);
+            TreeBranch branch = branches.get(bucketIdx);
+
+            if (branch instanceof NodeTreeBranch) {
+                TreeNode treeNode = branch.getItem();
+                treeNode.unlock(node);
+            } else if (branch instanceof BucketTreeBranch) {
+                KBucket bucket = branch.getItem();
+                bucket.unlock(node); // should have no effect on bucketUpdateTime or anything -- node is still present in bucket, just locked
             } else {
                 throw new IllegalStateException(); // should never happen
             }
