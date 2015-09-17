@@ -81,8 +81,8 @@ public class KBucketTest {
         verifyActivityChangeSetCounts(res.getCacheChangeSet(), 1, 0, 0);
         verifyActivityChangeSetAdded(res.getCacheChangeSet(), NODE_1101);
         
-        verifyNodesInActivities(fixture.dumpBucket(true), NODE_0010, NODE_1000, NODE_0100, NODE_1100);
-        verifyTimeInActivities(fixture.dumpBucket(true),
+        verifyNodesInActivities(fixture.dumpBucket(true, true, true), NODE_0010, NODE_1000, NODE_0100, NODE_1100);
+        verifyTimeInActivities(fixture.dumpBucket(true, true, true),
                 BASE_TIME.plusMillis(1L),
                 BASE_TIME.plusMillis(2L),
                 BASE_TIME.plusMillis(3L),
@@ -114,8 +114,8 @@ public class KBucketTest {
         verifyActivityChangeSetAdded(res.getCacheChangeSet(), NODE_1001);
         verifyActivityChangeSetRemoved(res.getCacheChangeSet(), NODE_1111);
         
-        verifyNodesInActivities(fixture.dumpBucket(true), NODE_0010, NODE_1000, NODE_0100, NODE_1100);
-        verifyTimeInActivities(fixture.dumpBucket(true),
+        verifyNodesInActivities(fixture.dumpBucket(true, true, true), NODE_0010, NODE_1000, NODE_0100, NODE_1100);
+        verifyTimeInActivities(fixture.dumpBucket(true, true, true),
                 BASE_TIME.plusMillis(1L),
                 BASE_TIME.plusMillis(2L),
                 BASE_TIME.plusMillis(3L),
@@ -146,8 +146,8 @@ public class KBucketTest {
         verifyActivityChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
         verifyActivityChangeSetUpdated(res.getBucketChangeSet(), NODE_0010);
         
-        verifyNodesInActivities(fixture.dumpBucket(true), NODE_1000, NODE_0100, NODE_1100, NODE_0010);
-        verifyTimeInActivities(fixture.dumpBucket(true),
+        verifyNodesInActivities(fixture.dumpBucket(true, true, true), NODE_1000, NODE_0100, NODE_1100, NODE_0010);
+        verifyTimeInActivities(fixture.dumpBucket(true, true, true),
                 BASE_TIME.plusMillis(2L),
                 BASE_TIME.plusMillis(3L),
                 BASE_TIME.plusMillis(4L),
@@ -247,8 +247,8 @@ public class KBucketTest {
         verifyActivityChangeSetCounts(res.getCacheChangeSet(), 1, 0, 0);
         verifyActivityChangeSetAdded(res.getCacheChangeSet(), NODE_1101);
         
-        verifyNodesInActivities(fixture.dumpBucket(true), NODE_0010, NODE_1000, NODE_0100, NODE_1100, NODE_1111, NODE_1110);
-        verifyTimeInActivities(fixture.dumpBucket(true),
+        verifyNodesInActivities(fixture.dumpBucket(true, true, true), NODE_0010, NODE_1000, NODE_0100, NODE_1100, NODE_1111, NODE_1110);
+        verifyTimeInActivities(fixture.dumpBucket(true, true, true),
                 BASE_TIME.plusMillis(1L),
                 BASE_TIME.plusMillis(2L),
                 BASE_TIME.plusMillis(3L),
@@ -280,8 +280,8 @@ public class KBucketTest {
         verifyActivityChangeSetRemoved(res.getCacheChangeSet(), NODE_1110, NODE_1101);
         
         
-        verifyNodesInActivities(fixture.dumpBucket(true), NODE_0010, NODE_1000, NODE_0100, NODE_1100, NODE_1110, NODE_1101);
-        verifyTimeInActivities(fixture.dumpBucket(true),
+        verifyNodesInActivities(fixture.dumpBucket(true, true, true), NODE_0010, NODE_1000, NODE_0100, NODE_1100, NODE_1110, NODE_1101);
+        verifyTimeInActivities(fixture.dumpBucket(true, true, true),
                 BASE_TIME.plusMillis(1L),
                 BASE_TIME.plusMillis(2L),
                 BASE_TIME.plusMillis(3L),
@@ -311,8 +311,8 @@ public class KBucketTest {
         verifyActivityChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
         
         
-        verifyNodesInActivities(fixture.dumpBucket(true), NODE_0100, NODE_1100);
-        verifyTimeInActivities(fixture.dumpBucket(true),
+        verifyNodesInActivities(fixture.dumpBucket(true, true, true), NODE_0100, NODE_1100);
+        verifyTimeInActivities(fixture.dumpBucket(true, true, true),
                 BASE_TIME.plusMillis(3L),
                 BASE_TIME.plusMillis(4L));
         verifyNodesInActivities(fixture.dumpCache(), NODE_1111, NODE_1110, NODE_1101);
@@ -355,8 +355,8 @@ public class KBucketTest {
         verifyActivityChangeSetAdded(res.getCacheChangeSet(), NODE_0111);
         
         
-        verifyNodesInActivities(fixture.dumpBucket(true), NODE_0010, NODE_1000, NODE_0100, NODE_1100);
-        verifyTimeInActivities(fixture.dumpBucket(true),
+        verifyNodesInActivities(fixture.dumpBucket(true, true, true), NODE_0010, NODE_1000, NODE_0100, NODE_1100);
+        verifyTimeInActivities(fixture.dumpBucket(true, true, true),
                 BASE_TIME.plusMillis(1L),
                 BASE_TIME.plusMillis(2L),
                 BASE_TIME.plusMillis(3L),
@@ -390,8 +390,8 @@ public class KBucketTest {
         verifyActivityChangeSetRemoved(res.getCacheChangeSet(), NODE_1111, NODE_1110);
         
         
-        verifyNodesInActivities(fixture.dumpBucket(true), NODE_0010, NODE_1000, NODE_0100, NODE_1100);
-        verifyTimeInActivities(fixture.dumpBucket(true),
+        verifyNodesInActivities(fixture.dumpBucket(true, true, true), NODE_0010, NODE_1000, NODE_0100, NODE_1100);
+        verifyTimeInActivities(fixture.dumpBucket(true, true, true),
                 BASE_TIME.plusMillis(1L),
                 BASE_TIME.plusMillis(2L),
                 BASE_TIME.plusMillis(3L),
@@ -422,8 +422,8 @@ public class KBucketTest {
         verifyActivityChangeSetRemoved(res.getCacheChangeSet(), NODE_1101);
         
         
-        verifyNodesInActivities(fixture.dumpBucket(true), NODE_0010, NODE_0100, NODE_1100, NODE_1101);
-        verifyTimeInActivities(fixture.dumpBucket(true),
+        verifyNodesInActivities(fixture.dumpBucket(true, true, true), NODE_0010, NODE_0100, NODE_1100, NODE_1101);
+        verifyTimeInActivities(fixture.dumpBucket(true, true, true),
                 BASE_TIME.plusMillis(1L),
                 BASE_TIME.plusMillis(3L),
                 BASE_TIME.plusMillis(4L),
@@ -449,8 +449,8 @@ public class KBucketTest {
         verifyActivityChangeSetCounts(res.getBucketChangeSet(), 0, 0, 0);
         verifyActivityChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
         
-        verifyNodesInActivities(fixture.dumpBucket(true), NODE_0010, NODE_1000, NODE_0100, NODE_1100);
-        verifyNodesInActivities(fixture.dumpBucket(false), NODE_0010, NODE_0100, NODE_1100);
+        verifyNodesInActivities(fixture.dumpBucket(true, true, true), NODE_0010, NODE_1000, NODE_0100, NODE_1100);
+        verifyNodesInActivities(fixture.dumpBucket(true, false, true), NODE_0010, NODE_0100, NODE_1100);
         
         res = fixture.touch(BASE_TIME.plusMillis(5L), NODE_1111);
         verifyActivityChangeSetCounts(res.getBucketChangeSet(), 1, 1, 0);
@@ -462,8 +462,8 @@ public class KBucketTest {
         fixture.touch(BASE_TIME.plusMillis(7L), NODE_1101);
         
         
-        verifyNodesInActivities(fixture.dumpBucket(true), NODE_0010, NODE_0100, NODE_1100, NODE_1111);
-        verifyTimeInActivities(fixture.dumpBucket(true),
+        verifyNodesInActivities(fixture.dumpBucket(true, true, true), NODE_0010, NODE_0100, NODE_1100, NODE_1111);
+        verifyTimeInActivities(fixture.dumpBucket(true, true, true),
                 BASE_TIME.plusMillis(1L),
                 BASE_TIME.plusMillis(3L),
                 BASE_TIME.plusMillis(4L),
@@ -504,8 +504,8 @@ public class KBucketTest {
         fixture.touch(BASE_TIME.plusMillis(4L), NODE_1100);
         
         
-        verifyNodesInActivities(fixture.dumpBucket(true), NODE_0010, NODE_1000, NODE_0100, NODE_1100);
-        verifyTimeInActivities(fixture.dumpBucket(true),
+        verifyNodesInActivities(fixture.dumpBucket(true, true, true), NODE_0010, NODE_1000, NODE_0100, NODE_1100);
+        verifyTimeInActivities(fixture.dumpBucket(true, true, true),
                 BASE_TIME.plusMillis(1L),
                 BASE_TIME.plusMillis(2L),
                 BASE_TIME.plusMillis(3L),
@@ -516,6 +516,95 @@ public class KBucketTest {
         assertEquals(null, fixture.getLatestCacheActivityTime());
     }
     
+    @Test
+    public void mustLockAndUnlockNodeProperly() throws Throwable {
+        fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
+        fixture.touch(BASE_TIME.plusMillis(2L), NODE_0001);
+        fixture.touch(BASE_TIME.plusMillis(3L), NODE_1010);
+        fixture.touch(BASE_TIME.plusMillis(4L), NODE_1011);
+        
+        fixture.lock(NODE_0001);
+        fixture.lock(NODE_1010);
+        
+        verifyNodesInActivities(fixture.dumpBucket(true, true, false), NODE_0010, NODE_1011);
+        verifyNodesInActivities(fixture.dumpBucket(true, true, true), NODE_0010, NODE_0001, NODE_1010, NODE_1011);
+        verifyNodesInActivities(fixture.dumpBucket(false, true, true), NODE_0001, NODE_1010);
+
+        fixture.unlock(NODE_1010);
+                
+        verifyNodesInActivities(fixture.dumpBucket(true, true, false), NODE_0010, NODE_1010, NODE_1011);
+        verifyNodesInActivities(fixture.dumpBucket(true, true, true), NODE_0010, NODE_0001, NODE_1010, NODE_1011);
+        verifyNodesInActivities(fixture.dumpBucket(false, true, true), NODE_0001);
+        
+        fixture.unlock(NODE_0001);
+        
+        verifyNodesInActivities(fixture.dumpBucket(true, true, false), NODE_0010, NODE_0001, NODE_1010, NODE_1011);
+        verifyNodesInActivities(fixture.dumpBucket(true, true, true), NODE_0010, NODE_0001, NODE_1010, NODE_1011);
+        verifyNodesInActivities(fixture.dumpBucket(false, true, true));
+    }
+
+    @Test
+    public void mustFailToLockNodeThatIsntInBucket() throws Throwable {
+        fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
+        fixture.touch(BASE_TIME.plusMillis(2L), NODE_0001);
+        fixture.touch(BASE_TIME.plusMillis(3L), NODE_1010);
+        fixture.touch(BASE_TIME.plusMillis(4L), NODE_1011);
+        fixture.touch(BASE_TIME.plusMillis(5L), NODE_1111); //INSERTED IN CACHE, NOT BUCKET
+        
+        expectedException.expect(IllegalArgumentException.class);
+        fixture.lock(NODE_1111);
+    }
+
+    @Test
+    public void mustFailToUnlockNodeThatIsntInBucket() throws Throwable {
+        fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
+        fixture.touch(BASE_TIME.plusMillis(2L), NODE_0001);
+        fixture.touch(BASE_TIME.plusMillis(3L), NODE_1010);
+        fixture.touch(BASE_TIME.plusMillis(4L), NODE_1011);
+        fixture.touch(BASE_TIME.plusMillis(5L), NODE_1111); //INSERTED IN CACHE, NOT BUCKET
+        
+        expectedException.expect(IllegalArgumentException.class);
+        fixture.unlock(NODE_1111);
+    }
+
+    @Test
+    public void mustFailToMarkNodeAsStaleIfItIsntInBucket() throws Throwable {
+        fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
+        fixture.touch(BASE_TIME.plusMillis(2L), NODE_0001);
+        fixture.touch(BASE_TIME.plusMillis(3L), NODE_1010);
+        fixture.touch(BASE_TIME.plusMillis(4L), NODE_1011);
+        fixture.touch(BASE_TIME.plusMillis(5L), NODE_1111); //INSERTED IN CACHE, NOT BUCKET
+        
+        expectedException.expect(IllegalArgumentException.class);
+        fixture.stale(NODE_1111);
+    }
+    
+    @Test
+    public void mustFailToMarkNodeAsStaleIfLocked() throws Throwable {
+        fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
+        fixture.touch(BASE_TIME.plusMillis(2L), NODE_0001);
+        fixture.touch(BASE_TIME.plusMillis(3L), NODE_1010);
+        fixture.touch(BASE_TIME.plusMillis(4L), NODE_1011);
+        
+        fixture.lock(NODE_0010);
+        
+        expectedException.expect(IllegalArgumentException.class);
+        fixture.stale(NODE_0010);
+    }
+
+    @Test
+    public void mustFailToMarkNodeAsLockedIfStale() throws Throwable {
+        fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
+        fixture.touch(BASE_TIME.plusMillis(2L), NODE_0001);
+        fixture.touch(BASE_TIME.plusMillis(3L), NODE_1010);
+        fixture.touch(BASE_TIME.plusMillis(4L), NODE_1011);
+        
+        fixture.stale(NODE_0010);
+        
+        expectedException.expect(IllegalArgumentException.class);
+        fixture.lock(NODE_0010);
+    }
+
     @Test
     public void mustSplitInTo1Bucket() throws Throwable { // why would anyone want to do this? it's just a copy
         fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
@@ -530,7 +619,7 @@ public class KBucketTest {
         
         assertEquals(1, buckets.length);
         
-        assertEquals(fixture.dumpBucket(true), buckets[0].dumpBucket(true));
+        assertEquals(fixture.dumpBucket(true, true, true), buckets[0].dumpBucket(true, true, true));
         assertEquals(fixture.dumpCache(), buckets[0].dumpCache());
         assertEquals(BASE_TIME.plusMillis(4L), buckets[0].getLatestBucketActivityTime());
         assertEquals(BASE_TIME.plusMillis(7L), buckets[0].getLatestCacheActivityTime());
@@ -550,12 +639,12 @@ public class KBucketTest {
         
         assertEquals(2, buckets.length);
         
-        assertEquals(NODE_0010, buckets[0].dumpBucket(true).get(0).getNode());
-        assertEquals(NODE_0100, buckets[0].dumpBucket(true).get(1).getNode());
-        assertEquals(NODE_1000, buckets[1].dumpBucket(true).get(0).getNode());
-        assertEquals(NODE_1100, buckets[1].dumpBucket(true).get(1).getNode());
-        assertEquals(NODE_1110, buckets[1].dumpBucket(true).get(2).getNode());
-        assertEquals(NODE_1101, buckets[1].dumpBucket(true).get(3).getNode());
+        assertEquals(NODE_0010, buckets[0].dumpBucket(true, true, true).get(0).getNode());
+        assertEquals(NODE_0100, buckets[0].dumpBucket(true, true, true).get(1).getNode());
+        assertEquals(NODE_1000, buckets[1].dumpBucket(true, true, true).get(0).getNode());
+        assertEquals(NODE_1100, buckets[1].dumpBucket(true, true, true).get(1).getNode());
+        assertEquals(NODE_1110, buckets[1].dumpBucket(true, true, true).get(2).getNode());
+        assertEquals(NODE_1101, buckets[1].dumpBucket(true, true, true).get(3).getNode());
         
         assertEquals(0, buckets[0].dumpCache().size());
         assertEquals(1, buckets[1].dumpCache().size());
@@ -595,6 +684,27 @@ public class KBucketTest {
     }
 
     @Test
+    public void mustSplitInTo2BucketsAndRetainLockedStates() throws Throwable {
+        fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
+        fixture.touch(BASE_TIME.plusMillis(2L), NODE_0001);
+        fixture.touch(BASE_TIME.plusMillis(3L), NODE_1010);
+        fixture.touch(BASE_TIME.plusMillis(4L), NODE_1011);
+        
+        fixture.lock(NODE_0001);
+        fixture.lock(NODE_1010);
+        
+        KBucket[] buckets = fixture.split(1);
+        
+        verifyNodesInActivities(buckets[0].dumpBucket(true, true, false), NODE_0010);
+        verifyNodesInActivities(buckets[0].dumpBucket(true, true, true), NODE_0010, NODE_0001);
+        verifyNodesInActivities(buckets[0].dumpBucket(false, true, true), NODE_0001);
+
+        verifyNodesInActivities(buckets[1].dumpBucket(true, true, false), NODE_1011);
+        verifyNodesInActivities(buckets[1].dumpBucket(true, true, true), NODE_1010, NODE_1011);
+        verifyNodesInActivities(buckets[1].dumpBucket(false, true, true), NODE_1010);
+    }
+
+    @Test
     public void mustSplitInTo2BucketsWhereBucket0IsEmpty() throws Throwable {
         fixture.touch(BASE_TIME.plusMillis(0L), NODE_1000);
         fixture.touch(BASE_TIME.plusMillis(1L), NODE_1001);
@@ -609,15 +719,15 @@ public class KBucketTest {
         
         assertEquals(2, buckets.length);
         
-        assertEquals(0, buckets[0].dumpBucket(true).size());
+        assertEquals(0, buckets[0].dumpBucket(true, true, true).size());
         assertEquals(0, buckets[0].dumpCache().size());
-        assertEquals(4, buckets[1].dumpBucket(true).size());
+        assertEquals(4, buckets[1].dumpBucket(true, true, true).size());
         assertEquals(3, buckets[1].dumpCache().size());
         
-        assertEquals(NODE_1000, buckets[1].dumpBucket(true).get(0).getNode());
-        assertEquals(NODE_1001, buckets[1].dumpBucket(true).get(1).getNode());
-        assertEquals(NODE_1010, buckets[1].dumpBucket(true).get(2).getNode());
-        assertEquals(NODE_1011, buckets[1].dumpBucket(true).get(3).getNode());
+        assertEquals(NODE_1000, buckets[1].dumpBucket(true, true, true).get(0).getNode());
+        assertEquals(NODE_1001, buckets[1].dumpBucket(true, true, true).get(1).getNode());
+        assertEquals(NODE_1010, buckets[1].dumpBucket(true, true, true).get(2).getNode());
+        assertEquals(NODE_1011, buckets[1].dumpBucket(true, true, true).get(3).getNode());
         
         assertEquals(NODE_1101, buckets[1].dumpCache().get(0).getNode());
         assertEquals(NODE_1110, buckets[1].dumpCache().get(1).getNode());
@@ -644,25 +754,25 @@ public class KBucketTest {
         
         assertEquals(4, buckets.length);
         
-        assertEquals(2, buckets[0].dumpBucket(true).size());
+        assertEquals(2, buckets[0].dumpBucket(true, true, true).size());
         assertEquals(0, buckets[0].dumpCache().size());
-        assertEquals(2, buckets[1].dumpBucket(true).size());
+        assertEquals(2, buckets[1].dumpBucket(true, true, true).size());
         assertEquals(0, buckets[1].dumpCache().size());
-        assertEquals(2, buckets[2].dumpBucket(true).size());
+        assertEquals(2, buckets[2].dumpBucket(true, true, true).size());
         assertEquals(0, buckets[2].dumpCache().size());
-        assertEquals(1, buckets[3].dumpBucket(true).size());
+        assertEquals(1, buckets[3].dumpBucket(true, true, true).size());
         assertEquals(0, buckets[3].dumpCache().size());
         
-        assertEquals(NODE_0001, buckets[0].dumpBucket(true).get(0).getNode());
-        assertEquals(NODE_0011, buckets[0].dumpBucket(true).get(1).getNode());
+        assertEquals(NODE_0001, buckets[0].dumpBucket(true, true, true).get(0).getNode());
+        assertEquals(NODE_0011, buckets[0].dumpBucket(true, true, true).get(1).getNode());
 
-        assertEquals(NODE_0101, buckets[1].dumpBucket(true).get(0).getNode());
-        assertEquals(NODE_0111, buckets[1].dumpBucket(true).get(1).getNode());
+        assertEquals(NODE_0101, buckets[1].dumpBucket(true, true, true).get(0).getNode());
+        assertEquals(NODE_0111, buckets[1].dumpBucket(true, true, true).get(1).getNode());
 
-        assertEquals(NODE_1001, buckets[2].dumpBucket(true).get(0).getNode());
-        assertEquals(NODE_1011, buckets[2].dumpBucket(true).get(1).getNode());
+        assertEquals(NODE_1001, buckets[2].dumpBucket(true, true, true).get(0).getNode());
+        assertEquals(NODE_1011, buckets[2].dumpBucket(true, true, true).get(1).getNode());
 
-        assertEquals(NODE_1101, buckets[3].dumpBucket(true).get(0).getNode());
+        assertEquals(NODE_1101, buckets[3].dumpBucket(true, true, true).get(0).getNode());
         
         assertEquals(BASE_TIME.plusMillis(5L), buckets[0].getLatestBucketActivityTime());
         assertEquals(null, buckets[0].getLatestCacheActivityTime());

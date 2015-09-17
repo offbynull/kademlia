@@ -366,6 +366,46 @@ public final class RouteTreeTest {
     }
 
     @Test
+    public void mustFindClosestNodesThatAreNotLocked() throws Throwable {
+        // all of the following nodes should be inserted in to buckets of kbuckets, they won't overflow in to the caches of kbuckets
+        fixture.touch(BASE_TIME.plusMillis(1L), NODE_0001);
+        fixture.touch(BASE_TIME.plusMillis(2L), NODE_0010);
+        fixture.touch(BASE_TIME.plusMillis(3L), NODE_0011);
+        fixture.touch(BASE_TIME.plusMillis(4L), NODE_0100);
+        fixture.touch(BASE_TIME.plusMillis(5L), NODE_0111);
+        fixture.touch(BASE_TIME.plusMillis(6L), NODE_1100);
+        fixture.touch(BASE_TIME.plusMillis(7L), NODE_1110);
+
+        List<Activity> res;
+        
+        fixture.lock(NODE_0001);
+        fixture.lock(NODE_0010);
+        
+        res = fixture.find(NODE_0001.getId(), 3);
+        verifyNodesInActivities(res, NODE_0011, NODE_0100, NODE_0111); 
+    }
+
+    @Test
+    public void mustFindClosestNodesIncludingStale() throws Throwable {
+        // all of the following nodes should be inserted in to buckets of kbuckets, they won't overflow in to the caches of kbuckets
+        fixture.touch(BASE_TIME.plusMillis(1L), NODE_0001);
+        fixture.touch(BASE_TIME.plusMillis(2L), NODE_0010);
+        fixture.touch(BASE_TIME.plusMillis(3L), NODE_0011);
+        fixture.touch(BASE_TIME.plusMillis(4L), NODE_0100);
+        fixture.touch(BASE_TIME.plusMillis(5L), NODE_0111);
+        fixture.touch(BASE_TIME.plusMillis(6L), NODE_1100);
+        fixture.touch(BASE_TIME.plusMillis(7L), NODE_1110);
+
+        List<Activity> res;
+        
+        fixture.stale(NODE_0001);
+        fixture.stale(NODE_0010);
+        
+        res = fixture.find(NODE_0001.getId(), 3);
+        verifyNodesInActivities(res, NODE_0001, NODE_0011, NODE_0010); 
+    }
+
+    @Test
     public void mustFindClosestNodesFirstInTreeWithLargerBranching() throws Throwable {
         // recreate fixture to have 4 branches per node instead of 2, then do the same test as mustFindClosestNodesFirst
         SimpleRouteTreeSpecificationSupplier specSupplier = new SimpleRouteTreeSpecificationSupplier(NODE_0000.getId(), 4, 2, 2);

@@ -115,6 +115,16 @@ public final class RouteTree {
         return root.stale(node);
     }
 
+    public void lock(Node node) throws LinkConflictException {
+        Validate.notNull(node);
+
+        Id id = node.getId();
+        Validate.isTrue(!id.equals(baseId));
+        Validate.isTrue(id.getBitLength() == baseId.getBitLength());
+            
+        root.lock(node);
+    }
+
     public List<BitString> getStagnantBuckets(Instant time) { // is inclusive
         Validate.notNull(time);
         
@@ -373,7 +383,11 @@ public final class RouteTree {
                     }
                 } else if (sortedBranch instanceof BucketTreeBranch) {
                     KBucket bucket = sortedBranch.getItem();
-                    output.addAll(bucket.dumpBucket());
+                    
+                    // include stale nodes but not locked nodes ... locked nodes, according to kademlia paper, are temp locked because
+                    // network may be congested and will be unlocked soon ... stale nodes on the other hand are unresponsive but we have
+                    // nothing to replace them with, so essentially we've entered desperation mode
+                    output.addAll(bucket.dumpBucket(true, true, false));
                     
                     // Bucket's full after that add. No point in continued processing.
                     if (output.size() >= max) {
@@ -401,7 +415,11 @@ public final class RouteTree {
                 node.dumpNodesInBucket(searchPrefix, output);
             } else if (branch instanceof BucketTreeBranch) {
                 KBucket bucket = branch.getItem();
-                output.addAll(bucket.dumpBucket());
+                
+                // include stale nodes but not locked nodes ... locked nodes, according to kademlia paper, are temp locked because
+                // network may be congested and will be unlocked soon ... stale nodes on the other hand are unresponsive but we have
+                // nothing to replace them with, so essentially we've entered desperation mode
+                output.addAll(bucket.dumpBucket(true, true, false));
             } else {
                 throw new IllegalStateException(); // should never happen
             }
@@ -449,7 +467,7 @@ public final class RouteTree {
             if (branch instanceof NodeTreeBranch) {
                 TreeNode treeNode = branch.getItem();
                 return treeNode.stale(node);
-            } if (branch instanceof BucketTreeBranch) {
+            } else if (branch instanceof BucketTreeBranch) {
                 KBucket bucket = branch.getItem();
                 KBucketChangeSet kBucketChangeSet = bucket.stale(node);
                 BitString kBucketPrefix = bucket.getPrefix();
@@ -467,6 +485,25 @@ public final class RouteTree {
                 bucketUpdateTimes.insert(lastBucketActivityTime, kBucketPrefix);
                 
                 return new RouteTreeChangeSet(kBucketPrefix, kBucketChangeSet);
+            } else {
+                throw new IllegalStateException(); // should never happen
+            }
+        }
+
+        public void lock(Node node) throws LinkConflictException {
+            // Other validate checks done by caller, no point in repeating this for an unchanging argument in recursive method
+            Id id = node.getId();
+            Validate.isTrue(id.getBitString().getBits(0, prefix.getBitLength()).equals(prefix)); // ensure prefix matches
+
+            int bucketIdx = (int) id.getBitsAsLong(prefix.getBitLength(), suffixLen);
+            TreeBranch branch = branches.get(bucketIdx);
+
+            if (branch instanceof NodeTreeBranch) {
+                TreeNode treeNode = branch.getItem();
+                treeNode.lock(node);
+            } else if (branch instanceof BucketTreeBranch) {
+                KBucket bucket = branch.getItem();
+                bucket.lock(node); // should have no effect on bucketUpdateTime or anything -- node is still present in bucket, just locked
             } else {
                 throw new IllegalStateException(); // should never happen
             }

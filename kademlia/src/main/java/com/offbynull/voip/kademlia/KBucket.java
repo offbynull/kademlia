@@ -20,6 +20,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -37,8 +38,14 @@ public final class KBucket {
     private final NodeLeastRecentSet bucket;
     private final NodeMostRecentSet cache;
     
-    // the way things are done, stale set should only ever contain nodes from bucket
-    private final Set<Node> staleSet;
+    // i thought about using predicates instead of internally holding on to this information in the sets below but accepting predicates from
+    // the outside introduces problems: 1. design becomes more convoluted / less understandable 2. the logic for which an item is determined
+    // to be stale or locked may change without this kbucket ever knowing... which means that everytime touch is called we need to go
+    // through the buckets, query the predicates for each node, and move around nodes...
+    //
+    // the way things are done, these 2 sets should only ever contain nodes from bucket
+    private final Set<Node> staleSet; // stale nodes are returned by dumpBucket?
+    private final Set<Node> lockSet; // locked nodes aren't returned by dumpBucket?
 
     private Instant lastTouchAttemptTime;
 
@@ -57,7 +64,8 @@ public final class KBucket {
         this.prefix = prefix;
         this.bucket = new NodeLeastRecentSet(baseId, maxBucketSize);
         this.cache = new NodeMostRecentSet(baseId, maxCacheSize);
-        this.staleSet = new LinkedHashSet<>(); // linked to maintain order of items as they're added
+        this.staleSet = new LinkedHashSet<>(); // maintain order they're added, when replacing we want to replace oldest stale first
+        this.lockSet = new HashSet<>();
         
         lastTouchAttemptTime = Instant.MIN;
     }
@@ -116,6 +124,7 @@ public final class KBucket {
         Validate.isTrue(nodeId.getBitString().getBits(0, prefix.getBitLength()).equals(prefix)); // ensure prefix matches
         
         Validate.isTrue(bucket.contains(node)); // node being marked as stale must be in bucket
+        Validate.isTrue(!lockSet.contains(node), "Node is already locked, cannot be stale"); // stale and locked are mutally exclusive
 
         staleSet.add(node); // add to stale set, it's fine if it's already in the staleset
         
@@ -133,6 +142,38 @@ public final class KBucket {
         return new KBucketChangeSet(
                 new ActivityChangeSet(singletonList(res.right), singletonList(res.left), emptyList()),
                 ActivityChangeSet.removed(res.right));
+    }
+    
+    public void lock(Node node) throws LinkConflictException {
+        Validate.notNull(node);
+        
+        Id nodeId = node.getId();
+
+        Validate.isTrue(!nodeId.equals(baseId));
+        Validate.isTrue(nodeId.getBitLength() == baseId.getBitLength());
+        
+        Validate.isTrue(nodeId.getBitString().getBits(0, prefix.getBitLength()).equals(prefix)); // ensure prefix matches
+        
+        Validate.isTrue(bucket.contains(node)); // node being marked as locked must be in bucket
+        Validate.isTrue(!staleSet.contains(node), "Node is already stale, cannot be locked"); // stale and locked are mutally exclusive
+
+        lockSet.add(node); // add to lock set, it's fine if it's already in the lockset
+    }
+
+    public void unlock(Node node) throws LinkConflictException {
+        Validate.notNull(node);
+        
+        Id nodeId = node.getId();
+
+        Validate.isTrue(!nodeId.equals(baseId));
+        Validate.isTrue(nodeId.getBitLength() == baseId.getBitLength());
+        
+        Validate.isTrue(nodeId.getBitString().getBits(0, prefix.getBitLength()).equals(prefix)); // ensure prefix matches
+        
+        Validate.isTrue(bucket.contains(node)); // node being marked as locked must be in bucket
+        Validate.isTrue(!staleSet.contains(node), "Node is already stale, cannot be locked"); // stale and locked are mutally exclusive
+
+        lockSet.remove(node); // remove from lock set, it's fine if it's already in the lockset
     }
 
     // return is left=removed right=added
@@ -232,6 +273,10 @@ public final class KBucket {
                 if (staleSet.contains(node)) {
                     newKBuckets[idx].staleSet.add(node);
                 }
+                // move over lock nodes as well
+                if (lockSet.contains(node)) {
+                    newKBuckets[idx].lockSet.add(node);
+                }
             } catch (LinkConflictException ece) {
                 // should never happen
                 throw new IllegalStateException(ece);
@@ -313,15 +358,28 @@ public final class KBucket {
         return new KBucketChangeSet(ActivityChangeSet.NO_CHANGE, res);
     }
 
-    public List<Activity> dumpBucket(boolean includeStale) { // includes stales
+    public List<Activity> dumpBucket(boolean includeAlive, boolean includeStale, boolean includeLocked) {
         List<Activity> dumpedNodes = bucket.dump();
-        if (includeStale) {
-            return dumpedNodes;
-        }
         
         List<Activity> filteredDumpedNodes = new ArrayList<>(dumpedNodes.size());
         dumpedNodes.stream()
-                .filter(x -> !staleSet.contains(x.getNode()))
+                .filter(x -> {
+                    boolean inStaleSet = staleSet.contains(x.getNode());
+                    if (includeStale && inStaleSet) {
+                        return true;
+                    }
+
+                    boolean inLockSet = lockSet.contains(x.getNode());
+                    if (includeLocked && inLockSet) {
+                        return true;
+                    }
+
+                    if (includeAlive && !inLockSet && !inStaleSet) {
+                        return true;
+                    }
+
+                    return false;
+                })
                 .forEachOrdered(filteredDumpedNodes::add);
         
         return filteredDumpedNodes;
