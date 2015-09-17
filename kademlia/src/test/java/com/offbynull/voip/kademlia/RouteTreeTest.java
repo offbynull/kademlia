@@ -23,7 +23,7 @@ public final class RouteTreeTest {
     private static final Node NODE_0101 = new Node(Id.createFromLong(0x05L, 4), "5");
     private static final Node NODE_0110 = new Node(Id.createFromLong(0x06L, 4), "6");
     private static final Node NODE_0111 = new Node(Id.createFromLong(0x07L, 4), "7");
-    private static final Node NODE_1000 = new Node(Id.createFromLong(0x08L, 4), "8"); // 0000
+    private static final Node NODE_1000 = new Node(Id.createFromLong(0x08L, 4), "8");
     private static final Node NODE_1001 = new Node(Id.createFromLong(0x09L, 4), "9");
     private static final Node NODE_1010 = new Node(Id.createFromLong(0x0AL, 4), "A");
     private static final Node NODE_1011 = new Node(Id.createFromLong(0x0BL, 4), "B");

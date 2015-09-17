@@ -54,6 +54,7 @@ public final class RouteTree {
         this.lastTouchTime = Instant.MIN;
     }
 
+    // this will always give you the closest nodes in your routetable, based on the xor metric
     public List<Activity> find(Id id, int max) {
         Validate.notNull(id);
         Validate.isTrue(!id.equals(baseId));

@@ -28,7 +28,7 @@ public final class Router {
     private final RouteTree routeTree;
     private final NearBucket nearBucket;
     
-    private Instant lastUpdateTime;
+    private Instant lastTouchTime;
     
     public Router(Id baseId,
             RouteTreeBranchSpecificationSupplier branchSpecSupplier,
@@ -42,6 +42,7 @@ public final class Router {
         this.baseId = baseId;
         this.routeTree = new RouteTree(baseId, branchSpecSupplier, bucketSpecSupplier);
         this.nearBucket = new NearBucket(baseId, maxNearNodes);
+        this.lastTouchTime = Instant.MIN;
     }
 
     public Router(Id baseId, int bucketsPerLevel, int maxNodesPerBucket, int maxCacheNodesPerBucket, int maxNearNodes) {
@@ -55,7 +56,8 @@ public final class Router {
         Validate.notNull(time);
         Validate.notNull(node);
         
-        Validate.isTrue(!time.isBefore(lastUpdateTime)); // time must be >= lastUpdatedTime
+        Validate.isTrue(!time.isBefore(lastTouchTime)); // time must be >= lastUpdatedTime
+        this.lastTouchTime = time;
         
         Id nodeId = node.getId();
         Validate.isTrue(!nodeId.equals(baseId));
@@ -80,6 +82,7 @@ public final class Router {
         Comparator<Id> idComp = new IdClosenessComparator(id);
         Stream.concat(closestNodesInNearSet.stream(), closestNodesInRoutingTree.stream().map(x -> x.getNode()))
                 .sorted((x, y) -> idComp.compare(x.getId(), y.getId()))
+                .distinct()
                 .limit(max)
                 .forEachOrdered(res::add);
         
