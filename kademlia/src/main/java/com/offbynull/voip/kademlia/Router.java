@@ -27,8 +27,6 @@ public final class Router {
     private final Id baseId;
     private final RouteTree routeTree;
     private final NearBucket nearBucket;
-    private final NodeActivitySet activitySet;
-//    private final NodeDataSet dataSet;
     
     private Instant lastUpdateTime;
     
@@ -44,8 +42,6 @@ public final class Router {
         this.baseId = baseId;
         this.routeTree = new RouteTree(baseId, branchSpecSupplier, bucketSpecSupplier);
         this.nearBucket = new NearBucket(baseId, maxNearNodes);
-        this.activitySet = new NodeActivitySet(baseId);
-//        this.dataSet = new NodeDataSet(baseId);
     }
 
     public Router(Id baseId, int bucketsPerLevel, int maxNodesPerBucket, int maxCacheNodesPerBucket, int maxNearNodes) {
@@ -67,40 +63,12 @@ public final class Router {
 
         
         
-        // Touch routing tree -- apply changes to activityset and nearbucket
-        ActivityChangeSet routeTreeChangeSet = routeTree.touch(time, node).getKBucketChangeSet().getBucketChangeSet();
-        for (Activity addedNode : routeTreeChangeSet.viewAdded()) {
-            activitySet.touch(addedNode.getTime(), addedNode.getNode());
-            nearBucket.touchPeer(addedNode.getNode()); // this is a new peer, so let the near bucket know
-        }
+        // Touch routing tree -- apply changes to nearbucket
+        RouteTreeChangeSet routeTreeChangeSet = routeTree.touch(time, node);
+        synchronizeChangesFromRouteTreeToNearSet(routeTreeChangeSet);
 
-        for (Activity removedNode : routeTreeChangeSet.viewRemoved()) {
-            activitySet.remove(removedNode.getNode());
-            nearBucket.remove(removedNode.getNode()); // a peer was removed, so let the neat bucket know
-        }
-
-        for (Activity updatedNode : routeTreeChangeSet.viewUpdated()) {
-            activitySet.touch(updatedNode.getTime(), updatedNode.getNode());
-            nearBucket.touchPeer(updatedNode.getNode()); // this is a existing peer, so let the near bucket know
-        }
-        
-        
-        
         // In addition to that, touch the nearbucket anyways -- if wasn't added to route tree, we may still want it because it may be nearer
         NodeChangeSet nearBucketChangeSet = nearBucket.touch(node).getBucketChangeSet();
-        for (Node addedNode : nearBucketChangeSet.viewAdded()) {
-            activitySet.touch(time, addedNode);
-        }
-
-        for (Node removedNode : nearBucketChangeSet.viewRemoved()) {
-            // node has been removed from the nearbucket, but it may also still be part of the routing tree, so don't remove it from the
-            // activity set unless you know for certain 
-            activitySet.remove(removedNode);
-        }
-
-        for (Node updatedNode : nearBucketChangeSet.viewUpdated()) {
-            // do nothing, an update means the node was already in the nearbucket
-        }
     }
     
     public List<Node> find(Id id, int max) {
@@ -126,6 +94,22 @@ public final class Router {
     public void unlock(Node node) throws LinkConflictException {
         Validate.notNull(node);
         routeTree.unlock(node);
+    }
+    
+    private void synchronizeChangesFromRouteTreeToNearSet(RouteTreeChangeSet routeTreeChangeSet) throws LinkConflictException {
+        KBucketChangeSet kBucketChangeSet = routeTreeChangeSet.getKBucketChangeSet();
+        
+        for (Activity addedNode : kBucketChangeSet.getBucketChangeSet().viewAdded()) {
+            nearBucket.touchPeer(addedNode.getNode()); // this is a new peer, so let the near bucket know
+        }
+
+        for (Activity removedNode : kBucketChangeSet.getBucketChangeSet().viewRemoved()) {
+            nearBucket.remove(removedNode.getNode()); // a peer was removed, so let the neat bucket know
+        }
+
+        for (Activity updatedNode : kBucketChangeSet.getBucketChangeSet().viewUpdated()) {
+            nearBucket.touchPeer(updatedNode.getNode()); // this is a existing peer, so let the near bucket know
+        }
     }
     
 //    public void setNodeProperty(Node node, Object key, Object value) throws LinkConflictException {
