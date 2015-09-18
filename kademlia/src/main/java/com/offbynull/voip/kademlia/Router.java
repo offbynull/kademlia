@@ -97,6 +97,13 @@ public final class Router {
     
     // mark a node for eviction... if there are items available in the replacement cache for the kbucket that the node is located in, the
     // node is evicted immediately. otherwise, the node will be evicted as soon as a replacement cache item becomes available
+    //
+    // nodes marked for eviction WILL STILL GET RETURNED ON TOUCH(), because this is essentially signalling that we've entered desperation
+    // mode... according to kademlia paper...
+    //
+    // When a contact fails to respond to 5 RPCs in a row, it is considered stale. If a k-bucket is not full or its replacement cache is
+    // empty, Kademlia merely flags stale contacts rather than remove them. This ensures, among other things, that if a node’s own network
+    // connection goes down teporarily, the node won’t completely void all of its k-buckets
     public void stale(Node node) throws LinkConflictException {
         Validate.notNull(node);
         RouteTreeChangeSet routeTreeChangeSet = routeTree.stale(node);

@@ -112,4 +112,20 @@ public class RouterTest {
         ret = fixture.find(NODE_1000.getId(), 100);
         verifyNodes(ret, NODE_1001, NODE_1111);
     }    
+    
+    @Test
+    public void mustMakeSearchableAgainIfStaleNodeRetouched() throws Throwable {
+        // touch all 1 buckets, from smallest to largest
+        fixture.touch(BASE_TIME, NODE_1000);
+        fixture.touch(BASE_TIME, NODE_1001);
+        
+        fixture.stale(NODE_1000);
+        
+        List<Node> ret = fixture.find(NODE_1000.getId(), 100);
+        verifyNodes(ret, NODE_1000, NODE_1001);
+        
+        // 1000 shouldn't be in the nearset anymore, but routingtree has reached desperation mode for 1xxx bucket because it has no cache
+        // nodes to replace 1000 with so it keeps it and allows it to be accessed (until another 1xxx node comes along)
+
+    }
 }
