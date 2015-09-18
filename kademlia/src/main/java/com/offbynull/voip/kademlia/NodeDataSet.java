@@ -31,7 +31,7 @@ public final class NodeDataSet {
         this.nodes = new HashMap<>();
     }
     
-    public NodeChangeSet put(Node node, Object key, Object value) throws LinkConflictException {
+    public NodeChangeSet put(Node node, Object key, Object value) {
         Validate.notNull(node);
         Validate.notNull(key);
         Validate.notNull(value);
@@ -57,7 +57,7 @@ public final class NodeDataSet {
         return ret;
     }
 
-    public Object get(Node node, Object key) throws LinkConflictException {
+    public Object get(Node node, Object key) {
         Validate.notNull(node);
         Validate.notNull(key);
         
@@ -75,7 +75,7 @@ public final class NodeDataSet {
         return dataHolder.get(key);
     }
 
-    public Map<Object, Object> getAll(Node node) throws LinkConflictException {
+    public Map<Object, Object> getAll(Node node) {
         Validate.notNull(node);
         
         Id nodeId = node.getId();
@@ -92,7 +92,7 @@ public final class NodeDataSet {
         return dataHolder.getAll();
     }
 
-    public NodeChangeSet remove(Node node, Object key) throws LinkConflictException {
+    public NodeChangeSet remove(Node node, Object key) {
         Validate.notNull(node);
         Validate.notNull(key);
         
@@ -124,7 +124,7 @@ public final class NodeDataSet {
         return NodeChangeSet.NO_CHANGE;
     }
 
-    public NodeChangeSet removeAll(Node node) throws LinkConflictException {
+    public NodeChangeSet removeAll(Node node) {
         Validate.notNull(node);
         
         Id nodeId = node.getId();
@@ -144,7 +144,7 @@ public final class NodeDataSet {
         return NodeChangeSet.removed(removedNode);
     }
     
-    private void validateNode(Node incomingNode, DataHolder dataHolder) throws LinkConflictException {
+    private void validateNode(Node incomingNode, DataHolder dataHolder) {
         Validate.notNull(incomingNode);
         Validate.notNull(dataHolder);
         

@@ -52,7 +52,7 @@ public final class Router {
                 maxNearNodes);
     }
     
-    public void touch(Instant time, Node node) throws LinkConflictException {
+    public void touch(Instant time, Node node) {
         Validate.notNull(time);
         Validate.notNull(node);
         
@@ -104,7 +104,7 @@ public final class Router {
     // When a contact fails to respond to 5 RPCs in a row, it is considered stale. If a k-bucket is not full or its replacement cache is
     // empty, Kademlia merely flags stale contacts rather than remove them. This ensures, among other things, that if a node’s own network
     // connection goes down teporarily, the node won’t completely void all of its k-buckets
-    public void stale(Node node) throws LinkConflictException {
+    public void stale(Node node) {
         Validate.notNull(node);
         RouteTreeChangeSet routeTreeChangeSet = routeTree.stale(node);
         
@@ -121,14 +121,14 @@ public final class Router {
     //
     // that means because we're in a "backoff period", even if we get touch()'d by that node, we still want to keep it unfindable/locked...
     // up until the point that we explictly decide to to make it findable/unlocked.
-    public void lock(Node node) throws LinkConflictException {
+    public void lock(Node node) {
         Validate.notNull(node);
         routeTree.lock(node); // will throw illargexc if node not in routetree
         
         nearBucket.remove(node); // remove from nearset / nearset's cache
     }
 
-    public void unlock(Node node) throws LinkConflictException {
+    public void unlock(Node node) {
         Validate.notNull(node);
         routeTree.unlock(node); // will throw illargexc if node not in routetree
         

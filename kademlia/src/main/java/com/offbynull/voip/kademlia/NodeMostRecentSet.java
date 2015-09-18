@@ -41,7 +41,7 @@ public final class NodeMostRecentSet {
         this.entries = new LinkedList<>();
     }
   
-    public ActivityChangeSet touch(Instant time, Node node) throws LinkConflictException {
+    public ActivityChangeSet touch(Instant time, Node node) {
         Validate.notNull(time);
         Validate.notNull(node);
         
@@ -125,7 +125,7 @@ public final class NodeMostRecentSet {
         }
     }
 
-    public ActivityChangeSet remove(Node node) throws LinkConflictException {
+    public ActivityChangeSet remove(Node node) {
         Validate.notNull(node);
         
         Id nodeId = node.getId();

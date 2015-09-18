@@ -70,7 +70,7 @@ public final class KBucket {
         lastTouchAttemptTime = Instant.MIN;
     }
 
-    public KBucketChangeSet touch(Instant time, Node node) throws LinkConflictException {
+    public KBucketChangeSet touch(Instant time, Node node) {
         Validate.notNull(time);
         Validate.notNull(node);
 
@@ -114,7 +114,7 @@ public final class KBucket {
     
     // there's no time param here because technically because it isn't needed. marking a node as stale doesn't mean that it recieved comm,
     // as such it's wrong to update its time.
-    public KBucketChangeSet stale(Node node) throws LinkConflictException {
+    public KBucketChangeSet stale(Node node) {
         Validate.notNull(node);
         
         Id nodeId = node.getId();
@@ -145,7 +145,7 @@ public final class KBucket {
                 ActivityChangeSet.removed(res.right));
     }
     
-    public void lock(Node node) throws LinkConflictException {
+    public void lock(Node node) {
         Validate.notNull(node);
         
         Id nodeId = node.getId();
@@ -161,7 +161,7 @@ public final class KBucket {
         lockSet.add(node); // add to lock set, it's fine if it's already in the lockset
     }
 
-    public void unlock(Node node) throws LinkConflictException {
+    public void unlock(Node node) {
         Validate.notNull(node);
         
         Id nodeId = node.getId();
@@ -178,7 +178,7 @@ public final class KBucket {
     }
 
     // return is left=removed right=added
-    private ImmutablePair<Activity, Activity> replaceNextStaleNodeWithCacheNode() throws LinkConflictException {
+    private ImmutablePair<Activity, Activity> replaceNextStaleNodeWithCacheNode() {
         if (staleSet.isEmpty()) {
             return null;
         }

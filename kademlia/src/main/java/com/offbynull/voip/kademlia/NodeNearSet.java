@@ -41,7 +41,7 @@ public final class NodeNearSet {
         this.nodes = new TreeMap<>(new IdClosenessComparator(baseId));
     }
 
-    public NodeChangeSet touch(Node node) throws LinkConflictException {
+    public NodeChangeSet touch(Node node) {
         Validate.notNull(node);
         
         Id nodeId = node.getId();
@@ -81,7 +81,7 @@ public final class NodeNearSet {
         return new NodeChangeSet(added, removed, emptyList());
     }
     
-    public NodeChangeSet remove(Node node) throws LinkConflictException {
+    public NodeChangeSet remove(Node node) {
         Validate.notNull(node);
         
         Id nodeId = node.getId();

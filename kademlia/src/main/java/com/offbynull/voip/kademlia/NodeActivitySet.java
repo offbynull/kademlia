@@ -40,7 +40,7 @@ public final class NodeActivitySet {
         lookupById = new HashMap<>();
     }
     
-    public ActivityChangeSet touch(Instant time, Node node) throws LinkConflictException {
+    public ActivityChangeSet touch(Instant time, Node node) {
         Validate.notNull(time);
         Validate.notNull(node);
         
@@ -84,7 +84,7 @@ public final class NodeActivitySet {
         }
     }
 
-    public ActivityChangeSet remove(Node node) throws LinkConflictException {
+    public ActivityChangeSet remove(Node node) {
         Validate.notNull(node);
         
         Id id = node.getId();
@@ -111,7 +111,7 @@ public final class NodeActivitySet {
         return ActivityChangeSet.removed(existingEntry);
     }
 
-    public Activity get(Node node) throws LinkConflictException {
+    public Activity get(Node node) {
         Validate.notNull(node);
         
         Id id = node.getId();

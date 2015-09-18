@@ -187,7 +187,7 @@ final class RouteTreeNode {
         }
     }
 
-    public KBucket getBucketFor(Id id) throws LinkConflictException {
+    public KBucket getBucketFor(Id id) {
         // Other validate checks done by caller, no point in repeating this for an unchanging argument in recursive method
         Validate.isTrue(id.getBitString().getBits(0, prefix.getBitLength()).equals(prefix)); // ensure prefix matches
 

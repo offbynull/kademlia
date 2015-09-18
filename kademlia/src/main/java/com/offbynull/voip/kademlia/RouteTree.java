@@ -86,7 +86,7 @@ public final class RouteTree {
         return bucket.dumpBucket(true, true, false);
     }
 
-    public RouteTreeChangeSet touch(Instant time, Node node) throws LinkConflictException {
+    public RouteTreeChangeSet touch(Instant time, Node node) {
         Validate.notNull(time);
         Validate.notNull(node);
         
@@ -113,7 +113,7 @@ public final class RouteTree {
         return new RouteTreeChangeSet(kBucketPrefix, kBucketChangeSet);
     }
 
-    public RouteTreeChangeSet stale(Node node) throws LinkConflictException {
+    public RouteTreeChangeSet stale(Node node) {
         Validate.notNull(node);
 
         Id id = node.getId();
@@ -139,7 +139,7 @@ public final class RouteTree {
         return new RouteTreeChangeSet(kBucketPrefix, kBucketChangeSet);
     }
 
-    public void lock(Node node) throws LinkConflictException {
+    public void lock(Node node) {
         Validate.notNull(node);
 
         Id id = node.getId();
@@ -149,7 +149,7 @@ public final class RouteTree {
         root.getBucketFor(node.getId()).lock(node);
     }
 
-    public void unlock(Node node) throws LinkConflictException {
+    public void unlock(Node node) {
         Validate.notNull(node);
 
         Id id = node.getId();

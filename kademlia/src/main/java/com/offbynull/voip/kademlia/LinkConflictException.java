@@ -18,7 +18,7 @@ package com.offbynull.voip.kademlia;
 
 import org.apache.commons.lang3.Validate;
 
-public class LinkConflictException extends Exception {
+public class LinkConflictException extends IllegalArgumentException {
     private static final long serialVersionUID = 1L;
 
     private final Node existingNode;

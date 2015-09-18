@@ -39,7 +39,7 @@ public final class NearBucket {
     }
 
     // A peer that has been added to the routing table. okay to call this more than once on same node
-    public NearBucketChangeSet touchPeer(Node node) throws LinkConflictException {
+    public NearBucketChangeSet touchPeer(Node node) {
         Validate.notNull(node);
 
         Id nodeId = node.getId();
@@ -53,7 +53,7 @@ public final class NearBucket {
         return new NearBucketChangeSet(bucketChangeSet, networkChangeSet);
     }
     
-    public NearBucketChangeSet touch(Node node) throws LinkConflictException {
+    public NearBucketChangeSet touch(Node node) {
         Validate.notNull(node);
 
         Id nodeId = node.getId();
@@ -68,7 +68,7 @@ public final class NearBucket {
     }
     
     // Node has been removed. doesn't matter if its in network or bucket
-    public NearBucketChangeSet remove(Node node) throws LinkConflictException {
+    public NearBucketChangeSet remove(Node node) {
         Validate.notNull(node);
 
         Id nodeId = node.getId();
