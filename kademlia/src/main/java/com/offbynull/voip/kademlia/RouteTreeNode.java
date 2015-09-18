@@ -1,5 +1,6 @@
 package com.offbynull.voip.kademlia;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import static java.util.Collections.emptySet;
@@ -205,7 +206,9 @@ final class RouteTreeNode {
     }    
         
         
-    private static final class PrefixClosenessComparator implements Comparator<RouteTreeBranch> {
+    private static final class PrefixClosenessComparator implements Comparator<RouteTreeBranch>, Serializable {
+        private static final long serialVersionUID = 1L;
+        
         // This is a hacky way to compare bitstrings using the XOR metric intended for IDs
         private final int prefixLen;
         private final int suffixLen;

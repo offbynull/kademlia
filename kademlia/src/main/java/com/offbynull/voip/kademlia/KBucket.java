@@ -334,7 +334,7 @@ public final class KBucket {
             Validate.validState(res.viewUpdated().isEmpty());
             
             // all nodes that were removed from bucket need to also be removed in staleness set
-            staleSet.removeAll(res.viewRemoved());
+            res.viewRemoved().forEach(x -> staleSet.remove(x.getNode()));
             
             return new KBucketChangeSet(res, ActivityChangeSet.NO_CHANGE);
         } else {
