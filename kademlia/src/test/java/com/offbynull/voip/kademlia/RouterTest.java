@@ -69,4 +69,46 @@ public class RouterTest {
         verifyNodes(ret, NODE_1000, NODE_1001);
     }
     
+
+    @Test
+    public void mustRemoveStaleNodeFromNearBucketButNotFromRoutingTreeIfCacheEmpty() throws Throwable {
+        // touch all 1 buckets, from smallest to largest
+        fixture.touch(BASE_TIME, NODE_1000);
+        fixture.touch(BASE_TIME, NODE_1001);
+        
+        fixture.stale(NODE_1000);
+        
+        // 1000 shouldn't be in the nearset anymore, but routingtree has reached desperation mode for 1xxx bucket because it has no cache
+        // nodes to replace 1000 with so it keeps it and allows it to be accessed (until another 1xxx node comes along)
+        List<Node> ret = fixture.find(NODE_1000.getId(), 100);
+
+        verifyNodes(ret, NODE_1000, NODE_1001);
+    }
+
+    @Test
+    public void mustRemoveStaleNodeFromNearBucketAndRoutingTreeIfCacheNotEmpty() throws Throwable {
+        // touch all 1 buckets, from smallest to largest
+        fixture.touch(BASE_TIME.plusMillis(1L), NODE_1000);
+        fixture.touch(BASE_TIME.plusMillis(2L), NODE_1001); // this node and the bucket befoer it will go in to the 1xxx bucket as well as
+                                                            // the near set, the rest of these guys will be discarded because the bucket is
+                                                            // full and their farther away than the top 2
+        fixture.touch(BASE_TIME.plusMillis(3L), NODE_1010);
+        fixture.touch(BASE_TIME.plusMillis(4L), NODE_1011);
+        fixture.touch(BASE_TIME.plusMillis(5L), NODE_1100);
+        fixture.touch(BASE_TIME.plusMillis(6L), NODE_1101); // cache for 1xxx bucket will contain this node and the one below it
+        fixture.touch(BASE_TIME.plusMillis(7L), NODE_1111); 
+        
+        fixture.stale(NODE_1000);
+        
+        List<Node> ret;
+        
+        // 1000 shouldn't be in the nearset anymore or routingtree. nearset should contain 1001 and 1010, while 1xxx bucket should contain
+        // 1001 and 1111 (1111 was the latest 1xxx node to be touched and the 1xxx bucket was full, so it cached it)
+        ret = fixture.find(NODE_1000.getId(), 100);
+        verifyNodes(ret, NODE_1001, NODE_1010, NODE_1111);
+        
+        // test again to make sure 1111 (cached item that was moved in) is available in bucket
+        ret = fixture.find(NODE_1111.getId(), 2);
+        verifyNodes(ret, NODE_1111, NODE_1010);
+    }    
 }

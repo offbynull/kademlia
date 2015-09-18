@@ -70,7 +70,8 @@ public final class Router {
         synchronizeChangesFromRouteTreeToNearSet(routeTreeChangeSet);
 
         // In addition to that, touch the nearbucket anyways -- if wasn't added to route tree, we may still want it because it may be nearer
-        NodeChangeSet nearBucketChangeSet = nearBucket.touch(node).getBucketChangeSet();
+        nearBucket.touch(node).getBucketChangeSet();
+        nearBucket.touchPeer(node);
     }
     
     public List<Node> find(Id id, int max) {
@@ -87,6 +88,14 @@ public final class Router {
                 .forEachOrdered(res::add);
         
         return res;
+    }
+    
+    public void stale(Node node) throws LinkConflictException {
+        Validate.notNull(node);
+        routeTree.stale(node);
+        nearBucket.remove(node);
+        
+        
     }
     
     public void lock(Node node) throws LinkConflictException {
