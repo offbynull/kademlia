@@ -90,6 +90,7 @@ public final class KBucket {
         if (!bucketTouchRes.viewAdded().isEmpty() || !bucketTouchRes.viewUpdated().isEmpty()) {
             // node was added to bucket, or node was already in bucket and was updated
             staleSet.remove(node); // if being updated, node may have been stale... unstale it here because it's being touched
+            // DO NOT UNLOCK ON TOUCH, when need to explicitly unlock elsewhere
             return new KBucketChangeSet(bucketTouchRes, ActivityChangeSet.NO_CHANGE);
         }
         

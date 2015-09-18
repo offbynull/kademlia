@@ -102,13 +102,14 @@ public class RouterTest {
         
         List<Node> ret;
         
-        // 1000 shouldn't be in the nearset anymore or routingtree. nearset should contain 1001 and 1010, while 1xxx bucket should contain
-        // 1001 and 1111 (1111 was the latest 1xxx node to be touched and the 1xxx bucket was full, so it cached it)
+        // 1000 shouldn't be in the nearset or routingtree anymore. nearset should contain 1001 and 1111, while 1xxx bucket should also
+        // contain 1001 and 1111
+        //
+        // remember how router works: in this case 1000 was removed, but 1111 came in its place (it was latest in the 1xxx cache) and in
+        // doing so was added in to nearbucket. what about 1010? when 1010 was touched, it wasn't close enough to enter the nearbucket and
+        // it didn't become part of the routingtree (because the 1xxx bucket was full -- being inserted in to the 1xxx bucket's replacement
+        // cache doesn't count) so it wasn't added as a replacement/cache node for the nearbucket
         ret = fixture.find(NODE_1000.getId(), 100);
-        verifyNodes(ret, NODE_1001, NODE_1010, NODE_1111);
-        
-        // test again to make sure 1111 (cached item that was moved in) is available in bucket
-        ret = fixture.find(NODE_1111.getId(), 2);
-        verifyNodes(ret, NODE_1111, NODE_1010);
+        verifyNodes(ret, NODE_1001, NODE_1111);
     }    
 }

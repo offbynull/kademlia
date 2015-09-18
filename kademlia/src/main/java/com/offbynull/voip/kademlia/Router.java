@@ -67,11 +67,16 @@ public final class Router {
         
         // Touch routing tree -- apply changes to nearbucket
         RouteTreeChangeSet routeTreeChangeSet = routeTree.touch(time, node);
-        synchronizeChangesFromRouteTreeToNearSet(routeTreeChangeSet);
+        synchronizeChangesFromRouteTreeToNearBucket(routeTreeChangeSet);
 
+        // Was it added to the routing tree? then it needs to be put in to the "replacement" cache of the nearBucket
+        if (!routeTreeChangeSet.getKBucketChangeSet().getBucketChangeSet().viewAdded().isEmpty()
+                || !routeTreeChangeSet.getKBucketChangeSet().getBucketChangeSet().viewUpdated().isEmpty()) {
+            nearBucket.touchPeer(node);
+        }
+        
         // In addition to that, touch the nearbucket anyways -- if wasn't added to route tree, we may still want it because it may be nearer
-        nearBucket.touch(node).getBucketChangeSet();
-        nearBucket.touchPeer(node);
+        nearBucket.touch(node);
     }
     
     public List<Node> find(Id id, int max) {
@@ -90,25 +95,41 @@ public final class Router {
         return res;
     }
     
+    // mark a node for eviction... if there are items available in the replacement cache for the kbucket that the node is located in, the
+    // node is evicted immediately. otherwise, the node will be evicted as soon as a replacement cache item becomes available
     public void stale(Node node) throws LinkConflictException {
         Validate.notNull(node);
-        routeTree.stale(node);
-        nearBucket.remove(node);
+        RouteTreeChangeSet routeTreeChangeSet = routeTree.stale(node);
         
-        
+        synchronizeChangesFromRouteTreeToNearBucket(routeTreeChangeSet);
     }
     
+    // lock means "avoid contact" AKA avoid returning on "find" until unlocked. unlocking only happens on unlock(), not on touch()...
+    //
+    // according to kademlia...
+    //
+    // A related problem is that because Kademlia uses UDP, valid contacts will sometimes fail to respond when network packets are dropped.
+    // Since packet loss often indicates network congestion, Kademlia locks unresponsive contacts and avoids sending them any further RPCs
+    // for an exponentially increasing backoff interval.
+    //
+    // that means because we're in a "backoff period", even if we get touch()'d by that node, we still want to keep it unfindable/locked...
+    // up until the point that we explictly decide to to make it findable/unlocked.
     public void lock(Node node) throws LinkConflictException {
         Validate.notNull(node);
-        routeTree.lock(node);
+        routeTree.lock(node); // will throw illargexc if node not in routetree
+        
+        nearBucket.remove(node); // remove from nearset / nearset's cache
     }
 
     public void unlock(Node node) throws LinkConflictException {
         Validate.notNull(node);
-        routeTree.unlock(node);
+        routeTree.unlock(node); // will throw illargexc if node not in routetree
+        
+        nearBucket.touch(node); // re-enter in to nearset / nearset's cache
+        nearBucket.touchPeer(node);
     }
     
-    private void synchronizeChangesFromRouteTreeToNearSet(RouteTreeChangeSet routeTreeChangeSet) throws LinkConflictException {
+    private void synchronizeChangesFromRouteTreeToNearBucket(RouteTreeChangeSet routeTreeChangeSet) throws LinkConflictException {
         KBucketChangeSet kBucketChangeSet = routeTreeChangeSet.getKBucketChangeSet();
         
         for (Activity addedNode : kBucketChangeSet.getBucketChangeSet().viewAdded()) {
