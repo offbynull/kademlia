@@ -3,7 +3,9 @@ package com.offbynull.voip.kademlia;
 import static com.offbynull.voip.kademlia.TestUtils.verifyNodes;
 import java.time.Instant;
 import java.util.List;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 public class RouterTest {
     
@@ -27,6 +29,9 @@ public class RouterTest {
     private static final Instant BASE_TIME = Instant.ofEpochMilli(0L);
     
     private Router fixture = new Router(NODE_0000.getId(), 2, 2, 2, 2);
+    
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     @Test
     public void mustRetainClosestNodesEvenIfNotInRoutingTable() throws Throwable {
@@ -116,16 +121,77 @@ public class RouterTest {
     @Test
     public void mustMakeSearchableAgainIfStaleNodeRetouched() throws Throwable {
         // touch all 1 buckets, from smallest to largest
-        fixture.touch(BASE_TIME, NODE_1000);
-        fixture.touch(BASE_TIME, NODE_1001);
+        fixture.touch(BASE_TIME.plusMillis(1L), NODE_1000);
+        fixture.touch(BASE_TIME.plusMillis(2L), NODE_1001);
+        fixture.touch(BASE_TIME.plusMillis(2L), NODE_1010);
+        
+        fixture.stale(NODE_1000); // 1000 removed from nearset, and 1000 replaced with 1010 in kbucket
+        
+        List<Node> ret;
+        
+        ret = fixture.find(NODE_1000.getId(), 100);
+        verifyNodes(ret, NODE_1001, NODE_1010);
+        
+        fixture.touch(BASE_TIME.plusMillis(4L), NODE_1000);
+        
+        ret = fixture.find(NODE_1000.getId(), 100);
+        verifyNodes(ret, NODE_1000, NODE_1001, NODE_1010); // 1001 and 1010 in kbucket, and 1000 in nearset
+    }
+
+    @Test
+    public void mustMakeSearchableAgainIfLockedNodeUnlocked() throws Throwable {
+        // touch all 1 buckets, from smallest to largest
+        fixture.touch(BASE_TIME.plusMillis(1L), NODE_1000);
+        fixture.touch(BASE_TIME.plusMillis(2L), NODE_1001);
+        fixture.touch(BASE_TIME.plusMillis(3L), NODE_1010);
+        fixture.touch(BASE_TIME.plusMillis(4L), NODE_1011);
+        
+        fixture.lock(NODE_1000); // 1000 removed from nearset, and 1000 locked in kbucket (NOT REMOVED/REPLACED)
+        
+        List<Node> ret;
+        
+        ret = fixture.find(NODE_1000.getId(), 100);
+        verifyNodes(ret, NODE_1001); // 1000 is not findable because locked and not in nearset, 1010+1011 in kbucket cache / not in nearset
+        
+        fixture.unlock(NODE_1000); // 1000 re-added to nearset, and 1000 unlocked in kbucket
+        
+        ret = fixture.find(NODE_1000.getId(), 100);
+        verifyNodes(ret, NODE_1000, NODE_1001); // 1000 and 1001 findable in kbucket, and exist in nearset
+    }
+
+    @Test
+    public void mustNotAllowLockIfStale() throws Throwable {
+        // touch all 1 buckets, from smallest to largest
+        fixture.touch(BASE_TIME.plusMillis(1L), NODE_1000);
+        fixture.touch(BASE_TIME.plusMillis(2L), NODE_1001);
         
         fixture.stale(NODE_1000);
         
-        List<Node> ret = fixture.find(NODE_1000.getId(), 100);
-        verifyNodes(ret, NODE_1000, NODE_1001);
-        
-        // 1000 shouldn't be in the nearset anymore, but routingtree has reached desperation mode for 1xxx bucket because it has no cache
-        // nodes to replace 1000 with so it keeps it and allows it to be accessed (until another 1xxx node comes along)
+        expectedException.expect(IllegalArgumentException.class);
+        fixture.lock(NODE_1000);
+    }
 
+    @Test
+    public void mustNotAllowUnlockIfStale() throws Throwable {
+        // touch all 1 buckets, from smallest to largest
+        fixture.touch(BASE_TIME.plusMillis(1L), NODE_1000);
+        fixture.touch(BASE_TIME.plusMillis(2L), NODE_1001);
+        
+        fixture.stale(NODE_1000);
+        
+        expectedException.expect(IllegalArgumentException.class);
+        fixture.unlock(NODE_1000);
+    }
+
+    @Test
+    public void mustNotAllowStaleIfLocked() throws Throwable {
+        // touch all 1 buckets, from smallest to largest
+        fixture.touch(BASE_TIME.plusMillis(1L), NODE_1000);
+        fixture.touch(BASE_TIME.plusMillis(2L), NODE_1001);
+        
+        fixture.lock(NODE_1000);
+        
+        expectedException.expect(IllegalArgumentException.class);
+        fixture.stale(NODE_1000);
     }
 }
