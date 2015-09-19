@@ -3,7 +3,6 @@ package com.offbynull.voip.kademlia;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.StringJoiner;
 import static org.junit.Assert.assertEquals;
 import org.junit.Test;
 

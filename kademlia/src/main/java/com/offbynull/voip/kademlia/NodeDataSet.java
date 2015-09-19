@@ -39,7 +39,7 @@ public final class NodeDataSet {
         Id nodeId = node.getId();
         
         InternalValidate.matchesLength(baseId.getBitLength(), nodeId);
-        InternalValidate.notMatchesBase(baseId, nodeId);
+//        InternalValidate.notMatchesBase(baseId, nodeId); // don't do this, this check provides no value for this class
         
         NodeChangeSet ret;
         DataHolder dataHolder = nodes.get(nodeId);
@@ -64,7 +64,7 @@ public final class NodeDataSet {
         Id nodeId = node.getId();
         
         InternalValidate.matchesLength(baseId.getBitLength(), nodeId);
-        InternalValidate.notMatchesBase(baseId, nodeId);
+//        InternalValidate.notMatchesBase(baseId, nodeId); // don't do this, this check provides no value for this class
         
         DataHolder dataHolder = nodes.get(nodeId);
         if (dataHolder == null) {
@@ -81,7 +81,7 @@ public final class NodeDataSet {
         Id nodeId = node.getId();
         
         InternalValidate.matchesLength(baseId.getBitLength(), nodeId);
-        InternalValidate.notMatchesBase(baseId, nodeId);
+//        InternalValidate.notMatchesBase(baseId, nodeId); // don't do this, this check provides no value for this class
         
         DataHolder dataHolder = nodes.get(nodeId);
         if (dataHolder == null) {
@@ -99,7 +99,7 @@ public final class NodeDataSet {
         Id nodeId = node.getId();
         
         InternalValidate.matchesLength(baseId.getBitLength(), nodeId);
-        InternalValidate.notMatchesBase(baseId, nodeId);
+//        InternalValidate.notMatchesBase(baseId, nodeId); // don't do this, this check provides no value for this class
         
         DataHolder dataHolder = nodes.get(nodeId);
         
@@ -130,7 +130,7 @@ public final class NodeDataSet {
         Id nodeId = node.getId();
         
         InternalValidate.matchesLength(baseId.getBitLength(), nodeId);
-        InternalValidate.notMatchesBase(baseId, nodeId);
+//        InternalValidate.notMatchesBase(baseId, nodeId); // don't do this, this check provides no value for this class
         
         DataHolder dataHolder = nodes.remove(nodeId);
         

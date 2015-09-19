@@ -47,7 +47,7 @@ public final class NodeActivitySet {
         Id id = node.getId();
         
         InternalValidate.matchesLength(baseId.getBitLength(), id);
-        InternalValidate.notMatchesBase(baseId, id);
+//        InternalValidate.notMatchesBase(baseId, id); // don't do this, this check provides no value for this class
 
         
         // See if it already exists
@@ -88,7 +88,7 @@ public final class NodeActivitySet {
         Id id = node.getId();
         
         InternalValidate.matchesLength(baseId.getBitLength(), id);
-        InternalValidate.notMatchesBase(baseId, id);
+//        InternalValidate.notMatchesBase(baseId, id); // don't do this, this check provides no value for this class
         
         Activity existingEntry = lookupById.get(id);
         if (existingEntry == null) {
@@ -116,7 +116,7 @@ public final class NodeActivitySet {
         Id id = node.getId();
         
         InternalValidate.matchesLength(baseId.getBitLength(), id);
-        InternalValidate.notMatchesBase(baseId, id);
+//        InternalValidate.notMatchesBase(baseId, id); // don't do this, this check provides no value for this class
         
         Activity existingEntry = lookupById.get(id);
         if (existingEntry == null) {
