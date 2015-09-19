@@ -56,7 +56,7 @@ public final class Router {
         Validate.notNull(time);
         Validate.notNull(node);
         
-        Validate.isTrue(!time.isBefore(lastTouchTime)); // time must be >= lastUpdatedTime
+        InternalValidate.forwardTime(lastTouchTime, time); // time must be >= lastUpdatedTime
         this.lastTouchTime = time;
         
         Id nodeId = node.getId();

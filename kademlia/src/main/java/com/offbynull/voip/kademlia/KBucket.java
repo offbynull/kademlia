@@ -80,7 +80,7 @@ public final class KBucket {
         InternalValidate.notMatchesBase(baseId, nodeId);
         InternalValidate.matchesPrefix(prefix, nodeId);
 
-        Validate.isTrue(!time.isBefore(lastTouchAttemptTime)); // time must be >= lastTouchAttemptTime
+        InternalValidate.forwardTime(lastTouchAttemptTime, time); // time must be >= lastUpdatedTime
         lastTouchAttemptTime = time;
         
         // Touch the bucket

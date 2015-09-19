@@ -1,5 +1,6 @@
 package com.offbynull.voip.kademlia;
 
+import java.time.Instant;
 import org.apache.commons.lang3.Validate;
 
 final class InternalValidate {
@@ -16,6 +17,16 @@ final class InternalValidate {
         // matching if the bitlengths match?
         if (expectedLength != id.getBitLength()) {
             throw new IdLengthMismatchException(id, expectedLength);
+        }
+    }
+
+    static void forwardTime(Instant previousTime, Instant currentTime) {
+        // throws illegalstateexception, because if you made it to this point you should never encounter these conditions
+        Validate.validState(previousTime != null);
+        Validate.validState(currentTime != null);
+
+        if (currentTime.isBefore(previousTime)) {
+            throw new BackwardTimeException(previousTime, currentTime);
         }
     }
 

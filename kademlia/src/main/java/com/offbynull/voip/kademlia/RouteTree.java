@@ -94,7 +94,7 @@ public final class RouteTree {
         InternalValidate.matchesLength(baseId.getBitLength(), id);
         InternalValidate.notMatchesBase(baseId, id);
         
-        Validate.isTrue(!time.isBefore(lastTouchTime)); // time must be >= lastTouchTime, to prevent from going backward in time
+        InternalValidate.forwardTime(lastTouchTime, time); // time must be >= lastUpdatedTime
         lastTouchTime = time;
 
         KBucket bucket = root.getBucketFor(node.getId());
