@@ -187,7 +187,15 @@ public class BitStringTest {
         
         assertEquals(BitString.createLogicalOrder(toBytes(0xC3A5L), 48, 16), bitString);
     }
-    
+
+    @Test
+    public void mustNotIdentifyExcessBitsAsCommonPrefix() {
+        BitString bitString1 = BitString.createFromString("1");
+        BitString bitString2 = BitString.createFromString("1001");
+        
+        assertEquals(1, bitString1.getSharedPrefixLength(bitString2));
+    }
+
     @Test
     public void mustIdentifyCommonPrefixLength() {
         BitString baseBitString = BitString.createLogicalOrder(toBytes(0x000000000000A2F0L), 48, 12);

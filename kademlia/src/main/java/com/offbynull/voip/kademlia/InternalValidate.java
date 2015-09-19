@@ -8,14 +8,25 @@ final class InternalValidate {
         // do nothing
     }
 
-    static void matchesBitLength(int expectedBitLength, Id id) {
+    static void matchesLength(int expectedLength, Id id) {
         // throws illegalstateexception, because if you made it to this point you should never encounter these conditions
         Validate.validState(id != null);
-        Validate.validState(expectedBitLength > 0); // ids will always be 1 bit or greater
+        Validate.validState(expectedLength > 0); // ids will always be 1 bit or greater
 
         // matching if the bitlengths match?
-        if (expectedBitLength != id.getBitLength()) {
-            throw new IdBitLengthMismatchException(id, expectedBitLength);
+        if (expectedLength != id.getBitLength()) {
+            throw new IdLengthMismatchException(id, expectedLength);
+        }
+    }
+
+    static void matchesPrefix(BitString expectedPrefix, Id id) {
+        // throws illegalstateexception, because if you made it to this point you should never encounter these conditions
+        Validate.validState(id != null);
+        Validate.validState(expectedPrefix != null);
+
+        // matching if the bitlengths match?
+        if (id.getBitString().getSharedPrefixLength(expectedPrefix) != expectedPrefix.getBitLength()) {
+            throw new IdPrefixMismatchException(id, expectedPrefix);
         }
     }
 

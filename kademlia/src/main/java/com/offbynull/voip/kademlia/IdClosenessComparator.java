@@ -61,8 +61,8 @@ public final class IdClosenessComparator implements Comparator<Id>, Serializable
     public int compare(Id o1, Id o2) {
         Validate.notNull(o1);
         Validate.notNull(o2);
-        InternalValidate.matchesBitLength(baseId.getBitLength(), o1);
-        InternalValidate.matchesBitLength(baseId.getBitLength(), o2);
+        InternalValidate.matchesLength(baseId.getBitLength(), o1);
+        InternalValidate.matchesLength(baseId.getBitLength(), o2);
         
         int bitLen = baseId.getBitLength();
         

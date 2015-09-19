@@ -44,7 +44,7 @@ public final class NearBucket {
 
         Id nodeId = node.getId();
 
-        InternalValidate.matchesBitLength(baseId.getBitLength(), nodeId);
+        InternalValidate.matchesLength(baseId.getBitLength(), nodeId);
         InternalValidate.notMatchesBase(baseId, nodeId);
         
         NodeChangeSet networkChangeSet = peers.touch(node);
@@ -58,7 +58,7 @@ public final class NearBucket {
 
         Id nodeId = node.getId();
 
-        InternalValidate.matchesBitLength(baseId.getBitLength(), nodeId);
+        InternalValidate.matchesLength(baseId.getBitLength(), nodeId);
         InternalValidate.notMatchesBase(baseId, nodeId);
 
         
@@ -73,7 +73,7 @@ public final class NearBucket {
 
         Id nodeId = node.getId();
 
-        InternalValidate.matchesBitLength(baseId.getBitLength(), nodeId);
+        InternalValidate.matchesLength(baseId.getBitLength(), nodeId);
         InternalValidate.notMatchesBase(baseId, nodeId);
         
         

@@ -47,7 +47,7 @@ public final class NodeMostRecentSet {
         
         Id nodeId = node.getId();
         
-        InternalValidate.matchesBitLength(baseId.getBitLength(), nodeId);
+        InternalValidate.matchesLength(baseId.getBitLength(), nodeId);
 //        Validate.isTrue(!nodeId.equals(baseId)); // Don't reject adding self
         
         // TODO: You can make this way more efficient if you used something like MultiTreeSet (guava) and sorted based on entry time
@@ -125,7 +125,7 @@ public final class NodeMostRecentSet {
         
         Id nodeId = node.getId();
         
-        InternalValidate.matchesBitLength(baseId.getBitLength(), nodeId);
+        InternalValidate.matchesLength(baseId.getBitLength(), nodeId);
         
         ListIterator<Activity> it = entries.listIterator();
         while (it.hasNext()) {

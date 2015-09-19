@@ -60,7 +60,7 @@ public final class Router {
         this.lastTouchTime = time;
         
         Id nodeId = node.getId();
-        InternalValidate.matchesBitLength(baseId.getBitLength(), nodeId);
+        InternalValidate.matchesLength(baseId.getBitLength(), nodeId);
         InternalValidate.notMatchesBase(baseId, nodeId);
 
         
@@ -83,7 +83,7 @@ public final class Router {
         Validate.notNull(id);
         Validate.isTrue(max >= 0); // why would anyone want 0 items returned? let thru anyways
         
-        InternalValidate.matchesBitLength(baseId.getBitLength(), id);
+        InternalValidate.matchesLength(baseId.getBitLength(), id);
         // do not stop from finding self (base) -- you may want to update closest
         
         List<Activity> closestNodesInRoutingTree = routeTree.find(id, max);
@@ -115,7 +115,7 @@ public final class Router {
         
         Id nodeId = node.getId();
         
-        InternalValidate.matchesBitLength(baseId.getBitLength(), nodeId);
+        InternalValidate.matchesLength(baseId.getBitLength(), nodeId);
         InternalValidate.notMatchesBase(baseId, nodeId); 
         
         RouteTreeChangeSet routeTreeChangeSet = routeTree.stale(node);
@@ -138,7 +138,7 @@ public final class Router {
         
         Id nodeId = node.getId();
         
-        InternalValidate.matchesBitLength(baseId.getBitLength(), nodeId);
+        InternalValidate.matchesLength(baseId.getBitLength(), nodeId);
         InternalValidate.notMatchesBase(baseId, nodeId); 
         
         routeTree.lock(node); // will throw illargexc if node not in routetree
@@ -151,7 +151,7 @@ public final class Router {
         
         Id nodeId = node.getId();
         
-        InternalValidate.matchesBitLength(baseId.getBitLength(), nodeId);
+        InternalValidate.matchesLength(baseId.getBitLength(), nodeId);
         InternalValidate.notMatchesBase(baseId, nodeId); 
         
         routeTree.unlock(node); // will throw illargexc if node not in routetree

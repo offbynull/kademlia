@@ -38,7 +38,7 @@ public final class NodeDataSet {
 
         Id nodeId = node.getId();
         
-        InternalValidate.matchesBitLength(baseId.getBitLength(), nodeId);
+        InternalValidate.matchesLength(baseId.getBitLength(), nodeId);
         InternalValidate.notMatchesBase(baseId, nodeId);
         
         NodeChangeSet ret;
@@ -63,7 +63,7 @@ public final class NodeDataSet {
         
         Id nodeId = node.getId();
         
-        InternalValidate.matchesBitLength(baseId.getBitLength(), nodeId);
+        InternalValidate.matchesLength(baseId.getBitLength(), nodeId);
         InternalValidate.notMatchesBase(baseId, nodeId);
         
         DataHolder dataHolder = nodes.get(nodeId);
@@ -80,7 +80,7 @@ public final class NodeDataSet {
         
         Id nodeId = node.getId();
         
-        InternalValidate.matchesBitLength(baseId.getBitLength(), nodeId);
+        InternalValidate.matchesLength(baseId.getBitLength(), nodeId);
         InternalValidate.notMatchesBase(baseId, nodeId);
         
         DataHolder dataHolder = nodes.get(nodeId);
@@ -98,7 +98,7 @@ public final class NodeDataSet {
         
         Id nodeId = node.getId();
         
-        InternalValidate.matchesBitLength(baseId.getBitLength(), nodeId);
+        InternalValidate.matchesLength(baseId.getBitLength(), nodeId);
         InternalValidate.notMatchesBase(baseId, nodeId);
         
         DataHolder dataHolder = nodes.get(nodeId);
@@ -129,7 +129,7 @@ public final class NodeDataSet {
         
         Id nodeId = node.getId();
         
-        InternalValidate.matchesBitLength(baseId.getBitLength(), nodeId);
+        InternalValidate.matchesLength(baseId.getBitLength(), nodeId);
         InternalValidate.notMatchesBase(baseId, nodeId);
         
         DataHolder dataHolder = nodes.remove(nodeId);

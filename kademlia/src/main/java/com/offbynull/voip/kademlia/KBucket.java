@@ -76,10 +76,9 @@ public final class KBucket {
 
         Id nodeId = node.getId();
 
-        InternalValidate.matchesBitLength(baseId.getBitLength(), nodeId);
+        InternalValidate.matchesLength(baseId.getBitLength(), nodeId);
         InternalValidate.notMatchesBase(baseId, nodeId);
-        
-        Validate.isTrue(nodeId.getBitString().getBits(0, prefix.getBitLength()).equals(prefix)); // ensure prefix matches
+        InternalValidate.matchesPrefix(prefix, nodeId);
 
         Validate.isTrue(!time.isBefore(lastTouchAttemptTime)); // time must be >= lastTouchAttemptTime
         lastTouchAttemptTime = time;
@@ -119,10 +118,9 @@ public final class KBucket {
         
         Id nodeId = node.getId();
 
-        InternalValidate.matchesBitLength(baseId.getBitLength(), nodeId);
+        InternalValidate.matchesLength(baseId.getBitLength(), nodeId);
         InternalValidate.notMatchesBase(baseId, nodeId);
-        
-        Validate.isTrue(nodeId.getBitString().getBits(0, prefix.getBitLength()).equals(prefix)); // ensure prefix matches
+        InternalValidate.matchesPrefix(prefix, nodeId);
         
         Validate.isTrue(bucket.contains(node)); // node being marked as stale must be in bucket
         Validate.isTrue(!lockSet.contains(node), "Node is already locked, cannot be stale"); // stale and locked are mutally exclusive
@@ -150,10 +148,9 @@ public final class KBucket {
         
         Id nodeId = node.getId();
 
-        InternalValidate.matchesBitLength(baseId.getBitLength(), nodeId);
+        InternalValidate.matchesLength(baseId.getBitLength(), nodeId);
         InternalValidate.notMatchesBase(baseId, nodeId);
-        
-        Validate.isTrue(nodeId.getBitString().getBits(0, prefix.getBitLength()).equals(prefix)); // ensure prefix matches
+        InternalValidate.matchesPrefix(prefix, nodeId);
         
         Validate.isTrue(bucket.contains(node)); // node being marked as locked must be in bucket
         Validate.isTrue(!staleSet.contains(node), "Node is already stale, cannot be locked"); // stale and locked are mutally exclusive
@@ -166,10 +163,9 @@ public final class KBucket {
         
         Id nodeId = node.getId();
 
-        InternalValidate.matchesBitLength(baseId.getBitLength(), nodeId);
+        InternalValidate.matchesLength(baseId.getBitLength(), nodeId);
         InternalValidate.notMatchesBase(baseId, nodeId);
-        
-        Validate.isTrue(nodeId.getBitString().getBits(0, prefix.getBitLength()).equals(prefix)); // ensure prefix matches
+        InternalValidate.matchesPrefix(prefix, nodeId);
         
         Validate.isTrue(bucket.contains(node)); // node being marked as locked must be in bucket
         Validate.isTrue(!staleSet.contains(node), "Node is already stale, cannot be locked"); // stale and locked are mutally exclusive

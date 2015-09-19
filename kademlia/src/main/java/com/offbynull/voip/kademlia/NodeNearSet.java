@@ -46,7 +46,7 @@ public final class NodeNearSet {
         
         Id nodeId = node.getId();
         
-        InternalValidate.matchesBitLength(baseId.getBitLength(), nodeId);
+        InternalValidate.matchesLength(baseId.getBitLength(), nodeId);
         InternalValidate.notMatchesBase(baseId, nodeId);
         
         if (maxSize == 0) {
@@ -83,7 +83,7 @@ public final class NodeNearSet {
         
         Id nodeId = node.getId();
         
-        InternalValidate.matchesBitLength(baseId.getBitLength(), nodeId);
+        InternalValidate.matchesLength(baseId.getBitLength(), nodeId);
         InternalValidate.notMatchesBase(baseId, nodeId);
         
         Node foundNode = nodes.get(nodeId);
@@ -125,7 +125,7 @@ public final class NodeNearSet {
         Validate.notNull(id); // perfectly okay for id to equal baseId;
         Validate.isTrue(max >= 0);
         
-        InternalValidate.matchesBitLength(baseId.getBitLength(), id);
+        InternalValidate.matchesLength(baseId.getBitLength(), id);
         
         NavigableMap<Id, Node> partialMap = nodes.headMap(id, false);
         
@@ -147,7 +147,7 @@ public final class NodeNearSet {
         Validate.notNull(id); // perfectly okay for id to equal baseId;
         Validate.isTrue(max >= 0);
         
-        InternalValidate.matchesBitLength(baseId.getBitLength(), id);
+        InternalValidate.matchesLength(baseId.getBitLength(), id);
         
         NavigableMap<Id, Node> partialMap = nodes.tailMap(id, false);
         

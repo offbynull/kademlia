@@ -329,7 +329,8 @@ public final class BitString implements Serializable {
         int otherLastByte = other.data[nextByteIdx] & 0xFF;
       
         int bitMatchCount = 0;
-        for (int i = 0; i <= 7; i++) {
+        int remainingBits = maxCompareLenAsBits - (nextByteIdx * 8);
+        for (int i = 0; i < remainingBits; i++) {
             int thisBit = (thisLastByte >> i) & 0x01;
             int otherBit = (otherLastByte >> i) & 0x01;
             if (thisBit != otherBit) {

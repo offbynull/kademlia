@@ -46,7 +46,7 @@ public final class NodeActivitySet {
         
         Id id = node.getId();
         
-        InternalValidate.matchesBitLength(baseId.getBitLength(), id);
+        InternalValidate.matchesLength(baseId.getBitLength(), id);
         InternalValidate.notMatchesBase(baseId, id);
 
         
@@ -87,7 +87,7 @@ public final class NodeActivitySet {
         
         Id id = node.getId();
         
-        InternalValidate.matchesBitLength(baseId.getBitLength(), id);
+        InternalValidate.matchesLength(baseId.getBitLength(), id);
         InternalValidate.notMatchesBase(baseId, id);
         
         Activity existingEntry = lookupById.get(id);
@@ -115,7 +115,7 @@ public final class NodeActivitySet {
         
         Id id = node.getId();
         
-        InternalValidate.matchesBitLength(baseId.getBitLength(), id);
+        InternalValidate.matchesLength(baseId.getBitLength(), id);
         InternalValidate.notMatchesBase(baseId, id);
         
         Activity existingEntry = lookupById.get(id);
