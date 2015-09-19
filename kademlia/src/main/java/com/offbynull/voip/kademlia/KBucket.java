@@ -76,8 +76,8 @@ public final class KBucket {
 
         Id nodeId = node.getId();
 
-        Validate.isTrue(!nodeId.equals(baseId));
         InternalValidate.matchesBitLength(baseId.getBitLength(), nodeId);
+        InternalValidate.notMatchesBase(baseId, nodeId);
         
         Validate.isTrue(nodeId.getBitString().getBits(0, prefix.getBitLength()).equals(prefix)); // ensure prefix matches
 
@@ -119,8 +119,8 @@ public final class KBucket {
         
         Id nodeId = node.getId();
 
-        Validate.isTrue(!nodeId.equals(baseId));
         InternalValidate.matchesBitLength(baseId.getBitLength(), nodeId);
+        InternalValidate.notMatchesBase(baseId, nodeId);
         
         Validate.isTrue(nodeId.getBitString().getBits(0, prefix.getBitLength()).equals(prefix)); // ensure prefix matches
         
@@ -150,8 +150,8 @@ public final class KBucket {
         
         Id nodeId = node.getId();
 
-        Validate.isTrue(!nodeId.equals(baseId));
         InternalValidate.matchesBitLength(baseId.getBitLength(), nodeId);
+        InternalValidate.notMatchesBase(baseId, nodeId);
         
         Validate.isTrue(nodeId.getBitString().getBits(0, prefix.getBitLength()).equals(prefix)); // ensure prefix matches
         
@@ -166,8 +166,8 @@ public final class KBucket {
         
         Id nodeId = node.getId();
 
-        Validate.isTrue(!nodeId.equals(baseId));
         InternalValidate.matchesBitLength(baseId.getBitLength(), nodeId);
+        InternalValidate.notMatchesBase(baseId, nodeId);
         
         Validate.isTrue(nodeId.getBitString().getBits(0, prefix.getBitLength()).equals(prefix)); // ensure prefix matches
         

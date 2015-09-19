@@ -30,4 +30,15 @@ final class InternalValidate {
             throw new LinkMismatchException(actualNode, expectedNode.getLink());
         }
     }
+
+    static void notMatchesBase(Id baseId, Id inputId) {
+        // throws illegalstateexception, because if you made it to this point you should never encounter these conditions
+        Validate.validState(baseId != null);
+        Validate.validState(inputId != null);
+        // Validate.validState(baseNode.getId().getBitLength() == inputNode.getId().getBitLength()); // not required
+
+        if (baseId.equals(inputId)) {
+            throw new BaseIdMatchException(baseId);
+        }
+    }
 }

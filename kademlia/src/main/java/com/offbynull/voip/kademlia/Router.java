@@ -60,8 +60,8 @@ public final class Router {
         this.lastTouchTime = time;
         
         Id nodeId = node.getId();
-        Validate.isTrue(!nodeId.equals(baseId));
         InternalValidate.matchesBitLength(baseId.getBitLength(), nodeId);
+        InternalValidate.notMatchesBase(baseId, nodeId);
 
         
         
@@ -84,6 +84,7 @@ public final class Router {
         Validate.isTrue(max >= 0); // why would anyone want 0 items returned? let thru anyways
         
         InternalValidate.matchesBitLength(baseId.getBitLength(), id);
+        // do not stop from finding self (base) -- you may want to update closest
         
         List<Activity> closestNodesInRoutingTree = routeTree.find(id, max);
         List<Node> closestNodesInNearSet = nearBucket.dumpBucket();
@@ -111,7 +112,11 @@ public final class Router {
     // connection goes down teporarily, the node won’t completely void all of its k-buckets
     public void stale(Node node) {
         Validate.notNull(node);
-        InternalValidate.matchesBitLength(baseId.getBitLength(), node.getId());
+        
+        Id nodeId = node.getId();
+        
+        InternalValidate.matchesBitLength(baseId.getBitLength(), nodeId);
+        InternalValidate.notMatchesBase(baseId, nodeId); 
         
         RouteTreeChangeSet routeTreeChangeSet = routeTree.stale(node);
         
@@ -130,7 +135,11 @@ public final class Router {
     // up until the point that we explictly decide to to make it findable/unlocked.
     public void lock(Node node) {
         Validate.notNull(node);
-        InternalValidate.matchesBitLength(baseId.getBitLength(), node.getId());
+        
+        Id nodeId = node.getId();
+        
+        InternalValidate.matchesBitLength(baseId.getBitLength(), nodeId);
+        InternalValidate.notMatchesBase(baseId, nodeId); 
         
         routeTree.lock(node); // will throw illargexc if node not in routetree
         
@@ -139,7 +148,11 @@ public final class Router {
 
     public void unlock(Node node) {
         Validate.notNull(node);
-        InternalValidate.matchesBitLength(baseId.getBitLength(), node.getId());
+        
+        Id nodeId = node.getId();
+        
+        InternalValidate.matchesBitLength(baseId.getBitLength(), nodeId);
+        InternalValidate.notMatchesBase(baseId, nodeId); 
         
         routeTree.unlock(node); // will throw illargexc if node not in routetree
         

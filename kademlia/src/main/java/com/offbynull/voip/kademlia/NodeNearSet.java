@@ -47,7 +47,7 @@ public final class NodeNearSet {
         Id nodeId = node.getId();
         
         InternalValidate.matchesBitLength(baseId.getBitLength(), nodeId);
-        Validate.isTrue(!nodeId.equals(baseId));
+        InternalValidate.notMatchesBase(baseId, nodeId);
         
         if (maxSize == 0) {
             return NodeChangeSet.NO_CHANGE;
@@ -84,6 +84,7 @@ public final class NodeNearSet {
         Id nodeId = node.getId();
         
         InternalValidate.matchesBitLength(baseId.getBitLength(), nodeId);
+        InternalValidate.notMatchesBase(baseId, nodeId);
         
         Node foundNode = nodes.get(nodeId);
         if (foundNode == null) {
