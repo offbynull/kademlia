@@ -58,7 +58,7 @@ public final class RouteTree {
     public List<Activity> find(Id id, int max) {
         Validate.notNull(id);
         Validate.isTrue(!id.equals(baseId));
-        Validate.isTrue(id.getBitLength() == baseId.getBitLength());
+        InternalValidate.matchesBitLength(baseId.getBitLength(), id);
         Validate.isTrue(max >= 0); // why would anyone want 0? let thru anyways
 
         IdClosenessComparator comparator = new IdClosenessComparator(id);
@@ -92,7 +92,7 @@ public final class RouteTree {
         
         Id id = node.getId();
         Validate.isTrue(!id.equals(baseId));
-        Validate.isTrue(id.getBitLength() == baseId.getBitLength());
+        InternalValidate.matchesBitLength(baseId.getBitLength(), id);
         
         Validate.isTrue(!time.isBefore(lastTouchTime)); // time must be >= lastTouchTime, to prevent from going backward in time
         lastTouchTime = time;
@@ -118,7 +118,7 @@ public final class RouteTree {
 
         Id id = node.getId();
         Validate.isTrue(!id.equals(baseId));
-        Validate.isTrue(id.getBitLength() == baseId.getBitLength());
+        InternalValidate.matchesBitLength(baseId.getBitLength(), id);
             
         KBucket bucket = root.getBucketFor(node.getId());
         KBucketChangeSet kBucketChangeSet = bucket.stale(node);
@@ -144,7 +144,7 @@ public final class RouteTree {
 
         Id id = node.getId();
         Validate.isTrue(!id.equals(baseId));
-        Validate.isTrue(id.getBitLength() == baseId.getBitLength());
+        InternalValidate.matchesBitLength(baseId.getBitLength(), id);
             
         root.getBucketFor(node.getId()).lock(node);
     }
@@ -154,7 +154,7 @@ public final class RouteTree {
 
         Id id = node.getId();
         Validate.isTrue(!id.equals(baseId));
-        Validate.isTrue(id.getBitLength() == baseId.getBitLength());
+        InternalValidate.matchesBitLength(baseId.getBitLength(), id);
             
         root.getBucketFor(node.getId()).unlock(node);
     }

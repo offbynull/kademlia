@@ -344,7 +344,7 @@ public class NodeLeastRecentSetTest {
         verifyActivityChangeSetCounts(res, 1, 0, 0);
         verifyActivityChangeSetAdded(res, NODE_1111);
         
-        expectedException.expect(LinkConflictException.class);
+        expectedException.expect(LinkMismatchException.class);
         fixture.remove(new Node(NODE_1111.getId(), "fakelink"));
     }
 
@@ -356,7 +356,7 @@ public class NodeLeastRecentSetTest {
         verifyActivityChangeSetCounts(res, 1, 0, 0);
         verifyActivityChangeSetAdded(res, NODE_1111);
         
-        expectedException.expect(LinkConflictException.class);
+        expectedException.expect(LinkMismatchException.class);
         fixture.touch(BASE_TIME.plusMillis(1L), new Node(NODE_1111.getId(), "fakelink"));
     }
     

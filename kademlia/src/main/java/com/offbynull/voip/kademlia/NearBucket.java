@@ -45,7 +45,7 @@ public final class NearBucket {
         Id nodeId = node.getId();
 
         Validate.isTrue(!nodeId.equals(baseId));
-        Validate.isTrue(nodeId.getBitLength() == baseId.getBitLength());
+        InternalValidate.matchesBitLength(baseId.getBitLength(), nodeId);
         
         NodeChangeSet networkChangeSet = peers.touch(node);
         NodeChangeSet bucketChangeSet = bucket.touch(node);
@@ -59,7 +59,7 @@ public final class NearBucket {
         Id nodeId = node.getId();
 
         Validate.isTrue(!nodeId.equals(baseId));
-        Validate.isTrue(nodeId.getBitLength() == baseId.getBitLength());
+        InternalValidate.matchesBitLength(baseId.getBitLength(), nodeId);
 
         
         // Touch the bucket
@@ -74,7 +74,7 @@ public final class NearBucket {
         Id nodeId = node.getId();
 
         Validate.isTrue(!nodeId.equals(baseId));
-        Validate.isTrue(nodeId.getBitLength() == baseId.getBitLength());
+        InternalValidate.matchesBitLength(baseId.getBitLength(), nodeId);
         
         
         NodeChangeSet bucketChangeSet = bucket.remove(node);
@@ -138,7 +138,7 @@ public final class NearBucket {
                 Node closestReplacementNode = peers.dumpNearestAfter(baseId, 1).get(0); // get closest node out of replacements
                 try {
                     return bucket.touch(closestReplacementNode);
-                } catch (LinkConflictException lce) {
+                } catch (LinkMismatchException lce) {
                     // should never happen
                     throw new IllegalStateException(lce);
                 }
@@ -188,7 +188,7 @@ public final class NearBucket {
             }
             
             return NodeChangeSet.added(addedNodes);
-        } catch (LinkConflictException lce) {
+        } catch (LinkMismatchException lce) {
             // should never happen
             throw new IllegalStateException(lce);
         }

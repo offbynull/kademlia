@@ -480,7 +480,7 @@ public final class NearBucketTest {
         fixture.touch(NODE_001);
         fixture.touch(NODE_010);
         
-        expectedException.expect(LinkConflictException.class);
+        expectedException.expect(LinkMismatchException.class);
         fixture.touch(new Node(NODE_010.getId(), "fakelink"));
     }
 
@@ -490,7 +490,7 @@ public final class NearBucketTest {
         fixture.touchPeer(NODE_010);
         fixture.touchPeer(NODE_110);
         
-        expectedException.expect(LinkConflictException.class);
+        expectedException.expect(LinkMismatchException.class);
         fixture.touchPeer(new Node(NODE_110.getId(), "fakelink"));
     }
     
@@ -499,7 +499,7 @@ public final class NearBucketTest {
         fixture.touch(NODE_001);
         fixture.touch(NODE_010);
         
-        expectedException.expect(LinkConflictException.class);
+        expectedException.expect(LinkMismatchException.class);
         fixture.touchPeer(new Node(NODE_010.getId(), "fakelink"));
     }
 
@@ -508,7 +508,7 @@ public final class NearBucketTest {
         fixture.touchPeer(NODE_001);
         fixture.touchPeer(NODE_010);
         
-        expectedException.expect(LinkConflictException.class);
+        expectedException.expect(LinkMismatchException.class);
         fixture.touch(new Node(NODE_010.getId(), "fakelink"));
     }
 
@@ -517,7 +517,7 @@ public final class NearBucketTest {
         fixture.touch(NODE_001);
         fixture.touch(NODE_010);
         
-        expectedException.expect(LinkConflictException.class);
+        expectedException.expect(LinkMismatchException.class);
         fixture.remove(new Node(NODE_010.getId(), "fakelink"));
     }
 
@@ -526,7 +526,7 @@ public final class NearBucketTest {
         fixture.touchPeer(NODE_001);
         fixture.touchPeer(NODE_010);
         
-        expectedException.expect(LinkConflictException.class);
+        expectedException.expect(LinkMismatchException.class);
         fixture.remove(new Node(NODE_010.getId(), "fakelink"));
     }
 }

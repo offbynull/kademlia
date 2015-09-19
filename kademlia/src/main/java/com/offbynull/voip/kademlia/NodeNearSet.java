@@ -46,7 +46,7 @@ public final class NodeNearSet {
         
         Id nodeId = node.getId();
         
-        Validate.isTrue(nodeId.getBitLength() == baseId.getBitLength());
+        InternalValidate.matchesBitLength(baseId.getBitLength(), nodeId);
         Validate.isTrue(!nodeId.equals(baseId));
         
         if (maxSize == 0) {
@@ -58,10 +58,7 @@ public final class NodeNearSet {
         
         Node existingNode;
         if ((existingNode = nodes.get(nodeId)) != null) {
-            if (!existingNode.equals(node)) {
-                // if ID exists but link for ID is different, ignore
-                throw new LinkConflictException(existingNode);
-            }
+            InternalValidate.matchesLink(existingNode, node);
             
             return NodeChangeSet.updated(node); // already exists -- show as being updated to indicate that it already exists
         }
@@ -85,7 +82,8 @@ public final class NodeNearSet {
         Validate.notNull(node);
         
         Id nodeId = node.getId();
-        String nodeLink = node.getLink();
+        
+        InternalValidate.matchesBitLength(baseId.getBitLength(), nodeId);
         
         Node foundNode = nodes.get(nodeId);
         if (foundNode == null) {
@@ -93,13 +91,9 @@ public final class NodeNearSet {
         }
 
         Id foundId = foundNode.getId();
-        String foundLink = foundNode.getLink();
 
         Validate.validState(nodeId.equals(foundId)); // should never happen -- just in case
-        if (!foundLink.equals(nodeLink)) {
-            // if ID exists but link for ID is different
-            throw new LinkConflictException(foundNode);
-        }
+        InternalValidate.matchesLink(foundNode, node);
 
         // remove
         nodes.remove(nodeId);
@@ -130,6 +124,8 @@ public final class NodeNearSet {
         Validate.notNull(id); // perfectly okay for id to equal baseId;
         Validate.isTrue(max >= 0);
         
+        InternalValidate.matchesBitLength(baseId.getBitLength(), id);
+        
         NavigableMap<Id, Node> partialMap = nodes.headMap(id, false);
         
         int remaining = Math.min(max, nodes.size());
@@ -149,6 +145,8 @@ public final class NodeNearSet {
     public List<Node> dumpNearestAfter(Id id, int max) { // dumps up to max nodes > id, starting from nearest to id (EXCLUSIVE)
         Validate.notNull(id); // perfectly okay for id to equal baseId;
         Validate.isTrue(max >= 0);
+        
+        InternalValidate.matchesBitLength(baseId.getBitLength(), id);
         
         NavigableMap<Id, Node> partialMap = nodes.tailMap(id, false);
         

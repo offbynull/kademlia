@@ -46,7 +46,7 @@ public final class NodeActivitySet {
         
         Id id = node.getId();
         
-        Validate.isTrue(id.getBitLength() == baseId.getBitLength());
+        InternalValidate.matchesBitLength(baseId.getBitLength(), id);
         Validate.isTrue(!id.equals(baseId));
 
         
@@ -56,9 +56,7 @@ public final class NodeActivitySet {
             Node oldNode = oldEntry.getNode();
             
             // Check links match
-            if (!oldNode.equals(node)) {
-                throw new LinkConflictException(oldNode);
-            }
+            InternalValidate.matchesLink(oldNode, node);
             
             
             // Remove old timestamp
@@ -89,6 +87,8 @@ public final class NodeActivitySet {
         
         Id id = node.getId();
         
+        InternalValidate.matchesBitLength(baseId.getBitLength(), id);
+        
         Activity existingEntry = lookupById.get(id);
         if (existingEntry == null) {
             return ActivityChangeSet.NO_CHANGE;
@@ -97,9 +97,7 @@ public final class NodeActivitySet {
         Node oldNode = existingEntry.getNode();
         
         // Check links match
-        if (!oldNode.equals(node)) {
-            throw new LinkConflictException(oldNode);
-        }
+        InternalValidate.matchesLink(oldNode, node);
         
         // Remove
         lookupById.remove(id);
@@ -116,6 +114,8 @@ public final class NodeActivitySet {
         
         Id id = node.getId();
         
+        InternalValidate.matchesBitLength(baseId.getBitLength(), id);
+        
         Activity existingEntry = lookupById.get(id);
         if (existingEntry == null) {
             return null;
@@ -124,9 +124,7 @@ public final class NodeActivitySet {
         Node existingNode = existingEntry.getNode();
         
         // Check links match
-        if (!existingNode.equals(node)) {
-            throw new LinkConflictException(existingNode);
-        }
+        InternalValidate.matchesLink(existingNode, node);
         
         return existingEntry;
     }

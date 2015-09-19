@@ -132,7 +132,7 @@ public class NodeDataSetTest {
     public void mustRejectPutsForSameIdButDifferentLinks() throws Throwable {
         fixture.put(NODE_001, "key1", "value1");
 
-        expectedException.expect(LinkConflictException.class);
+        expectedException.expect(LinkMismatchException.class);
         fixture.put(new Node(NODE_001.getId(), "fakelink"), "key2", "value2");
     }
 
@@ -140,7 +140,7 @@ public class NodeDataSetTest {
     public void mustRejectGetsForSameIdButDifferentLinks() throws Throwable {
         fixture.put(NODE_001, "key1", "value1");
 
-        expectedException.expect(LinkConflictException.class);
+        expectedException.expect(LinkMismatchException.class);
         fixture.get(new Node(NODE_001.getId(), "fakelink"), "key1");
     }
 
@@ -148,7 +148,7 @@ public class NodeDataSetTest {
     public void mustRejectGetAllsForSameIdButDifferentLinks() throws Throwable {
         fixture.put(NODE_001, "key1", "value1");
 
-        expectedException.expect(LinkConflictException.class);
+        expectedException.expect(LinkMismatchException.class);
         fixture.getAll(new Node(NODE_001.getId(), "fakelink"));
     }
 
@@ -157,7 +157,7 @@ public class NodeDataSetTest {
     public void mustRejectRemovesForSameIdButDifferentLinks() throws Throwable {
         fixture.put(NODE_001, "key1", "value1");
 
-        expectedException.expect(LinkConflictException.class);
+        expectedException.expect(LinkMismatchException.class);
         fixture.get(new Node(NODE_001.getId(), "fakelink"), "key1");
     }
 
@@ -165,7 +165,7 @@ public class NodeDataSetTest {
     public void mustRejectRemoveAllsForSameIdButDifferentLinks() throws Throwable {
         fixture.put(NODE_001, "key1", "value1");
 
-        expectedException.expect(LinkConflictException.class);
+        expectedException.expect(LinkMismatchException.class);
         fixture.removeAll(new Node(NODE_001.getId(), "fakelink"));
     }
 }

@@ -171,7 +171,7 @@ public class KBucketTest {
         fixture.touch(BASE_TIME.plusMillis(6L), NODE_1110);
         fixture.touch(BASE_TIME.plusMillis(7L), NODE_1101);
         
-        expectedException.expect(LinkConflictException.class);
+        expectedException.expect(LinkMismatchException.class);
         fixture.touch(BASE_TIME.plusMillis(8L), new Node(NODE_0010.getId(), "fakelink"));
     }
 
@@ -185,7 +185,7 @@ public class KBucketTest {
         fixture.touch(BASE_TIME.plusMillis(6L), NODE_1110);
         fixture.touch(BASE_TIME.plusMillis(7L), NODE_1101);
         
-        expectedException.expect(LinkConflictException.class);
+        expectedException.expect(LinkMismatchException.class);
         fixture.touch(BASE_TIME.plusMillis(8L), new Node(NODE_1111.getId(), "fakelink"));
     }
 
@@ -199,7 +199,7 @@ public class KBucketTest {
         fixture.touch(BASE_TIME.plusMillis(6L), NODE_1110);
         fixture.touch(BASE_TIME.plusMillis(7L), NODE_1101);
         
-        expectedException.expect(LinkConflictException.class);
+        expectedException.expect(LinkMismatchException.class);
         fixture.stale(new Node(NODE_1100.getId(), "fakelink"));
     }
 

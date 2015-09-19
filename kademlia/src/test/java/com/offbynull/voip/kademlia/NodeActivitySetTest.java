@@ -120,7 +120,7 @@ public class NodeActivitySetTest {
         verifyActivityChangeSetCounts(res, 1, 0, 0);
         verifyActivityChangeSetAdded(res, NODE_001);
         
-        expectedException.expect(LinkConflictException.class);
+        expectedException.expect(LinkMismatchException.class);
         fixture.touch(BASE_TIME.plusMillis(1L), new Node(NODE_001.getId(), "fakelink"));
     }
 
@@ -132,7 +132,7 @@ public class NodeActivitySetTest {
         verifyActivityChangeSetCounts(res, 1, 0, 0);
         verifyActivityChangeSetAdded(res, NODE_001);
         
-        expectedException.expect(LinkConflictException.class);
+        expectedException.expect(LinkMismatchException.class);
         fixture.remove(new Node(NODE_001.getId(), "fakelink"));
     }
     

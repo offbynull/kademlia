@@ -77,7 +77,7 @@ public final class KBucket {
         Id nodeId = node.getId();
 
         Validate.isTrue(!nodeId.equals(baseId));
-        Validate.isTrue(nodeId.getBitLength() == baseId.getBitLength());
+        InternalValidate.matchesBitLength(baseId.getBitLength(), nodeId);
         
         Validate.isTrue(nodeId.getBitString().getBits(0, prefix.getBitLength()).equals(prefix)); // ensure prefix matches
 
@@ -120,7 +120,7 @@ public final class KBucket {
         Id nodeId = node.getId();
 
         Validate.isTrue(!nodeId.equals(baseId));
-        Validate.isTrue(nodeId.getBitLength() == baseId.getBitLength());
+        InternalValidate.matchesBitLength(baseId.getBitLength(), nodeId);
         
         Validate.isTrue(nodeId.getBitString().getBits(0, prefix.getBitLength()).equals(prefix)); // ensure prefix matches
         
@@ -151,7 +151,7 @@ public final class KBucket {
         Id nodeId = node.getId();
 
         Validate.isTrue(!nodeId.equals(baseId));
-        Validate.isTrue(nodeId.getBitLength() == baseId.getBitLength());
+        InternalValidate.matchesBitLength(baseId.getBitLength(), nodeId);
         
         Validate.isTrue(nodeId.getBitString().getBits(0, prefix.getBitLength()).equals(prefix)); // ensure prefix matches
         
@@ -167,7 +167,7 @@ public final class KBucket {
         Id nodeId = node.getId();
 
         Validate.isTrue(!nodeId.equals(baseId));
-        Validate.isTrue(nodeId.getBitLength() == baseId.getBitLength());
+        InternalValidate.matchesBitLength(baseId.getBitLength(), nodeId);
         
         Validate.isTrue(nodeId.getBitString().getBits(0, prefix.getBitLength()).equals(prefix)); // ensure prefix matches
         
@@ -206,7 +206,7 @@ public final class KBucket {
         Activity cacheEntry = cacheRemoveRes.viewRemoved().get(0);
         try {
             bucketTouchRes = bucket.touch(cacheEntry.getTime(), cacheEntry.getNode());
-        } catch (LinkConflictException ece) {
+        } catch (LinkMismatchException ece) {
             // should never throw EntryConflictException
             throw new IllegalStateException(ece);
         }
@@ -278,7 +278,7 @@ public final class KBucket {
                 if (lockSet.contains(node)) {
                     newKBuckets[idx].lockSet.add(node);
                 }
-            } catch (LinkConflictException ece) {
+            } catch (LinkMismatchException ece) {
                 // should never happen
                 throw new IllegalStateException(ece);
             }
@@ -303,7 +303,7 @@ public final class KBucket {
             ActivityChangeSet res;
             try {
                 res = newKBuckets[idx].cache.touch(entry.getTime(), node);
-            } catch (LinkConflictException ece) {
+            } catch (LinkMismatchException ece) {
                 // should never happen
                 throw new IllegalStateException(ece);
             }
@@ -421,7 +421,7 @@ public final class KBucket {
             ActivityChangeSet addRes;
             try {
                 addRes = bucket.touch(entryToMove.getTime(), entryToMove.getNode());
-            } catch (LinkConflictException ece) {
+            } catch (LinkMismatchException ece) {
                 // This should never happen. The way the logic in this class is written, you should never have an entry with the same id in
                 // the cache and the bucket at the same time. As such, it's impossible to encounter a conflict.
                 throw new IllegalStateException(ece); // sanity check

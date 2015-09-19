@@ -46,9 +46,8 @@ public final class NodeLeastRecentSet {
         Validate.notNull(node);
         
         Id nodeId = node.getId();
-        String nodeLink = node.getLink();
         
-        Validate.isTrue(nodeId.getBitLength() == baseId.getBitLength());
+        InternalValidate.matchesBitLength(baseId.getBitLength(), nodeId);
 //        Validate.isTrue(!nodeId.equals(baseId)); // Don't reject adding self
         
         // TODO: You can make this way more efficient if you used something like MultiTreeSet (guava) and sorted based on entry time
@@ -60,13 +59,9 @@ public final class NodeLeastRecentSet {
             Activity entry = it.next();
 
             Id entryId = entry.getNode().getId();
-            String entryLink = entry.getNode().getLink();
 
             if (entryId.equals(nodeId)) {
-                if (!entryLink.equals(nodeLink)) {
-                    // if ID exists but link for ID is different
-                    throw new LinkConflictException(entry.getNode());
-                }
+                InternalValidate.matchesLink(entry.getNode(), node);
 
                 // remove
                 it.remove();
@@ -129,20 +124,17 @@ public final class NodeLeastRecentSet {
         Validate.notNull(node);
         
         Id nodeId = node.getId();
-        String nodeLink = node.getLink();
+        
+        InternalValidate.matchesBitLength(baseId.getBitLength(), nodeId);
         
         ListIterator<Activity> it = entries.listIterator();
         while (it.hasNext()) {
             Activity entry = it.next();
 
             Id entryId = entry.getNode().getId();
-            String entryLink = entry.getNode().getLink();
 
             if (entryId.equals(nodeId)) {
-                if (!entryLink.equals(nodeLink)) {
-                    // if ID exists but link for ID is different
-                    throw new LinkConflictException(entry.getNode());
-                }
+                InternalValidate.matchesLink(entry.getNode(), node);
 
                 // remove
                 return true;
@@ -156,20 +148,17 @@ public final class NodeLeastRecentSet {
         Validate.notNull(node);
         
         Id nodeId = node.getId();
-        String nodeLink = node.getLink();
+        
+        InternalValidate.matchesBitLength(baseId.getBitLength(), nodeId);
         
         ListIterator<Activity> it = entries.listIterator();
         while (it.hasNext()) {
             Activity entry = it.next();
 
             Id entryId = entry.getNode().getId();
-            String entryLink = entry.getNode().getLink();
 
             if (entryId.equals(nodeId)) {
-                if (!entryLink.equals(nodeLink)) {
-                    // if ID exists but link for ID is different
-                    throw new LinkConflictException(entry.getNode());
-                }
+                InternalValidate.matchesLink(entry.getNode(), node);
 
                 // remove
                 it.remove();

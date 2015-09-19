@@ -18,17 +18,26 @@ package com.offbynull.voip.kademlia;
 
 import org.apache.commons.lang3.Validate;
 
-public class LinkConflictException extends IllegalArgumentException {
+public class LinkMismatchException extends IllegalArgumentException {
     private static final long serialVersionUID = 1L;
 
-    private final Node existingNode;
+    private final Node conflictingNode;
+    private final String expectedLink;
 
-    public LinkConflictException(Node existingNode) {
-        Validate.notNull(existingNode);
-        this.existingNode = existingNode;
+    public LinkMismatchException(Node conflictingNode, String expectedLink) {
+        super("Node link mismatch (required " + expectedLink +  "): " + conflictingNode + ")");
+        Validate.notNull(conflictingNode);
+        Validate.notNull(expectedLink);
+        this.conflictingNode = conflictingNode;
+        this.expectedLink = expectedLink;
     }
 
-    public Node getExistingNode() {
-        return existingNode;
+    public Node getConflictingNode() {
+        return conflictingNode;
     }
+
+    public String getExpectedLink() {
+        return expectedLink;
+    }
+
 }

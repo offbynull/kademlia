@@ -106,7 +106,7 @@ public final class NodeNearSetTest {
         verifyNodeChangeSetCounts(res, 1, 0, 0);
         verifyNodeChangeSetAdded(res, NODE_111);
         
-        expectedException.expect(LinkConflictException.class);
+        expectedException.expect(LinkMismatchException.class);
         fixture.touch(new Node(NODE_111.getId(), "fakelink"));
     }
     
@@ -255,7 +255,7 @@ public final class NodeNearSetTest {
         verifyNodeChangeSetCounts(res, 1, 0, 0);
         verifyNodeChangeSetAdded(res, NODE_111);
         
-        expectedException.expect(LinkConflictException.class);
+        expectedException.expect(LinkMismatchException.class);
         fixture.remove(new Node(NODE_111.getId(), "fakelink"));
     }
 
@@ -267,7 +267,7 @@ public final class NodeNearSetTest {
         verifyNodeChangeSetCounts(res, 1, 0, 0);
         verifyNodeChangeSetAdded(res, NODE_111);
         
-        expectedException.expect(LinkConflictException.class);
+        expectedException.expect(LinkMismatchException.class);
         fixture.touch(new Node(NODE_111.getId(), "fakelink"));
     }
 }

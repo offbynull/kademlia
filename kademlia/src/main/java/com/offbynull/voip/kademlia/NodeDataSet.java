@@ -38,7 +38,7 @@ public final class NodeDataSet {
 
         Id nodeId = node.getId();
         
-        Validate.isTrue(nodeId.getBitLength() == baseId.getBitLength());
+        InternalValidate.matchesBitLength(baseId.getBitLength(), nodeId);
         Validate.isTrue(!nodeId.equals(baseId));
         
         NodeChangeSet ret;
@@ -63,7 +63,7 @@ public final class NodeDataSet {
         
         Id nodeId = node.getId();
         
-        Validate.isTrue(nodeId.getBitLength() == baseId.getBitLength());
+        InternalValidate.matchesBitLength(baseId.getBitLength(), nodeId);
         Validate.isTrue(!nodeId.equals(baseId));
         
         DataHolder dataHolder = nodes.get(nodeId);
@@ -80,7 +80,7 @@ public final class NodeDataSet {
         
         Id nodeId = node.getId();
         
-        Validate.isTrue(nodeId.getBitLength() == baseId.getBitLength());
+        InternalValidate.matchesBitLength(baseId.getBitLength(), nodeId);
         Validate.isTrue(!nodeId.equals(baseId));
         
         DataHolder dataHolder = nodes.get(nodeId);
@@ -98,7 +98,7 @@ public final class NodeDataSet {
         
         Id nodeId = node.getId();
         
-        Validate.isTrue(nodeId.getBitLength() == baseId.getBitLength());
+        InternalValidate.matchesBitLength(baseId.getBitLength(), nodeId);
         Validate.isTrue(!nodeId.equals(baseId));
         
         DataHolder dataHolder = nodes.get(nodeId);
@@ -129,7 +129,7 @@ public final class NodeDataSet {
         
         Id nodeId = node.getId();
         
-        Validate.isTrue(nodeId.getBitLength() == baseId.getBitLength());
+        InternalValidate.matchesBitLength(baseId.getBitLength(), nodeId);
         Validate.isTrue(!nodeId.equals(baseId));
         
         DataHolder dataHolder = nodes.remove(nodeId);
@@ -150,9 +150,7 @@ public final class NodeDataSet {
         
         Node existingNode = dataHolder.getNode();
         Validate.isTrue(incomingNode.getId().equals(existingNode.getId()));
-        if (!dataHolder.getNode().getLink().equals(incomingNode.getLink())) {
-            throw new LinkConflictException(existingNode);
-        }
+        InternalValidate.matchesLink(existingNode, incomingNode);
     }
 
     @Override

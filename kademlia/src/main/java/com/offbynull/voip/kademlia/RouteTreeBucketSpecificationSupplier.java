@@ -16,7 +16,6 @@
  */
 package com.offbynull.voip.kademlia;
 
-import java.util.Arrays;
 import org.apache.commons.lang3.Validate;
 
 

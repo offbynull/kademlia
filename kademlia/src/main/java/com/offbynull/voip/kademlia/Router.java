@@ -61,7 +61,7 @@ public final class Router {
         
         Id nodeId = node.getId();
         Validate.isTrue(!nodeId.equals(baseId));
-        Validate.isTrue(nodeId.getBitLength() == baseId.getBitLength());
+        InternalValidate.matchesBitLength(baseId.getBitLength(), nodeId);
 
         
         
@@ -80,6 +80,11 @@ public final class Router {
     }
     
     public List<Node> find(Id id, int max) {
+        Validate.notNull(id);
+        Validate.isTrue(max >= 0); // why would anyone want 0 items returned? let thru anyways
+        
+        InternalValidate.matchesBitLength(baseId.getBitLength(), id);
+        
         List<Activity> closestNodesInRoutingTree = routeTree.find(id, max);
         List<Node> closestNodesInNearSet = nearBucket.dumpBucket();
         
@@ -106,6 +111,8 @@ public final class Router {
     // connection goes down teporarily, the node won’t completely void all of its k-buckets
     public void stale(Node node) {
         Validate.notNull(node);
+        InternalValidate.matchesBitLength(baseId.getBitLength(), node.getId());
+        
         RouteTreeChangeSet routeTreeChangeSet = routeTree.stale(node);
         
         synchronizeChangesFromRouteTreeToNearBucket(routeTreeChangeSet);
@@ -123,6 +130,8 @@ public final class Router {
     // up until the point that we explictly decide to to make it findable/unlocked.
     public void lock(Node node) {
         Validate.notNull(node);
+        InternalValidate.matchesBitLength(baseId.getBitLength(), node.getId());
+        
         routeTree.lock(node); // will throw illargexc if node not in routetree
         
         nearBucket.remove(node); // remove from nearset / nearset's cache
@@ -130,13 +139,15 @@ public final class Router {
 
     public void unlock(Node node) {
         Validate.notNull(node);
+        InternalValidate.matchesBitLength(baseId.getBitLength(), node.getId());
+        
         routeTree.unlock(node); // will throw illargexc if node not in routetree
         
         nearBucket.touch(node); // re-enter in to nearset / nearset's cache
         nearBucket.touchPeer(node);
     }
     
-    private void synchronizeChangesFromRouteTreeToNearBucket(RouteTreeChangeSet routeTreeChangeSet) throws LinkConflictException {
+    private void synchronizeChangesFromRouteTreeToNearBucket(RouteTreeChangeSet routeTreeChangeSet) {
         KBucketChangeSet kBucketChangeSet = routeTreeChangeSet.getKBucketChangeSet();
         
         for (Activity addedNode : kBucketChangeSet.getBucketChangeSet().viewAdded()) {
