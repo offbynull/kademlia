@@ -1,6 +1,6 @@
 package com.offbynull.voip.kademlia.externalmessages;
 
-import com.offbynull.voip.kademlia.model.Id;
+import com.offbynull.voip.kademlia.model.Node;
 import java.io.Serializable;
 import java.util.Arrays;
 import org.apache.commons.lang3.Validate;
@@ -8,16 +8,16 @@ import org.apache.commons.lang3.Validate;
 public final class FindResponse implements Serializable {
     private static final long serialVersionUID = 1L;
     
-    private final Id[] ids;
+    private final Node[] nodes;
 
-    public FindResponse(Id[] ids) {
-        Validate.notNull(ids);
-        Validate.noNullElements(ids);
-        this.ids = ids;
+    public FindResponse(Node[] nodes) {
+        Validate.notNull(nodes);
+        Validate.noNullElements(nodes);
+        this.nodes = nodes;
     }
 
-    public Id[] getIds() {
-        return Arrays.copyOf(ids, ids.length);
+    public Node[] getNodes() {
+        return Arrays.copyOf(nodes, nodes.length);
     }
     
 }
