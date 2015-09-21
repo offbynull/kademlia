@@ -8,12 +8,8 @@ package com.offbynull.voip.kademlia;
 import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.actor.helpers.AddressTransformer;
 import com.offbynull.peernetic.core.actor.helpers.IdGenerator;
+import com.offbynull.voip.kademlia.model.Id;
 import com.offbynull.voip.kademlia.model.Router;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Set;
 import org.apache.commons.lang3.Validate;
 
 final class State {
@@ -23,6 +19,8 @@ final class State {
     private final Address logAddress;
     
     private final IdGenerator idGenerator;
+    
+    private final Id baseId;
     private final Router router;
     
     private final AddressTransformer addressTransformer;
@@ -32,12 +30,14 @@ final class State {
             Address graphAddress,
             Address logAddress,
             byte[] seed,
+            Id baseId,
             Router router,
             AddressTransformer addressTransformer) {
         Validate.notNull(timerAddress);
         Validate.notNull(graphAddress);
         Validate.notNull(logAddress);
         Validate.notNull(seed);
+        Validate.notNull(baseId);
         Validate.notNull(router);
         Validate.notNull(addressTransformer);
         Validate.isTrue(seed.length >= IdGenerator.MIN_SEED_SIZE);
@@ -45,6 +45,7 @@ final class State {
         this.graphAddress = graphAddress;
         this.logAddress = logAddress;
         idGenerator = new IdGenerator(seed);
+        this.baseId = baseId;
         this.router = router;
         this.addressTransformer = addressTransformer;
     }
@@ -63,6 +64,10 @@ final class State {
 
     public IdGenerator getIdGenerator() {
         return idGenerator;
+    }
+
+    public Id getBaseId() {
+        return baseId;
     }
 
     public Router getRouter() {
