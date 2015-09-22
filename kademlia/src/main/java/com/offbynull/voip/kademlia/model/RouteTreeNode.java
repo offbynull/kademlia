@@ -204,6 +204,19 @@ final class RouteTreeNode {
             throw new IllegalStateException(); // should never happen
         }
     }    
+    
+    public void dumpAllBucketPrefixes(List<BitString> output) {
+        for (RouteTreeBranch branch : branches) {
+            if (branch instanceof RouteTreeNodeBranch) {
+                RouteTreeNode treeNode = branch.getItem();
+                treeNode.dumpAllBucketPrefixes(output);
+            } else if (branch instanceof RouteTreeBucketBranch) {
+                output.add(branch.getPrefix());
+            } else {
+                throw new IllegalStateException(); // should never happen
+            }
+        }
+    }    
         
         
     private static final class PrefixClosenessComparator implements Comparator<RouteTreeBranch>, Serializable {

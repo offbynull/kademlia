@@ -6,19 +6,19 @@ import org.apache.commons.lang3.Validate;
 
 public final class FindRequest implements Serializable {
     private static final long serialVersionUID = 1L;
-    
-    private final Id id;
+
+    private final Id findId;
     private final int max;
 
-    public FindRequest(Id id, int max) {
-        Validate.notNull(id);
+    public FindRequest(Id findId, int max) {
+        Validate.notNull(findId);
         Validate.isTrue(max >= 0); // why would anyone want 0? let thru anyway
-        this.id = id;
+        this.findId = findId;
         this.max = max;
     }
-
-    public Id getId() {
-        return id;
+    
+    public Id getFindId() {
+        return findId;
     }
 
     public int getMax() {

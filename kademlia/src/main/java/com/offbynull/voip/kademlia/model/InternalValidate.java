@@ -1,12 +1,32 @@
 package com.offbynull.voip.kademlia.model;
 
 import java.time.Instant;
+import java.util.function.Predicate;
 import org.apache.commons.lang3.Validate;
 
 final class InternalValidate {
 
     private InternalValidate() {
         // do nothing
+    }
+
+    static void correctState(Node node, boolean condition) {
+        // throws illegalstateexception, because if you made it to this point you should never encounter these conditions
+        Validate.validState(node != null);
+
+        if (!condition) {
+            throw new BadNodeStateException(node);
+        }
+    }
+
+    static void exists(Node expectedNode, Predicate<Node> conditionChecker) {
+        // throws illegalstateexception, because if you made it to this point you should never encounter these conditions
+        Validate.validState(expectedNode != null);
+        Validate.validState(conditionChecker != null);
+
+        if (!conditionChecker.test(expectedNode)) {
+            throw new NodeNotFoundException(expectedNode);
+        }
     }
 
     static void matchesLength(int expectedLength, Id id) {

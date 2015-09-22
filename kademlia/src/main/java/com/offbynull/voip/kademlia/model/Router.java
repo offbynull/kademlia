@@ -79,6 +79,11 @@ public final class Router {
         nearBucket.touch(node);
     }
     
+    
+    public List<BitString> dumpBucketPrefixes() {
+        return routeTree.dumpBucketPrefixes();
+    }
+    
     // DOES NOT RETURN SELF
     public List<Node> find(Id id, int max) {
         Validate.notNull(id);
@@ -176,142 +181,4 @@ public final class Router {
             nearBucket.touchPeer(updatedNode.getNode()); // this is a existing peer, so let the near bucket know
         }
     }
-    
-//    public void setNodeProperty(Node node, Object key, Object value) throws LinkConflictException {
-//        Validate.notNull(node);
-//        Validate.notNull(key);
-//        Validate.notNull(value);
-//        
-//        Id nodeId = node.getId();
-//        Validate.isTrue(!nodeId.equals(baseId));
-//        Validate.isTrue(nodeId.getBitLength() == baseId.getBitLength());
-//        
-//        Validate.isTrue(activitySet.get(node) != null); // activity exists
-//        
-//        NodeChangeSet changeSet = dataSet.put(node, key, value);
-//        
-//        sanityCheckChangeSet(changeSet, 0, 1, 0);// sanity check
-//    }
-//
-//    @SuppressWarnings("unchecked")
-//    public <T> T getNodeProperty(Node node, Object key) throws LinkConflictException {
-//        Validate.notNull(node);
-//        Validate.notNull(key);
-//        
-//        Id nodeId = node.getId();
-//        Validate.isTrue(!nodeId.equals(baseId));
-//        Validate.isTrue(nodeId.getBitLength() == baseId.getBitLength());
-//        
-//        Validate.isTrue(activitySet.get(node) != null); // activity exists
-//        
-//        return (T) dataSet.get(node, key);
-//    }
-//
-//    @SuppressWarnings("unchecked")
-//    public void removeNodeProperty(Node node, Object key) throws LinkConflictException {
-//        Validate.notNull(node);
-//        Validate.notNull(key);
-//        
-//        Id nodeId = node.getId();
-//        Validate.isTrue(!nodeId.equals(baseId));
-//        Validate.isTrue(nodeId.getBitLength() == baseId.getBitLength());
-//        
-//        Validate.isTrue(activitySet.get(node) != null); // activity exists
-//        
-//        dataSet.remove(node, key);
-//    }
-
-    
-//    // USE THIS LATER! MAYBE!
-//    private final class NodeCheckPredicate implements Predicate<Node> {
-//
-//        private final Predicate<RouterNodeInformation> backingPredicate;
-//
-//        public NodeCheckPredicate(Predicate<RouterNodeInformation> backingPredicate) {
-//            Validate.notNull(backingPredicate);
-//            this.backingPredicate = backingPredicate;
-//        }
-//        
-//        @Override
-//        public boolean test(Node t) {
-//            Node node = t;
-//            Map<Object, Object> properties;
-//            Instant lastActivityTime;
-//            try {
-//                properties = dataSet.getAll(node);
-//                lastActivityTime = activitySet.get(node).getTime();
-//            } catch (LinkConflictException lce) {
-//                // should never happen
-//                throw new IllegalStateException(lce);
-//            }
-//            RoutingTreeState routingTreeState = (RoutingTreeState) properties.remove(InternalNodeProperties.ROUTINGTREE_STATE);
-//            NearSetState nearSetState = (NearSetState) properties.remove(InternalNodeProperties.NEARSET_STATE);
-//            
-//            RouterNodeInformation testObj = new RouterNodeInformation(node, lastActivityTime, routingTreeState, nearSetState,
-//                    (UnmodifiableMap<Object, Object>) UnmodifiableMap.unmodifiableMap(properties));
-//            return backingPredicate.test(testObj);
-//        }
-//        
-//    }
-//    
-//    public static final class RouterNodeInformation {
-//        private final Node node;
-//        private final Instant lastActivityTime;
-//        private final RoutingTreeState routingTreeState;
-//        private final NearSetState nearSetState;
-//        private final UnmodifiableMap<Object, Object> properties;
-//
-//        public RouterNodeInformation(Node node, Instant lastActivityTime, RoutingTreeState routingTreeState, NearSetState nearSetState,
-//                UnmodifiableMap<Object, Object> properties) {
-//            Validate.notNull(node);
-//            Validate.notNull(lastActivityTime);
-//            Validate.notNull(routingTreeState);
-//            Validate.notNull(nearSetState);
-//            Validate.notNull(properties);
-//            Validate.noNullElements(properties.keySet());
-//            Validate.noNullElements(properties.values());
-//            
-//            this.node = node;
-//            this.lastActivityTime = lastActivityTime;
-//            this.routingTreeState = routingTreeState;
-//            this.nearSetState = nearSetState;
-//            this.properties = properties;
-//        }
-//
-//        public Node getNode() {
-//            return node;
-//        }
-//
-//        public Instant getLastActivityTime() {
-//            return lastActivityTime;
-//        }
-//
-//        public RoutingTreeState getRoutingTreeState() {
-//            return routingTreeState;
-//        }
-//
-//        public NearSetState getNearSetState() {
-//            return nearSetState;
-//        }
-//
-//        public UnmodifiableMap<Object, Object> getProperties() {
-//            return properties;
-//        }
-//    }
-//
-//    private enum InternalNodeProperties {
-//        ROUTINGTREE_STATE,
-//        NEARSET_STATE,
-//    }
-//    
-//    public enum RoutingTreeState {
-//        NOT_FOUND,
-//        ACTIVE,
-//        STALE
-//    }
-//    
-//    public enum NearSetState {
-//        NOT_FOUND,
-//        ACTIVE
-//    }
 }

@@ -57,7 +57,8 @@ public final class NodeDataSet {
         return ret;
     }
 
-    public Object get(Node node, Object key) {
+    @SuppressWarnings("unchecked")
+    public <T> T get(Node node, Object key) {
         Validate.notNull(node);
         Validate.notNull(key);
         
@@ -72,7 +73,7 @@ public final class NodeDataSet {
         }
         
         validateNode(node, dataHolder);
-        return dataHolder.get(key);
+        return (T) dataHolder.get(key);
     }
 
     public Map<Object, Object> getAll(Node node) {

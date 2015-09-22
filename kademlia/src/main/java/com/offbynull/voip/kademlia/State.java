@@ -1,8 +1,4 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+
 package com.offbynull.voip.kademlia;
 
 import com.offbynull.peernetic.core.shuttle.Address;
@@ -10,6 +6,9 @@ import com.offbynull.peernetic.core.actor.helpers.AddressTransformer;
 import com.offbynull.peernetic.core.actor.helpers.IdGenerator;
 import com.offbynull.voip.kademlia.model.Id;
 import com.offbynull.voip.kademlia.model.Router;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.SecureRandom;
 import org.apache.commons.lang3.Validate;
 
 final class State {
@@ -19,6 +18,7 @@ final class State {
     private final Address logAddress;
     
     private final IdGenerator idGenerator;
+    private final SecureRandom secureRandom;
     
     private final Id baseId;
     private final Router router;
@@ -29,22 +29,32 @@ final class State {
             Address timerAddress,
             Address graphAddress,
             Address logAddress,
-            byte[] seed,
+            byte[] seed1,
+            byte[] seed2,
             Id baseId,
             Router router,
             AddressTransformer addressTransformer) {
         Validate.notNull(timerAddress);
         Validate.notNull(graphAddress);
         Validate.notNull(logAddress);
-        Validate.notNull(seed);
+        Validate.notNull(seed1);
         Validate.notNull(baseId);
         Validate.notNull(router);
         Validate.notNull(addressTransformer);
-        Validate.isTrue(seed.length >= IdGenerator.MIN_SEED_SIZE);
+        Validate.isTrue(seed1.length >= IdGenerator.MIN_SEED_SIZE);
+        Validate.isTrue(seed2.length >= IdGenerator.MIN_SEED_SIZE);
         this.timerAddress = timerAddress;
         this.graphAddress = graphAddress;
         this.logAddress = logAddress;
-        idGenerator = new IdGenerator(seed);
+        idGenerator = new IdGenerator(seed1);
+        
+        try {
+            secureRandom = SecureRandom.getInstance("SHA1PRNG", "SUN");
+        } catch (NoSuchAlgorithmException | NoSuchProviderException ex) {
+            throw new IllegalStateException(ex);
+        }
+        secureRandom.setSeed(seed2);
+        
         this.baseId = baseId;
         this.router = router;
         this.addressTransformer = addressTransformer;
@@ -64,6 +74,10 @@ final class State {
 
     public IdGenerator getIdGenerator() {
         return idGenerator;
+    }
+
+    public SecureRandom getSecureRandom() {
+        return secureRandom;
     }
 
     public Id getBaseId() {

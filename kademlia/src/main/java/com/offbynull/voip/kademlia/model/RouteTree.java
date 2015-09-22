@@ -20,6 +20,7 @@ import com.offbynull.voip.kademlia.model.RouteTreeBucketSpecificationSupplier.Bu
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.TreeSet;
 import org.apache.commons.lang3.Validate;
@@ -84,6 +85,12 @@ public final class RouteTree {
 
         KBucket bucket = root.getBucketForPrefix(prefix);        
         return bucket.dumpBucket(true, true, false);
+    }
+    
+    public List<BitString> dumpBucketPrefixes() {
+        List<BitString> output = new LinkedList<>();
+        root.dumpAllBucketPrefixes(output);
+        return new ArrayList<>(output);
     }
 
     public RouteTreeChangeSet touch(Instant time, Node node) {

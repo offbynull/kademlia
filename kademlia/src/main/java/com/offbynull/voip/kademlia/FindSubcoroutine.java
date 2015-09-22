@@ -4,8 +4,6 @@ import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.peernetic.core.actor.Context;
 import com.offbynull.peernetic.core.actor.helpers.AddressTransformer;
 import com.offbynull.peernetic.core.actor.helpers.IdGenerator;
-import com.offbynull.peernetic.core.actor.helpers.MultiRequestSubcoroutine;
-import com.offbynull.peernetic.core.actor.helpers.MultiRequestSubcoroutine.Response;
 import com.offbynull.peernetic.core.actor.helpers.RequestSubcoroutine;
 import com.offbynull.peernetic.core.actor.helpers.Subcoroutine;
 import com.offbynull.peernetic.core.actor.helpers.SubcoroutineRouter;
@@ -19,17 +17,14 @@ import com.offbynull.voip.kademlia.externalmessages.FindResponse;
 import com.offbynull.voip.kademlia.model.Id;
 import com.offbynull.voip.kademlia.model.IdClosenessComparator;
 import com.offbynull.voip.kademlia.model.Node;
+import com.offbynull.voip.kademlia.model.NodeNotFoundException;
 import com.offbynull.voip.kademlia.model.Router;
-import static java.lang.Math.round;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.SortedSet;
 import java.util.TreeSet;
 import org.apache.commons.lang3.Validate;
 
@@ -45,7 +40,7 @@ final class FindSubcoroutine implements Subcoroutine<List<Node>> {
     private final Id baseId;
     private final Id findId;
     private final int maxResults;
-    private final int concurrentRequests = 3;
+    private final int maxConcurrentRequests = 3;
     
     public FindSubcoroutine(Address subAddress, State state, Id findId, int maxResults) {
         Validate.notNull(subAddress);
@@ -55,12 +50,12 @@ final class FindSubcoroutine implements Subcoroutine<List<Node>> {
         
         this.subAddress = subAddress;
         
-        timerAddress = state.getTimerAddress();
-        logAddress = state.getLogAddress();
-        addressTransformer = state.getAddressTransformer();
-        idGenerator = state.getIdGenerator();
+        this.timerAddress = state.getTimerAddress();
+        this.logAddress = state.getLogAddress();
+        this.addressTransformer = state.getAddressTransformer();
+        this.idGenerator = state.getIdGenerator();
         
-        router = state.getRouter();
+        this.router = state.getRouter();
         this.baseId = state.getBaseId();
         this.findId = findId;
         this.maxResults = maxResults;
@@ -92,9 +87,11 @@ final class FindSubcoroutine implements Subcoroutine<List<Node>> {
         // Create a sorted set of nodes to retain closest nodes in
         TreeSet<Node> closestSet = new TreeSet<>((x, y) -> idClosenessComparator.compare(x.getId(), y.getId()));
         
+        // Execute requests
+        Map<Subcoroutine<?>, Node> requestSubcoroutineToNodes = new HashMap<>();
         while (true) {
             // If there's room left to query more contacts that are closer to findId, do so... 
-            while (msgRouterController.size() < maxResults && !contactSet.isEmpty()) {
+            while (msgRouterController.size() < maxConcurrentRequests && !contactSet.isEmpty()) {
                 // Get next farthest away node to contact
                 Node contactNode = contactSet.pollLast();
                 
@@ -108,37 +105,53 @@ final class FindSubcoroutine implements Subcoroutine<List<Node>> {
                 }
                 
                 // Initialize query
+                Address destinationAddress = addressTransformer.linkIdToRemoteAddress(contactNode.getLink());
                 RequestSubcoroutine<FindResponse> reqSubcoroutine = new RequestSubcoroutine.Builder<FindResponse>()
                         .sourceAddress(routerAddress, idGenerator)
+                        .destinationAddress(destinationAddress)
                         .timerAddress(timerAddress)
                         .request(new FindRequest(findId, maxResults))
                         .addExpectedResponseType(FindResponse.class)
-                        .attemptInterval(Duration.ofSeconds(10L))
-                        .maxAttempts(1)
+                        .attemptInterval(Duration.ofSeconds(2L))
+                        .maxAttempts(5)
                         .throwExceptionIfNoResponse(false)
                         .build();
                 
                 // Add query to router
                 msgRouterController.add(reqSubcoroutine, AddBehaviour.ADD_PRIME_NO_FINISH);
+                requestSubcoroutineToNodes.put(reqSubcoroutine, contactNode);
+            }
+            
+            
+            // If there are no more requests running, it means we're finished
+            if (msgRouterController.size() == 0) {
+                return new ArrayList<>(closestSet);
             }
             
             
             // Forward the current message to the router
-            ForwardResult res = msgRouter.forward();
+            ForwardResult fr = msgRouter.forward();
             
-            // If a request completed
-            if (res.isCompleted()) {
+            // If a request completed from the forwarded message
+            if (fr.isForwarded() && fr.isCompleted()) { // calling isCompleted by itself may throw an exception, check isForwarded first
                 // Get response
-                FindResponse findResponse = (FindResponse) res.getResult();
+                FindResponse findResponse = (FindResponse) fr.getResult();
                 
-                // Check if failure
                 if (findResponse == null) {
-                    DO SOMETIHNG HERE;
+                    // If failure, then mark as stale
+                    // DONT BOTHER WITH TRYING TO CALCULATE LOCKING/UNLOCKING LOGIC. THE LOGIC WILL BECOME EXTREMELY CONVOLUTED. THE QUERY
+                    // DID 5 REQUEST. IF NO ANSWER WAS GIVEN IN THE ALLOTED TIME, THEN MARK AS STALE!
+                    Node contactedNode = requestSubcoroutineToNodes.remove(fr.getSubcoroutine());
+                    try {
+                        router.stale(contactedNode);
+                    } catch (NodeNotFoundException nnfe) { // may have been removed (already marked as stale) / may not be in routing tree
+                        // Do nothing
+                    }
+                } else {
+                    // If success, then add returned nodes to contacts
+                    Node[] nodes = findResponse.getNodes();
+                    contactSet.addAll(Arrays.asList(nodes));
                 }
-                
-                // Add node results to contacts
-                Node[] nodes = findResponse.getNodes();
-                contactSet.addAll(Arrays.asList(nodes));
             }
         }
     }

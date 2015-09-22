@@ -122,8 +122,8 @@ public final class KBucket {
         InternalValidate.notMatchesBase(baseId, nodeId);
         InternalValidate.matchesPrefix(prefix, nodeId);
         
-        Validate.isTrue(bucket.contains(node)); // node being marked as stale must be in bucket
-        Validate.isTrue(!lockSet.contains(node), "Node is already locked, cannot be stale"); // stale and locked are mutally exclusive
+        InternalValidate.exists(node, bucket::contains); // node being marked as stale must be in bucket
+        InternalValidate.correctState(node, !lockSet.contains(node)); // node locked, cannot enter stale state (stale / locked are mutex)
 
         staleSet.add(node); // add to stale set, it's fine if it's already in the staleset
         
@@ -152,8 +152,8 @@ public final class KBucket {
         InternalValidate.notMatchesBase(baseId, nodeId);
         InternalValidate.matchesPrefix(prefix, nodeId);
         
-        Validate.isTrue(bucket.contains(node)); // node being marked as locked must be in bucket
-        Validate.isTrue(!staleSet.contains(node), "Node is already stale, cannot be locked"); // stale and locked are mutally exclusive
+        InternalValidate.exists(node, bucket::contains);  // node being marked as locked must be in bucket
+        InternalValidate.correctState(node, !staleSet.contains(node)); // node stale, cannot enter locked state (stale / locked are mutex)
 
         lockSet.add(node); // add to lock set, it's fine if it's already in the lockset
     }
@@ -167,8 +167,8 @@ public final class KBucket {
         InternalValidate.notMatchesBase(baseId, nodeId);
         InternalValidate.matchesPrefix(prefix, nodeId);
         
-        Validate.isTrue(bucket.contains(node)); // node being marked as locked must be in bucket
-        Validate.isTrue(!staleSet.contains(node), "Node is already stale, cannot be locked"); // stale and locked are mutally exclusive
+        InternalValidate.exists(node, bucket::contains);  // node being marked as locked must be in bucket
+        InternalValidate.correctState(node, !staleSet.contains(node)); // node stale, cannot be in locked state (stale / locked are mutex)
 
         lockSet.remove(node); // remove from lock set, it's fine if it's already in the lockset
     }
