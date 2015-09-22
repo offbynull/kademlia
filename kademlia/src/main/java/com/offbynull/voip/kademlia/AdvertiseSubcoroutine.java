@@ -61,8 +61,8 @@ public final class AdvertiseSubcoroutine implements Subcoroutine<Void> {
                     .run(cnt);
             
             
-            List<Node> nodesClosestToSelf = new FindSubcoroutine(subAddress.appendSuffix("adv"), state, baseId, 20, true).run(cnt);
-            // should I do anything with these results?
+            new FindSubcoroutine(subAddress.appendSuffix("adv"), state, baseId, 20, true).run(cnt);
+            // should we do anything with these results? just by virtue of "finding", we would have hit the closest nodes
         }
     }
 }

@@ -109,7 +109,7 @@ final class FindSubcoroutine implements Subcoroutine<List<Node>> {
                 }
                 
                 // Initialize query
-                Address destinationAddress = addressTransformer.linkIdToRemoteAddress(contactNode.getLink());
+                Address destinationAddress = addressTransformer.toAddress(contactNode.getLink());
                 RequestSubcoroutine<FindResponse> reqSubcoroutine = new RequestSubcoroutine.Builder<FindResponse>()
                         .sourceAddress(routerAddress, idGenerator)
                         .destinationAddress(destinationAddress)

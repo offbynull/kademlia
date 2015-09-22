@@ -8,6 +8,7 @@ import static com.offbynull.peernetic.core.gateways.log.LogMessage.info;
 import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.voip.kademlia.externalmessages.FindRequest;
 import com.offbynull.voip.kademlia.externalmessages.FindResponse;
+import com.offbynull.voip.kademlia.externalmessages.KademliaRequest;
 import com.offbynull.voip.kademlia.externalmessages.PingRequest;
 import com.offbynull.voip.kademlia.externalmessages.PingResponse;
 import com.offbynull.voip.kademlia.model.Id;
@@ -16,7 +17,7 @@ import com.offbynull.voip.kademlia.model.Router;
 import java.util.List;
 import org.apache.commons.lang3.Validate;
 
-final class IncomingMessageHandlerSubcoroutine implements Subcoroutine<Void> {
+final class ExternalRequestHandlerSubcoroutine implements Subcoroutine<Void> {
 
     private final Address subAddress;
     private final Address logAddress;
@@ -24,7 +25,7 @@ final class IncomingMessageHandlerSubcoroutine implements Subcoroutine<Void> {
     
     private final Router router;
 
-    public IncomingMessageHandlerSubcoroutine(Address subAddress, State state) {
+    public ExternalRequestHandlerSubcoroutine(Address subAddress, State state) {
         Validate.notNull(subAddress);
         Validate.notNull(state);
         this.subAddress = subAddress;
@@ -53,17 +54,17 @@ final class IncomingMessageHandlerSubcoroutine implements Subcoroutine<Void> {
                 continue;
             }
 
-//            if (!(msg instanceof KademliaRequest)) {
-//                ctx.addOutgoingMessage(subAddress, logAddress, info("Incorrect message typeignored: {}", msg));
-//                continue;
-//            }
-//            
-//            KademliaRequest baseReq = (KademliaRequest) msg;
-//            String srcLink = addressTransformer.remoteAddressToLinkId(ctx.getSource());
-//            Id srcId = baseReq.getFromId();
-//            Node srcNode = new Node(srcId, srcLink);
-//            
-//            router.touch(ctx.getTime(), srcNode);
+            if (!(msg instanceof KademliaRequest)) {
+                ctx.addOutgoingMessage(subAddress, logAddress, info("Incorrect message type ignored: {}", msg));
+                continue;
+            }
+            
+            KademliaRequest baseReq = (KademliaRequest) msg;
+            String srcLink = addressTransformer.toLinkId(ctx.getSource());
+            Id srcId = baseReq.getFromId();
+            Node srcNode = new Node(srcId, srcLink);
+            
+            router.touch(ctx.getTime(), srcNode);
             
             if (msg instanceof PingRequest) {
                 ctx.addOutgoingMessage(subAddress, logAddress, info("Incoming ping request from {}", ctx.getSource()));

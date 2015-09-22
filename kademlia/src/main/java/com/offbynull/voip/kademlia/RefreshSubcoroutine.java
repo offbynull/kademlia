@@ -90,7 +90,7 @@ final class RefreshSubcoroutine implements Subcoroutine<Void> {
             Map<String, Node> suffixToNode = new HashMap<>();
             for (Node node : nodesToPing) {
                 String link = node.getLink();
-                Address dstAddress = addressTransformer.linkIdToRemoteAddress(link);
+                Address dstAddress = addressTransformer.toAddress(link);
                 
                 String suffix = idGenerator.generate();
                 suffixToNode.put(suffix, node);

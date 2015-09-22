@@ -98,6 +98,7 @@ final class JoinSubcoroutine implements Subcoroutine<Void> {
         
         // 4. Advertise self to closest nodes so people can reach you
         new FindSubcoroutine(subAddress.appendSuffix("adv"), state, baseId, 20, true).run(cnt);
+        // should we do anything with these results? just by virtue of "finding", we would have hit the closest nodes
         
         return null;
     }
