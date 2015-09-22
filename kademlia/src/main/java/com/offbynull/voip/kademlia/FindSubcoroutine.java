@@ -42,7 +42,9 @@ final class FindSubcoroutine implements Subcoroutine<List<Node>> {
     private final int maxResults;
     private final int maxConcurrentRequests = 3;
     
-    public FindSubcoroutine(Address subAddress, State state, Id findId, int maxResults) {
+    private final boolean advertiseSelf;
+    
+    public FindSubcoroutine(Address subAddress, State state, Id findId, int maxResults, boolean advertiseSelf) {
         Validate.notNull(subAddress);
         Validate.notNull(state);
         Validate.notNull(findId);
@@ -59,6 +61,8 @@ final class FindSubcoroutine implements Subcoroutine<List<Node>> {
         this.baseId = state.getBaseId();
         this.findId = findId;
         this.maxResults = maxResults;
+        
+        this.advertiseSelf = advertiseSelf;
     }
     
     @Override
@@ -110,7 +114,7 @@ final class FindSubcoroutine implements Subcoroutine<List<Node>> {
                         .sourceAddress(routerAddress, idGenerator)
                         .destinationAddress(destinationAddress)
                         .timerAddress(timerAddress)
-                        .request(new FindRequest(findId, maxResults))
+                        .request(new FindRequest(advertiseSelf ? baseId : null, findId, maxResults))
                         .addExpectedResponseType(FindResponse.class)
                         .attemptInterval(Duration.ofSeconds(2L))
                         .maxAttempts(5)

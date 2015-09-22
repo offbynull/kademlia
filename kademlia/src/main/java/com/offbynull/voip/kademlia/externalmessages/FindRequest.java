@@ -4,13 +4,14 @@ import com.offbynull.voip.kademlia.model.Id;
 import java.io.Serializable;
 import org.apache.commons.lang3.Validate;
 
-public final class FindRequest implements Serializable {
+public final class FindRequest extends KademliaRequest implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private final Id findId;
     private final int max;
 
-    public FindRequest(Id findId, int max) {
+    public FindRequest(Id fromId, Id findId, int max) {
+        super(fromId);
         Validate.notNull(findId);
         Validate.isTrue(max >= 0); // why would anyone want 0? let thru anyway
         this.findId = findId;

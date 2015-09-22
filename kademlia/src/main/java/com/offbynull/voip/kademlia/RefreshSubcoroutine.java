@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.Map;
 import org.apache.commons.lang3.Validate;
 
-final class MaintenanceSubcoroutine implements Subcoroutine<Void> {
+final class RefreshSubcoroutine implements Subcoroutine<Void> {
 
     private final Address subAddress;
     private final Address timerAddress;
@@ -33,7 +33,7 @@ final class MaintenanceSubcoroutine implements Subcoroutine<Void> {
     private final Router router;
     private final Id baseId;
     
-    public MaintenanceSubcoroutine(Address subAddress, State state) {
+    public RefreshSubcoroutine(Address subAddress, State state) {
         Validate.notNull(subAddress);
         Validate.notNull(state);
         
@@ -82,7 +82,7 @@ final class MaintenanceSubcoroutine implements Subcoroutine<Void> {
             MultiRequestSubcoroutine.Builder<PingResponse> multiReqBuilder = new MultiRequestSubcoroutine.Builder<PingResponse>()
                     .sourceAddress(sourceAddress)
                     .timerAddress(timerAddress)
-                    .request(new PingRequest())
+                    .request(new PingRequest(baseId))
                     .addExpectedResponseType(PingResponse.class)
                     .attemptInterval(Duration.ofSeconds(2L))
                     .maxAttempts(5);
@@ -119,5 +119,5 @@ final class MaintenanceSubcoroutine implements Subcoroutine<Void> {
                 }
             }
         }
-    }    
+    }
 }

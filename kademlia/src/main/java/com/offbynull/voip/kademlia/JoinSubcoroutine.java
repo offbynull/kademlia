@@ -64,32 +64,40 @@ final class JoinSubcoroutine implements Subcoroutine<Void> {
         router.touch(ctx.getTime(), bootstrapNode);
         
         // 2. Find yourself
-        List<Node> nodesClosestToSelf = new FindSubcoroutine(subAddress.appendSuffix("selffind"), state, baseId, 20).run(cnt);
+        List<Node> nodesClosestToSelf = new FindSubcoroutine(subAddress.appendSuffix("selffind"), state, baseId, 20, false).run(cnt);
         Validate.validState(!nodesClosestToSelf.isEmpty(), "No results from bootstrap");
         Validate.validState(!nodesClosestToSelf.get(0).getId().equals(baseId), "Self already exists in network");
         
+        // There's a race condition here where 2 nodes with the same ID can be joining at the same time. There's no way to detect that case.
+        
         // 3. Start bucket refreshes for all buckets
         List<BitString> bucketPrefixes = router.dumpBucketPrefixes();
-        Collections.sort(bucketPrefixes, (x, y) -> Integer.compare(x.getBitLength(), y.getBitLength())); // sort by bitlength size
         
         int idBitLength = baseId.getBitLength();
         int idByteLength = idBitLength / 8 + (idBitLength % 8 == 0 ? 0 : 1);
         byte[] idBytes = new byte[idByteLength];
         for (BitString bucketPrefix : bucketPrefixes) {
+            // If the prefix is our own ID, don't try to find it
+            if (baseId.getBitString().equals(bucketPrefix)) {
+                continue;
+            }
+            
             // Create random id in bucket's range
             secureRandom.nextBytes(idBytes);
             Id randomId = Id.create(BitString.createLogicalOrder(idBytes, 0, idBitLength).setBits(0, bucketPrefix));
             
             // Find closest nodes
-            List<Node> nodesClosestToRandomId = new FindSubcoroutine(subAddress.appendSuffix("bucketfind"), state, randomId, 20).run(cnt);
+            List<Node> nodesClosestToRandomId
+                    = new FindSubcoroutine(subAddress.appendSuffix("bucketfind"), state, randomId, 20, false).run(cnt);
             
             // Touch router with these nodes
             for (Node node : nodesClosestToRandomId) {
-                
+                router.touch(ctx.getTime(), node);
             }
         }
         
         // 4. Advertise self to closest nodes so people can reach you
+        new FindSubcoroutine(subAddress.appendSuffix("adv"), state, baseId, 20, true).run(cnt);
         
         return null;
     }
