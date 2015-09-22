@@ -2,26 +2,30 @@ package com.offbynull.voip.kademlia;
 
 import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.peernetic.core.actor.Context;
-import com.offbynull.peernetic.core.actor.helpers.AddressTransformer;
 import com.offbynull.peernetic.core.actor.helpers.Subcoroutine;
+import com.offbynull.peernetic.core.actor.helpers.SubcoroutineRouter;
+import com.offbynull.peernetic.core.actor.helpers.SubcoroutineRouter.AddBehaviour;
+import com.offbynull.peernetic.core.actor.helpers.SubcoroutineRouter.Controller;
+import com.offbynull.peernetic.core.actor.helpers.SubcoroutineRouter.ForwardResult;
 import static com.offbynull.peernetic.core.gateways.log.LogMessage.info;
 import com.offbynull.peernetic.core.shuttle.Address;
-import com.offbynull.voip.kademlia.externalmessages.FindRequest;
-import com.offbynull.voip.kademlia.externalmessages.FindResponse;
-import com.offbynull.voip.kademlia.externalmessages.KademliaRequest;
-import com.offbynull.voip.kademlia.externalmessages.PingRequest;
-import com.offbynull.voip.kademlia.externalmessages.PingResponse;
+import com.offbynull.voip.kademlia.internalmessages.Kill;
+import com.offbynull.voip.kademlia.internalmessages.SearchRequest;
+import com.offbynull.voip.kademlia.internalmessages.SearchResponse;
 import com.offbynull.voip.kademlia.model.Id;
 import com.offbynull.voip.kademlia.model.Node;
 import com.offbynull.voip.kademlia.model.Router;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.apache.commons.lang3.Validate;
 
 final class InternalRequestHandlerSubcoroutine implements Subcoroutine<Void> {
 
     private final Address subAddress;
+    private final State state;
+    
     private final Address logAddress;
-    private final AddressTransformer addressTransformer;
     
     private final Router router;
 
@@ -29,8 +33,9 @@ final class InternalRequestHandlerSubcoroutine implements Subcoroutine<Void> {
         Validate.notNull(subAddress);
         Validate.notNull(state);
         this.subAddress = subAddress;
+        this.state = state;
+        
         this.logAddress = state.getLogAddress();
-        this.addressTransformer = state.getAddressTransformer();
         
         this.router = state.getRouter();
     }
@@ -44,46 +49,48 @@ final class InternalRequestHandlerSubcoroutine implements Subcoroutine<Void> {
     public Void run(Continuation cnt) throws Exception {
         Context ctx = (Context) cnt.getContext();
 
+        Address routerAddress = subAddress.appendSuffix("router");
+        SubcoroutineRouter subcoroutineRouter = new SubcoroutineRouter(routerAddress, ctx);
+        Controller subcoroutineRouterController = subcoroutineRouter.getController();
+        
+        Map<Subcoroutine<?>, Address> responseAddresses = new HashMap<>();
         while (true) {
             cnt.suspend();
             
-            Object msg = ctx.getIncomingMessage();
-            
-            if (ctx.getSelf().isPrefixOf(ctx.getSource())) {
-                ctx.addOutgoingMessage(subAddress, logAddress, info("Message from self ({}) ignored: {}", ctx.getSource(), msg));
-                continue;
-            }
-
-            if (!(msg instanceof KademliaRequest)) {
-                ctx.addOutgoingMessage(subAddress, logAddress, info("Incorrect message type ignored: {}", msg));
-                continue;
-            }
-            
-            KademliaRequest baseReq = (KademliaRequest) msg;
-            String srcLink = addressTransformer.toLinkId(ctx.getSource());
-            Id srcId = baseReq.getFromId();
-            Node srcNode = new Node(srcId, srcLink);
-            
-            router.touch(ctx.getTime(), srcNode);
-            
-            if (msg instanceof PingRequest) {
-                ctx.addOutgoingMessage(subAddress, logAddress, info("Incoming ping request from {}", ctx.getSource()));
-                
-                PingResponse resp = new PingResponse();
-                ctx.addOutgoingMessage(subAddress, ctx.getSource(), resp);
-                ctx.addOutgoingMessage(subAddress, logAddress, info("Responding with: {}", resp));
-            } else if (msg instanceof FindRequest) {
-                ctx.addOutgoingMessage(subAddress, logAddress, info("Incoming find request from {}", ctx.getSource()));
-
-                FindRequest req = (FindRequest) msg;
-                Id findId = req.getFindId();
-                List<Node> foundNodes = router.find(findId, 20);
-
-                FindResponse resp = new FindResponse(foundNodes.toArray(new Node[foundNodes.size()]));
-                ctx.addOutgoingMessage(subAddress, ctx.getSource(), resp);
-                ctx.addOutgoingMessage(subAddress, logAddress, info("Responding with closest nodes: {}", foundNodes));
+            ForwardResult fr = subcoroutineRouter.forward();
+            if (fr.isForwarded()) {
+                // Message was for one of our subcoroutines running in subcoroutineRouter
+                if (fr.isCompleted()) {
+                    @SuppressWarnings("unchecked")
+                    List<Node> nodes = (List<Node>) fr.getResult();
+                    Subcoroutine<?> subcoroutine = fr.getSubcoroutine();
+                    
+                    Node[] nodesArr = nodes.toArray(new Node[nodes.size()]);
+                    Address responseAddress = responseAddresses.get(subcoroutine);
+                    
+                    ctx.addOutgoingMessage(subAddress, responseAddress, new SearchResponse(nodesArr));
+                    ctx.addOutgoingMessage(subAddress, logAddress, info("Search request completed: {}", nodes));
+                }
             } else {
-                ctx.addOutgoingMessage(subAddress, logAddress, info("Unknown request from {}: {}", ctx.getSource(), msg));
+                // Message was for us
+                Object msg = ctx.getIncomingMessage();
+
+                if (msg instanceof SearchRequest) {
+                    SearchRequest req = (SearchRequest) msg;
+                    Id findId = req.getFindId();
+                    int maxResults = req.getMaxResults();
+
+                    ctx.addOutgoingMessage(subAddress, logAddress, info("Incoming search request for: {}", findId));
+
+                    FindSubcoroutine findSubcoroutine
+                            = new FindSubcoroutine(routerAddress.appendSuffix("find"), state, findId, maxResults, true);
+                    subcoroutineRouterController.add(findSubcoroutine, AddBehaviour.ADD_PRIME);
+                } else if (msg instanceof Kill) {
+                    ctx.addOutgoingMessage(subAddress, logAddress, info("Incoming kill request"));
+                    throw new RuntimeException("Kill message encountered");
+                } else {
+                    ctx.addOutgoingMessage(subAddress, logAddress, info("Unknown request from {}: {}", ctx.getSource(), msg));
+                }
             }
         }
     }

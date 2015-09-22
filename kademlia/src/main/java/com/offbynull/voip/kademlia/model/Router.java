@@ -45,10 +45,10 @@ public final class Router {
         this.lastTouchTime = Instant.MIN;
     }
 
-    public Router(Id baseId, int bucketsPerLevel, int maxNodesPerBucket, int maxCacheNodesPerBucket, int maxNearNodes) {
+    public Router(Id baseId, int branchesPerLevel, int maxNodesPerBucket, int maxCacheNodesPerBucket, int maxNearNodes) {
         this(baseId,
-                new SimpleRouteTreeSpecificationSupplier(baseId, bucketsPerLevel, maxNodesPerBucket, maxCacheNodesPerBucket),
-                new SimpleRouteTreeSpecificationSupplier(baseId, bucketsPerLevel, maxNodesPerBucket, maxCacheNodesPerBucket),
+                new SimpleRouteTreeSpecificationSupplier(baseId, branchesPerLevel, maxNodesPerBucket, maxCacheNodesPerBucket),
+                new SimpleRouteTreeSpecificationSupplier(baseId, branchesPerLevel, maxNodesPerBucket, maxCacheNodesPerBucket),
                 maxNearNodes);
     }
     

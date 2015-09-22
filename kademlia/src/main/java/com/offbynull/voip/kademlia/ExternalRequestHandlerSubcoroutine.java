@@ -48,11 +48,6 @@ final class ExternalRequestHandlerSubcoroutine implements Subcoroutine<Void> {
             cnt.suspend();
             
             Object msg = ctx.getIncomingMessage();
-            
-            if (ctx.getSelf().isPrefixOf(ctx.getSource())) {
-                ctx.addOutgoingMessage(subAddress, logAddress, info("Message from self ({}) ignored: {}", ctx.getSource(), msg));
-                continue;
-            }
 
             if (!(msg instanceof KademliaRequest)) {
                 ctx.addOutgoingMessage(subAddress, logAddress, info("Incorrect message type ignored: {}", msg));
