@@ -7,7 +7,7 @@ public final class SearchRequest {
     private final Id findId;
     private final int maxResults;
 
-    public SearchRequest(Id fromId, Id findId, int maxResults) {
+    public SearchRequest(Id findId, int maxResults) {
         Validate.notNull(findId);
         Validate.isTrue(maxResults >= 0); // why would anyone want 0? let thru anyway
         this.findId = findId;
@@ -21,4 +21,10 @@ public final class SearchRequest {
     public int getMaxResults() {
         return maxResults;
     }
+
+    @Override
+    public String toString() {
+        return "SearchRequest{" + "findId=" + findId + ", maxResults=" + maxResults + '}';
+    }
+    
 }

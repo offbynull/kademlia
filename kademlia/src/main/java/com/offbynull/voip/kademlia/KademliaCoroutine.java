@@ -64,10 +64,10 @@ public final class KademliaCoroutine implements Coroutine {
                     AddBehaviour.ADD_PRIME_NO_FINISH);
             controller.add(
                     new ExternalRequestHandlerSubcoroutine(ROUTER_EXT_HANDLER_RELATIVE_ADDRESS, state),
-                    AddBehaviour.ADD);
+                    AddBehaviour.ADD_PRIME_NO_FINISH);
             controller.add(
                     new InternalRequestHandlerSubcoroutine(ROUTER_INT_HANDLER_RELATIVE_ADDRESS, state),
-                    AddBehaviour.ADD);
+                    AddBehaviour.ADD_PRIME_NO_FINISH);
 
             // Process messages
             while (true) {

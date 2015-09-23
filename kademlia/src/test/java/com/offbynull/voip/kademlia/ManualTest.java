@@ -7,13 +7,14 @@ import com.offbynull.peernetic.core.gateways.timer.TimerGateway;
 import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.actor.helpers.SimpleAddressTransformer;
 import com.offbynull.peernetic.core.gateways.direct.DirectGateway;
+import com.offbynull.voip.kademlia.internalmessages.SearchRequest;
 import com.offbynull.voip.kademlia.internalmessages.Start;
 import com.offbynull.voip.kademlia.model.Id;
 import com.offbynull.voip.kademlia.model.Node;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.util.Arrays;
-import java.util.Scanner;
 import org.apache.commons.io.Charsets;
-import org.junit.Test;
 
 public final class ManualTest {
 
@@ -29,8 +30,7 @@ public final class ManualTest {
     private static final Address BASE_DIRECT_ADDRESS = Address.of(BASE_DIRECT_ADDRESS_STRING);
     private static final Address BASE_LOG_ADDRESS = Address.of(BASE_LOG_ADDRESS_STRING);
     
-    @Test
-    public void main() throws Exception {
+    public static void main(String[] args) throws Exception {
         TimerGateway timerGateway = new TimerGateway(BASE_TIMER_ADDRESS_STRING);
         DirectGateway directGateway = new DirectGateway(BASE_DIRECT_ADDRESS_STRING);
         LogGateway logGateway = new LogGateway(BASE_LOG_ADDRESS_STRING);
@@ -48,15 +48,18 @@ public final class ManualTest {
         
         // Connecting nodes
         addNode("000", "111", actorRunner);
+        addNode("001", "111", actorRunner);
         addNode("100", "111", actorRunner);
         addNode("101", "111", actorRunner);
         addNode("110", "111", actorRunner);
 
-        Scanner in = new Scanner(System.in);
+        BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
         while (true) {
-//            System.out.print("Enter node to search for: ");
-            String idStr = in.nextLine();
-            
+            System.out.print("Enter node to search for: ");
+            String idStr = in.readLine();
+
+            directGateway.writeMessage(Address.of("actor", "111", "router", "internalhandler"), new SearchRequest(Id.create(idStr), 1));
+            System.out.println(directGateway.readMessages());
 //            DO SOMETHING HERE
         }
     }

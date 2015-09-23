@@ -16,5 +16,10 @@ public final class SearchResponse {
     public Node[] getNodes() {
         return Arrays.copyOf(nodes, nodes.length);
     }
+
+    @Override
+    public String toString() {
+        return "SearchResponse{" + "nodes=" + Arrays.toString(nodes) + '}';
+    }
     
 }

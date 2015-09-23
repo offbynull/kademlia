@@ -26,8 +26,6 @@ final class InternalRequestHandlerSubcoroutine implements Subcoroutine<Void> {
     private final State state;
     
     private final Address logAddress;
-    
-    private final Router router;
 
     public InternalRequestHandlerSubcoroutine(Address subAddress, State state) {
         Validate.notNull(subAddress);
@@ -36,8 +34,6 @@ final class InternalRequestHandlerSubcoroutine implements Subcoroutine<Void> {
         this.state = state;
         
         this.logAddress = state.getLogAddress();
-        
-        this.router = state.getRouter();
     }
 
     @Override
@@ -85,6 +81,7 @@ final class InternalRequestHandlerSubcoroutine implements Subcoroutine<Void> {
                     FindSubcoroutine findSubcoroutine
                             = new FindSubcoroutine(routerAddress.appendSuffix("find"), state, findId, maxResults, true);
                     subcoroutineRouterController.add(findSubcoroutine, AddBehaviour.ADD_PRIME);
+                    responseAddresses.put(findSubcoroutine, ctx.getSource());
                 } else if (msg instanceof Kill) {
                     ctx.addOutgoingMessage(subAddress, logAddress, info("Incoming kill request"));
                     throw new RuntimeException("Kill message encountered");
