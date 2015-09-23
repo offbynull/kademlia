@@ -48,6 +48,9 @@ public final class ManualTest {
         
         // Connecting nodes
         addNode("000", "111", actorRunner);
+        addNode("100", "111", actorRunner);
+        addNode("101", "111", actorRunner);
+        addNode("110", "111", actorRunner);
 
         Scanner in = new Scanner(System.in);
         while (true) {

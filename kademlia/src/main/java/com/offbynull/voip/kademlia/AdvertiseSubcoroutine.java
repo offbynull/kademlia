@@ -56,7 +56,7 @@ final class AdvertiseSubcoroutine implements Subcoroutine<Void> {
                     .run(cnt);
             
             
-            List<Node> closestNodes = new FindSubcoroutine(subAddress.appendSuffix("adv"), state, baseId, 20, true).run(cnt);
+            List<Node> closestNodes = new FindSubcoroutine(subAddress.appendSuffix("find"), state, baseId, 20, true).run(cnt);
             applyNodesToRouter(ctx.getTime(), closestNodes);
         }
     }

@@ -6,9 +6,6 @@ import com.offbynull.peernetic.core.actor.helpers.IdGenerator;
 import com.offbynull.voip.kademlia.model.Id;
 import com.offbynull.voip.kademlia.model.Node;
 import java.util.Arrays;
-import java.util.LinkedHashSet;
-import java.util.Set;
-import org.apache.commons.collections4.set.UnmodifiableSet;
 import org.apache.commons.lang3.Validate;
 
 public final class Start {
