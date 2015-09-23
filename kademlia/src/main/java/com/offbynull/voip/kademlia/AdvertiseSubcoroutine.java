@@ -9,6 +9,7 @@ import com.offbynull.voip.kademlia.model.Id;
 import com.offbynull.voip.kademlia.model.Node;
 import com.offbynull.voip.kademlia.model.Router;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import org.apache.commons.lang3.Validate;
 
@@ -56,7 +57,17 @@ final class AdvertiseSubcoroutine implements Subcoroutine<Void> {
             
             
             List<Node> closestNodes = new FindSubcoroutine(subAddress.appendSuffix("adv"), state, baseId, 20, true).run(cnt);
-            closestNodes.forEach(x -> router.touch(ctx.getTime(), x));
+            applyNodesToRouter(ctx.getTime(), closestNodes);
+        }
+    }
+    
+    private void applyNodesToRouter(Instant time, List<Node> nodes) {
+        for (Node node : nodes) {
+            if (node.getId().equals(baseId)) { // If we reached a node with our own id, skip it
+                continue;
+            }
+
+            router.touch(time, node);
         }
     }
 }

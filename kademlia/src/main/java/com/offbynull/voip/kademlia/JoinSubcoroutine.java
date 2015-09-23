@@ -29,7 +29,6 @@ final class JoinSubcoroutine implements Subcoroutine<Void> {
     public JoinSubcoroutine(Address subAddress, State state, Node bootstrapNode) {
         Validate.notNull(subAddress);
         Validate.notNull(state);
-        Validate.notNull(bootstrapNode);
         
         this.subAddress = subAddress;
         this.state = state;
@@ -41,7 +40,9 @@ final class JoinSubcoroutine implements Subcoroutine<Void> {
         this.baseId = state.getBaseId();
         this.router = state.getRouter();
         
-        Validate.isTrue(!bootstrapNode.getId().equals(baseId)); // bootstrap must not be self
+        if (bootstrapNode != null) {
+            Validate.isTrue(!bootstrapNode.getId().equals(baseId)); // bootstrap must not be self
+        }
     }
     
     @Override

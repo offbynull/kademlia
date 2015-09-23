@@ -73,6 +73,19 @@ public final class Id implements Serializable {
     }
 
     /**
+     * Constructs an {@link Id} from a string of 1s and 0s. Equivalent to calling {@code create(BitString.createFromString(data))}.
+     * @param data id value
+     * @return created id
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if number of chars in {@code data} is {@code <= 0}, or if if any chracter other than {@code '0'} or
+     * {@code '1'} is encountered in {@code data}
+     */
+    public static Id create(String data) {
+        Validate.notNull(data);
+        return create(BitString.createFromString(data));
+    }
+
+    /**
      * Constructs an {@link Id} from a long. Input long is read in read-order, meaning that bits are read in from left-to-right. In addition
      * to that, the last bit is always at bit 0 of the long. So for example, creating an id from the long {@code 0xABCDL} with a bitlength
      * of 12 would result in the bit string {@code 10 1011 1100 1101}.

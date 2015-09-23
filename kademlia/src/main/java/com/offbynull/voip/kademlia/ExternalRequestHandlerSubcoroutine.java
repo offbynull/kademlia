@@ -23,6 +23,7 @@ final class ExternalRequestHandlerSubcoroutine implements Subcoroutine<Void> {
     private final Address logAddress;
     private final AddressTransformer addressTransformer;
     
+    private final Id baseId;
     private final Router router;
 
     public ExternalRequestHandlerSubcoroutine(Address subAddress, State state) {
@@ -32,6 +33,7 @@ final class ExternalRequestHandlerSubcoroutine implements Subcoroutine<Void> {
         this.logAddress = state.getLogAddress();
         this.addressTransformer = state.getAddressTransformer();
         
+        this.baseId = state.getBaseId();
         this.router = state.getRouter();
     }
 
@@ -55,11 +57,14 @@ final class ExternalRequestHandlerSubcoroutine implements Subcoroutine<Void> {
             }
             
             KademliaRequest baseReq = (KademliaRequest) msg;
-            String srcLink = addressTransformer.toLinkId(ctx.getSource());
             Id srcId = baseReq.getFromId();
-            Node srcNode = new Node(srcId, srcLink);
-            
-            router.touch(ctx.getTime(), srcNode);
+            if (srcId != null && !srcId.equals(baseId)) { // If sending node has provided their ID + sending node is not ourself
+                // Message is from an established node that can be routed to, so touch our routing table with it...
+                String srcLink = addressTransformer.toLinkId(ctx.getSource());
+                Node srcNode = new Node(srcId, srcLink);
+
+                router.touch(ctx.getTime(), srcNode);
+            }
             
             if (msg instanceof PingRequest) {
                 ctx.addOutgoingMessage(subAddress, logAddress, info("Incoming ping request from {}", ctx.getSource()));

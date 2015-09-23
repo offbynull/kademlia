@@ -59,7 +59,7 @@ public final class RouteTree {
     public List<Activity> find(Id id, int max) {
         Validate.notNull(id);
         InternalValidate.matchesLength(baseId.getBitLength(), id);
-        InternalValidate.notMatchesBase(baseId, id);
+//        InternalValidate.notMatchesBase(baseId, id); // you should be able to search for closest nodes to yourself
         Validate.isTrue(max >= 0); // why would anyone want 0? let thru anyways
 
         IdClosenessComparator comparator = new IdClosenessComparator(id);

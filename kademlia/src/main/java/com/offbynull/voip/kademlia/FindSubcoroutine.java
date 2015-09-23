@@ -12,6 +12,7 @@ import com.offbynull.peernetic.core.actor.helpers.SubcoroutineRouter.Controller;
 import com.offbynull.peernetic.core.actor.helpers.SubcoroutineRouter.ForwardResult;
 import static com.offbynull.peernetic.core.gateways.log.LogMessage.info;
 import com.offbynull.peernetic.core.shuttle.Address;
+import static com.offbynull.voip.kademlia.AddressConstants.ROUTER_EXT_HANDLER_RELATIVE_ADDRESS;
 import com.offbynull.voip.kademlia.externalmessages.FindRequest;
 import com.offbynull.voip.kademlia.externalmessages.FindResponse;
 import com.offbynull.voip.kademlia.model.Id;
@@ -23,8 +24,10 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeSet;
 import org.apache.commons.lang3.Validate;
 
@@ -74,6 +77,8 @@ final class FindSubcoroutine implements Subcoroutine<List<Node>> {
     public List<Node> run(Continuation cnt) throws Exception {
         Context ctx = (Context) cnt.getContext();
 
+        ctx.addOutgoingMessage(subAddress, logAddress, info("Finding {}", findId));
+        
         // Set up subcoroutine router
         Address routerAddress = subAddress.appendSuffix("finderreq" + idGenerator.generate());
         SubcoroutineRouter msgRouter = new SubcoroutineRouter(routerAddress, ctx);
@@ -81,7 +86,7 @@ final class FindSubcoroutine implements Subcoroutine<List<Node>> {
         
         // Get initial set of nodes to query from routing table
         List<Node> startNodes = router.find(findId, maxResults);
-        ctx.addOutgoingMessage(subAddress, logAddress, info("Initial route table entries closest to {}: {}", findId, startNodes));
+        ctx.addOutgoingMessage(subAddress, logAddress, info("Route table entries closest to {}: {}", findId, startNodes));
         
         // Create sorted set of nodes to contact
         IdClosenessComparator idClosenessComparator = new IdClosenessComparator(findId);
@@ -92,15 +97,25 @@ final class FindSubcoroutine implements Subcoroutine<List<Node>> {
         TreeSet<Node> closestSet = new TreeSet<>((x, y) -> idClosenessComparator.compare(x.getId(), y.getId()));
         
         // Execute requests
-        Map<Subcoroutine<?>, Node> requestSubcoroutineToNodes = new HashMap<>();
+        Map<Subcoroutine<?>, Node> requestSubcoroutineToNodes = new HashMap<>(); // executing requests
+        Set<Id> queriedSet = new HashSet<>(); // ids that have already been queried
         while (true) {
             // If there's room left to query more contacts that are closer to findId, do so... 
             while (msgRouterController.size() < maxConcurrentRequests && !contactSet.isEmpty()) {
                 // Get next farthest away node to contact
                 Node contactNode = contactSet.pollLast();
                 
-                // If we already have maxResult closer nodes to findId, skip this node
+                // Add it to set of set of ids that have already been queried.. if it's already there, it means that it's already been
+                // queried by this find, so skip it...
+                boolean added = queriedSet.add(contactNode.getId());
+                if (!added) {
+                    continue;
+                }
+                
+                // Add it to the set of closest nodes (will be removed if node fails to respond)
                 closestSet.add(contactNode);
+                
+                // If we already have maxResult closer nodes to findId, skip this node
                 if (closestSet.size() > maxResults) {
                     Node removedNode = closestSet.pollLast();
                     if (removedNode == contactNode) {
@@ -109,7 +124,8 @@ final class FindSubcoroutine implements Subcoroutine<List<Node>> {
                 }
                 
                 // Initialize query
-                Address destinationAddress = addressTransformer.toAddress(contactNode.getLink());
+                Address destinationAddress = addressTransformer.toAddress(contactNode.getLink())
+                        .appendSuffix(ROUTER_EXT_HANDLER_RELATIVE_ADDRESS);
                 RequestSubcoroutine<FindResponse> reqSubcoroutine = new RequestSubcoroutine.Builder<FindResponse>()
                         .sourceAddress(routerAddress, idGenerator)
                         .destinationAddress(destinationAddress)
@@ -120,6 +136,8 @@ final class FindSubcoroutine implements Subcoroutine<List<Node>> {
                         .maxAttempts(5)
                         .throwExceptionIfNoResponse(false)
                         .build();
+        
+                ctx.addOutgoingMessage(subAddress, logAddress, info("Querying node {}", contactNode));
                 
                 // Add query to router
                 msgRouterController.add(reqSubcoroutine, AddBehaviour.ADD_PRIME_NO_FINISH);
@@ -129,11 +147,13 @@ final class FindSubcoroutine implements Subcoroutine<List<Node>> {
             
             // If there are no more requests running, it means we're finished
             if (msgRouterController.size() == 0) {
+                ctx.addOutgoingMessage(subAddress, logAddress, info("Find complete: {}", closestSet));
                 return new ArrayList<>(closestSet);
             }
             
             
-            // Forward the current message to the router
+            // Wait for next messange forward to the router
+            cnt.suspend();
             ForwardResult fr = msgRouter.forward();
             
             // If a request completed from the forwarded message
@@ -142,15 +162,20 @@ final class FindSubcoroutine implements Subcoroutine<List<Node>> {
                 FindResponse findResponse = (FindResponse) fr.getResult();
                 
                 if (findResponse == null) {
-                    // If failure, then mark as stale
+                    // If failure, then mark as stale and remove from closest
                     // DONT BOTHER WITH TRYING TO CALCULATE LOCKING/UNLOCKING LOGIC. THE LOGIC WILL BECOME EXTREMELY CONVOLUTED. THE QUERY
                     // DID 5 REQUEST. IF NO ANSWER WAS GIVEN IN THE ALLOTED TIME, THEN MARK AS STALE!
                     Node contactedNode = requestSubcoroutineToNodes.remove(fr.getSubcoroutine());
                     try {
-                        router.stale(contactedNode);
+                        // not allowed to mark self as stale -- we may want to find self, but if we do and it's not responsive dont try to
+                        // mark it as stale
+                        if (!contactedNode.getId().equals(baseId)) {
+                            router.stale(contactedNode);
+                        }
                     } catch (NodeNotFoundException nnfe) { // may have been removed (already marked as stale) / may not be in routing tree
                         // Do nothing
                     }
+                    closestSet.remove(contactedNode);
                 } else {
                     // If success, then add returned nodes to contacts
                     Node[] nodes = findResponse.getNodes();
