@@ -16,6 +16,7 @@ import static com.offbynull.voip.kademlia.AddressConstants.ROUTER_INT_HANDLER_RE
 import static com.offbynull.voip.kademlia.AddressConstants.ROUTER_REFRESH_RELATIVE_ADDRESS;
 import static com.offbynull.voip.kademlia.AddressConstants.ROUTER_RELATIVE_ADDRESS;
 import com.offbynull.voip.kademlia.internalmessages.Start;
+import com.offbynull.voip.kademlia.internalmessages.Start.KademliaParameters;
 import com.offbynull.voip.kademlia.model.Id;
 import com.offbynull.voip.kademlia.model.Node;
 
@@ -31,6 +32,7 @@ public final class KademliaCoroutine implements Coroutine {
         Address logAddress = start.getLogAddress();
         Id baseId = start.getBaseId();
         Node bootstrapNode = start.getBootstrapNode();
+        KademliaParameters kademliaParameters = start.getKademliaParameters();
         byte[] seed1 = start.getSeed1();
         byte[] seed2 = start.getSeed2();
         AddressTransformer addressTransformer = start.getAddressTransformer();
@@ -44,8 +46,7 @@ public final class KademliaCoroutine implements Coroutine {
                     seed1,
                     seed2,
                     baseId,
-                    2,
-                    20,
+                    kademliaParameters,
                     addressTransformer);
 
             // Join (or just initialize if no bootstrap node is set)

@@ -9,8 +9,11 @@ import com.offbynull.peernetic.core.actor.helpers.SimpleAddressTransformer;
 import com.offbynull.peernetic.core.gateways.direct.DirectGateway;
 import com.offbynull.voip.kademlia.internalmessages.SearchRequest;
 import com.offbynull.voip.kademlia.internalmessages.Start;
+import com.offbynull.voip.kademlia.model.BitString;
 import com.offbynull.voip.kademlia.model.Id;
 import com.offbynull.voip.kademlia.model.Node;
+import com.offbynull.voip.kademlia.model.RouteTreeBranchSpecificationSupplier;
+import com.offbynull.voip.kademlia.model.RouteTreeBucketSpecificationSupplier;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.Arrays;
@@ -23,13 +26,13 @@ public final class ManualTest {
     private static final String BASE_TIMER_ADDRESS_STRING = "timer";
     private static final String BASE_DIRECT_ADDRESS_STRING = "direct";
     private static final String BASE_LOG_ADDRESS_STRING = "log";
-    
+
     private static final Address BASE_ACTOR_ADDRESS = Address.of(BASE_ACTOR_ADDRESS_STRING);
     private static final Address BASE_GRAPH_ADDRESS = Address.of(BASE_GRAPH_ADDRESS_STRING);
     private static final Address BASE_TIMER_ADDRESS = Address.of(BASE_TIMER_ADDRESS_STRING);
     private static final Address BASE_DIRECT_ADDRESS = Address.of(BASE_DIRECT_ADDRESS_STRING);
     private static final Address BASE_LOG_ADDRESS = Address.of(BASE_LOG_ADDRESS_STRING);
-    
+
     public static void main(String[] args) throws Exception {
         TimerGateway timerGateway = new TimerGateway(BASE_TIMER_ADDRESS_STRING);
         DirectGateway directGateway = new DirectGateway(BASE_DIRECT_ADDRESS_STRING);
@@ -38,14 +41,14 @@ public final class ManualTest {
 
         timerGateway.addOutgoingShuttle(actorRunner.getIncomingShuttle());
         directGateway.addOutgoingShuttle(actorRunner.getIncomingShuttle());
-        
+
         actorRunner.addOutgoingShuttle(timerGateway.getIncomingShuttle());
         actorRunner.addOutgoingShuttle(directGateway.getIncomingShuttle());
         actorRunner.addOutgoingShuttle(logGateway.getIncomingShuttle());
 
         // Seed node
         addNode("111", null, actorRunner);
-        
+
         // Connecting nodes
         addNode("000", "111", actorRunner);
         addNode("001", "111", actorRunner);
@@ -67,10 +70,10 @@ public final class ManualTest {
     private static void addNode(String idStr, String bootstrapIdStr, ActorRunner actorRunner) {
         Id id = Id.create(idStr);
         Node bootstrapNode = bootstrapIdStr == null ? null : new Node(Id.create(bootstrapIdStr), bootstrapIdStr);
-        
+
         byte[] seed1 = Arrays.copyOf(idStr.getBytes(Charsets.US_ASCII), MIN_SEED_SIZE);
         byte[] seed2 = Arrays.copyOf(idStr.getBytes(Charsets.US_ASCII), MIN_SEED_SIZE);
-        
+
         actorRunner.addActor(
                 idStr,
                 new KademliaCoroutine(),
@@ -78,6 +81,32 @@ public final class ManualTest {
                         new SimpleAddressTransformer(BASE_ACTOR_ADDRESS),
                         id,
                         bootstrapNode,
+                        new Start.KademliaParameters(
+                                // only 2 branches in routing tree 1xx and 0xx
+                                () -> new RouteTreeBranchSpecificationSupplier() {
+
+                                    @Override
+                                    public int getBranchCount(BitString prefix) {
+                                        if (prefix.getBitLength() == 0) {
+                                            return 2;
+                                        } else {
+                                            return 0;
+                                        }
+                                    }
+                                },
+                                // only 1 node per bucket, 0 cache per bucket
+                                () -> new RouteTreeBucketSpecificationSupplier() {
+                                    @Override
+                                    public RouteTreeBucketSpecificationSupplier.BucketParameters getBucketParameters(BitString prefix) {
+                                        if (prefix.getBitLength() == 1) {
+                                            return new BucketParameters(1, 0);
+                                        } else {
+                                            throw new IllegalArgumentException();
+                                        }
+                                    }
+                                },
+                                1, // 1 node in near bucket
+                                1), // 1 find concurrency request
                         seed1,
                         seed2,
                         BASE_TIMER_ADDRESS,

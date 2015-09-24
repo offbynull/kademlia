@@ -4,6 +4,7 @@ package com.offbynull.voip.kademlia;
 import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.actor.helpers.AddressTransformer;
 import com.offbynull.peernetic.core.actor.helpers.IdGenerator;
+import com.offbynull.voip.kademlia.internalmessages.Start.KademliaParameters;
 import com.offbynull.voip.kademlia.model.Id;
 import com.offbynull.voip.kademlia.model.Router;
 import java.security.NoSuchAlgorithmException;
@@ -22,6 +23,7 @@ final class State {
     
     private final Id baseId;
     private final Router router;
+    private final int maxConcurrentRequestsPerFind;
     
     private final AddressTransformer addressTransformer;
 
@@ -32,19 +34,17 @@ final class State {
             byte[] seed1,
             byte[] seed2,
             Id baseId,
-            int branchesPerLevel,
-            int kValue,
+            KademliaParameters kademliaParameters,
             AddressTransformer addressTransformer) {
         Validate.notNull(timerAddress);
         Validate.notNull(graphAddress);
         Validate.notNull(logAddress);
         Validate.notNull(seed1);
         Validate.notNull(baseId);
+        Validate.notNull(kademliaParameters);
         Validate.notNull(addressTransformer);
         Validate.isTrue(seed1.length >= IdGenerator.MIN_SEED_SIZE);
         Validate.isTrue(seed2.length >= IdGenerator.MIN_SEED_SIZE);
-        Validate.isTrue(Integer.bitCount(branchesPerLevel) == 1); // check to make sure power of 2 AND greater than 0
-        Validate.isTrue(kValue > 0); // make sure kValue is > 0
         this.timerAddress = timerAddress;
         this.graphAddress = graphAddress;
         this.logAddress = logAddress;
@@ -58,7 +58,11 @@ final class State {
         secureRandom.setSeed(seed2);
         
         this.baseId = baseId;
-        this.router = new Router(baseId, branchesPerLevel, kValue, kValue, kValue);
+        this.router = new Router(baseId,
+                kademliaParameters.getBranchSpecSupplier().get(),
+                kademliaParameters.getBucketSpecSupplier().get(),
+                kademliaParameters.getNearBucketSize());
+        this.maxConcurrentRequestsPerFind = kademliaParameters.getMaxConcurrentRequestsPerFind();
         this.addressTransformer = addressTransformer;
     }
 
@@ -88,6 +92,10 @@ final class State {
 
     public Router getRouter() {
         return router;
+    }
+
+    public int getMaxConcurrentRequestsPerFind() {
+        return maxConcurrentRequestsPerFind;
     }
 
     public AddressTransformer getAddressTransformer() {
