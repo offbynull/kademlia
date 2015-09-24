@@ -43,7 +43,7 @@ final class FindSubcoroutine implements Subcoroutine<List<Node>> {
     private final Id baseId;
     private final Id findId;
     private final int maxResults;
-    private final int maxConcurrentRequests = 3;
+    private final int maxConcurrentRequests;
     
     private final boolean advertiseSelf;
     
@@ -64,6 +64,7 @@ final class FindSubcoroutine implements Subcoroutine<List<Node>> {
         this.baseId = state.getBaseId();
         this.findId = findId;
         this.maxResults = maxResults;
+        this.maxConcurrentRequests = state.getMaxConcurrentRequestsPerFind();
         
         this.advertiseSelf = advertiseSelf;
     }
