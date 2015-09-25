@@ -50,7 +50,7 @@ public final class ManualTest {
         actorRunner.addOutgoingShuttle(logGateway.getIncomingShuttle());
 
         // Seed node
-        addNode("1010001010", null, actorRunner);
+        addNode("111", null, actorRunner);
 
         // Connecting nodes
 //        addNode("000", "111", actorRunner);

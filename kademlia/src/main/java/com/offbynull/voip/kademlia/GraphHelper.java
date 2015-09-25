@@ -22,6 +22,7 @@ import org.apache.commons.lang3.Validate;
 
 final class GraphHelper {
     
+    private static final String CLOSEST_MARKER = "CLOSEST";
     private static final double Y_SPREAD = 50.0;
     private static final double X_SPREAD = 50.0;
     
@@ -41,16 +42,14 @@ final class GraphHelper {
         this.prefixes = Collections.unmodifiableList(prefixes);
     }
 
-    public void addPrefixNodesToGraph(Context ctx) {
-        BitString parentId = BitString.createFromString("");
-        Point parentPoint = new Point(0.0, 0.0);
-        
+    public void addPrefixNodesToGraph(Context ctx) {        
         Map<BitString, Point> processedPrefixes = new HashMap<>(); // prefix -> position on graph
-        addRootToGraph(ctx, parentId, processedPrefixes, parentPoint);
+        addRootToGraph(ctx, processedPrefixes);
      
         
         LinkedList<BitString> tempPrefixes = new LinkedList<>(prefixes);
 
+        double maxYPosition = Double.MIN_VALUE;
         while (true) {
             // Get next prefixes
             ArrayList<BitString> nextLevelPrefixes = removePrefixesForNextLevel(tempPrefixes);
@@ -60,8 +59,8 @@ final class GraphHelper {
             
             // Find parent
             int bitLengthOfNextLevelPrefixes = nextLevelPrefixes.get(0).getBitLength();
-            parentId = getParentPrefix(processedPrefixes.keySet(), bitLengthOfNextLevelPrefixes);
-            parentPoint = processedPrefixes.get(parentId);
+            BitString parentId = getParentPrefix(processedPrefixes.keySet(), bitLengthOfNextLevelPrefixes);
+            Point parentPoint = processedPrefixes.get(parentId);
             
             // Calculate number of bits after prefix
             int newBitsOffset = parentId.getBitLength();
@@ -96,8 +95,8 @@ final class GraphHelper {
             // Make sure smallest branch is always to the left-most by sorting
             Collections.sort(nextLevelPrefixes,
                     (x, y) -> Long.compare(
-                            x.getBitsAsLong(0, x.getBitLength()),
-                            y.getBitsAsLong(0, y.getBitLength())
+                            x.getBitsAsLong(newBitsOffset, newBitsLength),
+                            y.getBitsAsLong(newBitsOffset, newBitsLength)
                     )
             );
             
@@ -106,15 +105,28 @@ final class GraphHelper {
                 addPrefixToGraph(nextPrefix, newBitsOffset, newBitsLength, xPosition, yPosition, ctx, parentId, processedPrefixes);
                 xPosition += xSpreadAtLevel;
             }
+            
+            // Update max Y position
+            maxYPosition = Math.max(maxYPosition, yPosition);
         }
+        
+        
+        // Add closest marker
+        addClosestMarkerToGraph(ctx, maxYPosition);
     }
 
-    private void addRootToGraph(Context ctx, BitString parentId, Map<BitString, Point> processedPrefixes, Point parentPoint) {
-        // Root node
-        ctx.addOutgoingMessage(graphAddress, new AddNode(parentId.toString()));
-        ctx.addOutgoingMessage(graphAddress, new MoveNode(parentId.toString(), 0.0, 0.0));
-        ctx.addOutgoingMessage(graphAddress, new StyleNode(parentId.toString(), 0x7F7F7F));
-        processedPrefixes.put(parentId, parentPoint);
+    private void addClosestMarkerToGraph(Context ctx, double yPosition) {
+        ctx.addOutgoingMessage(graphAddress, new AddNode(CLOSEST_MARKER));
+        ctx.addOutgoingMessage(graphAddress, new MoveNode(CLOSEST_MARKER, 0.0, yPosition + Y_SPREAD));
+        ctx.addOutgoingMessage(graphAddress, new StyleNode(CLOSEST_MARKER, 0xFF00FF));
+    }
+
+    private void addRootToGraph(Context ctx, Map<BitString, Point> processedPrefixes) {
+        BitString id = BitString.createFromString("");
+        ctx.addOutgoingMessage(graphAddress, new AddNode(id.toString()));
+        ctx.addOutgoingMessage(graphAddress, new MoveNode(id.toString(), 0.0, 0.0));
+        ctx.addOutgoingMessage(graphAddress, new StyleNode(id.toString(), 0x7F7F7F));
+        processedPrefixes.put(id, new Point(0.0, 0.0));
     }
 
     private void addPrefixToGraph(BitString nextPrefix, int newBitsOffset, int newBitsLength, double xPosition, double yPosition,
@@ -126,7 +138,7 @@ final class GraphHelper {
         ctx.addOutgoingMessage(graphAddress, new MoveNode(nextPrefix.toString(), displayPoint.x, displayPoint.y));
         ctx.addOutgoingMessage(graphAddress, new StyleNode(nextPrefix.toString(), 0x7F7F7F));
         ctx.addOutgoingMessage(graphAddress, new AddEdge(parentId.toString(), nextPrefix.toString()));
-        ctx.addOutgoingMessage(graphAddress, new StyleEdge(parentId.toString(), nextPrefix.toString(), 0x7F7F7F, 1.0));
+//        ctx.addOutgoingMessage(graphAddress, new StyleEdge(parentId.toString(), nextPrefix.toString(), 0x7F7F7F, 1.0));
         processedPrefixes.put(nextPrefix, displayPoint);
     }
     
