@@ -49,6 +49,8 @@ public final class KademliaCoroutine implements Coroutine {
                     kademliaParameters,
                     addressTransformer);
 
+            state.getGraphHelper().addPrefixNodesToGraph(ctx);
+            
             // Join (or just initialize if no bootstrap node is set)
             JoinSubcoroutine joinTask = new JoinSubcoroutine(JOIN_RELATIVE_ADDRESS, state, bootstrapNode);
             joinTask.run(cnt);

@@ -618,11 +618,11 @@ public final class BitString implements Serializable {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder(bitLength + 13); //13 = '(' + max characters an int can be when converted to string + ')' + ' '
-        sb.append('(').append(bitLength).append(") ");
+//        sb.append('(').append(bitLength).append(") ");
         for (int i = 0; i < bitLength; i++) {
-            if (i % 4 == 0 && i != 0) {
-                sb.append(' ');
-            }
+//            if (i % 4 == 0 && i != 0) {
+//                sb.append(' ');
+//            }
             sb.append(getBit(i) == true ? 1 : 0);
         }
         return sb.toString();

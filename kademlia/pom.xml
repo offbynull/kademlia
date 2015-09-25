@@ -16,6 +16,10 @@
             <artifactId>core</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.offbynull.peernetic</groupId>
+            <artifactId>visualizer</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
         </dependency>
@@ -24,11 +28,11 @@
             <artifactId>junit</artifactId>
             <scope>test</scope>
         </dependency>
-<!--        <dependency>
+        <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-simple</artifactId>
             <scope>test</scope>
-        </dependency>-->
+        </dependency>
     </dependencies>
     <build>
         <plugins>

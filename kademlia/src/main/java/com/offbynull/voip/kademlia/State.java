@@ -25,6 +25,8 @@ final class State {
     private final Router router;
     private final int maxConcurrentRequestsPerFind;
     
+    private final GraphHelper graphHelper;
+    
     private final AddressTransformer addressTransformer;
 
     public State(
@@ -63,6 +65,9 @@ final class State {
                 kademliaParameters.getBucketSpecSupplier().get(),
                 kademliaParameters.getNearBucketSize());
         this.maxConcurrentRequestsPerFind = kademliaParameters.getMaxConcurrentRequestsPerFind();
+        
+        this.graphHelper = new GraphHelper(baseId, graphAddress, router);
+        
         this.addressTransformer = addressTransformer;
     }
 
@@ -96,6 +101,10 @@ final class State {
 
     public int getMaxConcurrentRequestsPerFind() {
         return maxConcurrentRequestsPerFind;
+    }
+
+    public GraphHelper getGraphHelper() {
+        return graphHelper;
     }
 
     public AddressTransformer getAddressTransformer() {

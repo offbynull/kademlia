@@ -7,13 +7,12 @@ import com.offbynull.peernetic.core.gateways.timer.TimerGateway;
 import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.actor.helpers.SimpleAddressTransformer;
 import com.offbynull.peernetic.core.gateways.direct.DirectGateway;
+import com.offbynull.peernetic.visualizer.gateways.graph.GraphGateway;
 import com.offbynull.voip.kademlia.internalmessages.SearchRequest;
 import com.offbynull.voip.kademlia.internalmessages.Start;
-import com.offbynull.voip.kademlia.model.BitString;
+import com.offbynull.voip.kademlia.internalmessages.Start.KademliaParameters;
 import com.offbynull.voip.kademlia.model.Id;
 import com.offbynull.voip.kademlia.model.Node;
-import com.offbynull.voip.kademlia.model.RouteTreeBranchSpecificationSupplier;
-import com.offbynull.voip.kademlia.model.RouteTreeBucketSpecificationSupplier;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.Arrays;
@@ -34,6 +33,9 @@ public final class ManualTest {
     private static final Address BASE_LOG_ADDRESS = Address.of(BASE_LOG_ADDRESS_STRING);
 
     public static void main(String[] args) throws Exception {
+        GraphGateway.startApplication();
+        
+        GraphGateway graphGateway = new GraphGateway(BASE_GRAPH_ADDRESS_STRING);
         TimerGateway timerGateway = new TimerGateway(BASE_TIMER_ADDRESS_STRING);
         DirectGateway directGateway = new DirectGateway(BASE_DIRECT_ADDRESS_STRING);
         LogGateway logGateway = new LogGateway(BASE_LOG_ADDRESS_STRING);
@@ -44,17 +46,18 @@ public final class ManualTest {
 
         actorRunner.addOutgoingShuttle(timerGateway.getIncomingShuttle());
         actorRunner.addOutgoingShuttle(directGateway.getIncomingShuttle());
+        actorRunner.addOutgoingShuttle(graphGateway.getIncomingShuttle());
         actorRunner.addOutgoingShuttle(logGateway.getIncomingShuttle());
 
         // Seed node
-        addNode("111", null, actorRunner);
+        addNode("1010001010", null, actorRunner);
 
         // Connecting nodes
-        addNode("000", "111", actorRunner);
-        addNode("001", "111", actorRunner);
-        addNode("100", "111", actorRunner);
-        addNode("101", "111", actorRunner);
-        addNode("110", "111", actorRunner);
+//        addNode("000", "111", actorRunner);
+//        addNode("001", "111", actorRunner);
+//        addNode("100", "111", actorRunner);
+//        addNode("101", "111", actorRunner);
+//        addNode("110", "111", actorRunner);
 
         BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
         while (true) {
@@ -81,32 +84,33 @@ public final class ManualTest {
                         new SimpleAddressTransformer(BASE_ACTOR_ADDRESS),
                         id,
                         bootstrapNode,
-                        new Start.KademliaParameters(
-                                // only 2 branches in routing tree 1xx and 0xx
-                                () -> new RouteTreeBranchSpecificationSupplier() {
-
-                                    @Override
-                                    public int getBranchCount(BitString prefix) {
-                                        if (prefix.getBitLength() == 0) {
-                                            return 2;
-                                        } else {
-                                            return 0;
-                                        }
-                                    }
-                                },
-                                // only 1 node per bucket, 0 cache per bucket
-                                () -> new RouteTreeBucketSpecificationSupplier() {
-                                    @Override
-                                    public RouteTreeBucketSpecificationSupplier.BucketParameters getBucketParameters(BitString prefix) {
-                                        if (prefix.getBitLength() == 1) {
-                                            return new BucketParameters(1, 0);
-                                        } else {
-                                            throw new IllegalArgumentException();
-                                        }
-                                    }
-                                },
-                                1, // 1 node in near bucket
-                                1), // 1 find concurrency request
+                        new KademliaParameters(id, 2, 20, 20, 20, 3),
+//                        new Start.KademliaParameters(
+//                                // only 2 branches in routing tree 1xx and 0xx
+//                                () -> new RouteTreeBranchSpecificationSupplier() {
+//
+//                                    @Override
+//                                    public int getBranchCount(BitString prefix) {
+//                                        if (prefix.getBitLength() == 0) {
+//                                            return 2;
+//                                        } else {
+//                                            return 0;
+//                                        }
+//                                    }
+//                                },
+//                                // only 1 node per bucket, 0 cache per bucket
+//                                () -> new RouteTreeBucketSpecificationSupplier() {
+//                                    @Override
+//                                    public RouteTreeBucketSpecificationSupplier.BucketParameters getBucketParameters(BitString prefix) {
+//                                        if (prefix.getBitLength() == 1) {
+//                                            return new BucketParameters(1, 0);
+//                                        } else {
+//                                            throw new IllegalArgumentException();
+//                                        }
+//                                    }
+//                                },
+//                                1, // 1 node in near bucket
+//                                1), // 1 find concurrency request
                         seed1,
                         seed2,
                         BASE_TIMER_ADDRESS,
