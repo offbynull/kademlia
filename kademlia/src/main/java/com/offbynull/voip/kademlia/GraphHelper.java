@@ -6,50 +6,62 @@ import com.offbynull.peernetic.visualizer.gateways.graph.AddEdge;
 import com.offbynull.peernetic.visualizer.gateways.graph.AddNode;
 import com.offbynull.peernetic.visualizer.gateways.graph.LabelNode;
 import com.offbynull.peernetic.visualizer.gateways.graph.MoveNode;
-import com.offbynull.peernetic.visualizer.gateways.graph.RemoveNode;
 import com.offbynull.peernetic.visualizer.gateways.graph.StyleNode;
+import com.offbynull.voip.kademlia.model.Activity;
 import com.offbynull.voip.kademlia.model.BitString;
 import com.offbynull.voip.kademlia.model.Id;
 import com.offbynull.voip.kademlia.model.IdClosenessComparator;
 import com.offbynull.voip.kademlia.model.NearBucketChangeSet;
 import com.offbynull.voip.kademlia.model.Node;
+import com.offbynull.voip.kademlia.model.RouteTreeChangeSet;
 import com.offbynull.voip.kademlia.model.Router;
 import com.offbynull.voip.kademlia.model.RouterChangeSet;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.StringJoiner;
 import java.util.TreeSet;
 import org.apache.commons.lang3.Validate;
 
 final class GraphHelper {
     
-    private static final double Y_SPREAD = 15.0;
-    private static final double X_SPREAD = 15.0;
+    private static final String CLOSEST_NODE_ID = "CLOSEST_NODE_SPECIAL_ID";
+    private static final double Y_SPREAD = 50.0;
+    private static final double X_SPREAD = 50.0;
     
     
-    private final Address routingTreeGraphAddress;
-    private final Address closestGraphAddress;
+    private final Address graphAddress;
     
     private final Id baseId;
-    private final List<BitString> routerBucketPrefixes;
-    private final Set<Id> closestGraphNodes;
+    private final LinkedHashSet<BitString> routerBucketPrefixes;
+    private final LinkedHashMap<BitString, SortedSet<Id>> routeTreePrefixToIds; // ids assigned to each tree prefix
+    private final TreeSet<Id> nearBucketIds;
 
     public GraphHelper(Id baseId, Address graphAddress, Router router) {
         Validate.notNull(baseId);
         Validate.notNull(graphAddress);
         Validate.notNull(router);
         this.baseId = baseId;
-        this.routingTreeGraphAddress = graphAddress.appendSuffix(baseId.getBitString().toString()).appendSuffix("routingTree");
-        this.closestGraphAddress = graphAddress.appendSuffix(baseId.getBitString().toString()).appendSuffix("closest");
+        this.graphAddress = graphAddress.appendSuffix(baseId.getBitString().toString());
         
         List<BitString> prefixes = router.dumpBucketPrefixes();
         Collections.sort(prefixes, (x, y) -> Integer.compare(x.getBitLength(), y.getBitLength()));
-        this.routerBucketPrefixes = Collections.unmodifiableList(prefixes);
-        this.closestGraphNodes = new TreeSet<>(new IdClosenessComparator(baseId));
+                
+        this.routerBucketPrefixes = new LinkedHashSet<>(); // order matters, smallest prefixes first
+        this.routerBucketPrefixes.addAll(prefixes);
+        
+        this.routeTreePrefixToIds = new LinkedHashMap<>(); // order matters, smallest prefixes first
+        
+        IdClosenessComparator idComparator = new IdClosenessComparator(baseId);
+        this.nearBucketIds = new TreeSet<>(idComparator); // order matters, based on closeness of ids
     }
 
     public void createGraphs(Context ctx) {
@@ -59,42 +71,102 @@ final class GraphHelper {
     
     public void applyRouterChanges(Context ctx, RouterChangeSet changeSet) {
         applyNearBucketChanges(ctx, changeSet.getNearBucketChangeSet());
+        applyRoutingTreeChanges(ctx, changeSet.getRouteTreeChangeSet());
     }
     
-    private void applyNearBucketChanges(Context ctx, NearBucketChangeSet changeSet) {
+    @SuppressWarnings("unchecked")
+    private void applyRoutingTreeChanges(Context ctx, RouteTreeChangeSet changeSet) {
+        Set<BitString> updatedPrefixes = new HashSet<>();
+        
         // Remove nodes from graph and set
-        for (Node removedNode : changeSet.getBucketChangeSet().viewRemoved()) {
-            Id id = removedNode.getId();
-            closestGraphNodes.remove(id);
-            ctx.addOutgoingMessage(closestGraphAddress, new RemoveNode(id.toString()));
+        for (Activity removedNode : changeSet.getKBucketChangeSet().getBucketChangeSet().viewRemoved()) {
+            Id id = removedNode.getNode().getId();
+            BitString prefix = findPrefixInRouteTreeIds(id);
+            routeTreePrefixToIds.get(prefix).remove(id);
+            updatedPrefixes.add(prefix);
         }
 
         // Add nodes to graph and set
-        for (Node addedNode : changeSet.getBucketChangeSet().viewAdded()) {
-            Id id = addedNode.getId();
-            closestGraphNodes.add(id);
-            ctx.addOutgoingMessage(closestGraphAddress, new AddNode(id.toString()));
+        for (Activity addedNode : changeSet.getKBucketChangeSet().getBucketChangeSet().viewAdded()) {
+            Id id = addedNode.getNode().getId();
+            BitString prefix = findPrefixInRouteTreeIds(id);
+            routeTreePrefixToIds.get(prefix).add(id);
+            updatedPrefixes.add(prefix);
         }
         
-        // Go through set and correctly position all nodes
-        int counter = 0;
-        for (Id id : closestGraphNodes) {
-            ctx.addOutgoingMessage(closestGraphAddress, new MoveNode(id.toString(), 0.0, counter * Y_SPREAD));
-            counter++;
+        for (BitString updatedPrefix : updatedPrefixes) {
+            // Concatenate to string and set as label
+            StringJoiner joiner = new StringJoiner("\n");
+            
+            // Find parent
+            int prefixBitLength = updatedPrefix.getBitLength();
+            BitString parentPrefix = getParentPrefix(routeTreePrefixToIds.keySet(), updatedPrefix);
+            
+            // Calculate number of bits after parent prefix (the bits to display)
+            int newBitsOffset = parentPrefix.getBitLength();
+            int newBitsLength = prefixBitLength - parentPrefix.getBitLength();
+            BitString prefixDisplayBits = updatedPrefix.getBits(newBitsOffset, newBitsLength);
+            
+            // Add 
+            joiner.add(prefixDisplayBits.toString());
+            joiner.add("");
+            
+            routeTreePrefixToIds.get(updatedPrefix).forEach(id -> {
+//                BitString suffixIdBits = id.getBitString().getBits(prefixBitLength, id.getBitLength() - prefixBitLength);
+//                joiner.add(suffixIdBits.toString());
+                joiner.add(id.getBitString().toString());
+            });
+
+            ctx.addOutgoingMessage(graphAddress, new LabelNode(updatedPrefix.toString(), joiner.toString()));
         }
+    }
+    
+    private BitString findPrefixInRouteTreeIds(Id id) {
+        int len = id.getBitLength();
+        BitString routeTreeNode = id.getBitString().getBits(0, len);
+
+        while (!routeTreePrefixToIds.containsKey(routeTreeNode)) {
+            len--;
+            routeTreeNode = id.getBitString().getBits(0, len);
+        }
+        
+        return routeTreeNode;
+    }
+    
+    private void applyNearBucketChanges(Context ctx, NearBucketChangeSet changeSet) {
+        // Remove nodes from set
+        for (Node removedNode : changeSet.getBucketChangeSet().viewRemoved()) {
+            Id id = removedNode.getId();
+            nearBucketIds.remove(id);
+        }
+
+        // Add nodes to set
+        for (Node addedNode : changeSet.getBucketChangeSet().viewAdded()) {
+            Id id = addedNode.getId();
+            nearBucketIds.add(id);
+        }
+        
+        // Concatenate set to string and set as label
+        StringJoiner joiner = new StringJoiner("\n");
+        nearBucketIds.forEach(id -> joiner.add(id.getBitString().toString()));
+        
+        ctx.addOutgoingMessage(graphAddress, new LabelNode(CLOSEST_NODE_ID, joiner.toString()));
     }
     
     private void setupNearBucketGraph(Context ctx) {        
-        // adds a node and removes it right away, just so the placeholder can be created
-        ctx.addOutgoingMessage(closestGraphAddress, new AddNode(""));
-        ctx.addOutgoingMessage(closestGraphAddress, new RemoveNode(""));
+        ctx.addOutgoingMessage(graphAddress, new AddNode(CLOSEST_NODE_ID));
+        ctx.addOutgoingMessage(graphAddress, new LabelNode(CLOSEST_NODE_ID, ""));
+        ctx.addOutgoingMessage(graphAddress, new StyleNode(CLOSEST_NODE_ID, 0xFF00FF));
+        ctx.addOutgoingMessage(graphAddress, new MoveNode(CLOSEST_NODE_ID, X_SPREAD, -Y_SPREAD)); // move it up and to the right a bit
     }
     
     private void setupRoutingTreeGraph(Context ctx) {        
+        IdClosenessComparator idComparator = new IdClosenessComparator(baseId);
+        
         Map<BitString, Point> processedPrefixes = new HashMap<>(); // prefix -> position on graph
         addRootToGraph(ctx, processedPrefixes);
+        routeTreePrefixToIds.put(BitString.createFromString(""), new TreeSet<>(idComparator)); // special case for empty prefix
      
-        
         LinkedList<BitString> tempPrefixes = new LinkedList<>(routerBucketPrefixes);
 
         double maxYPosition = Double.MIN_VALUE;
@@ -107,12 +179,12 @@ final class GraphHelper {
             
             // Find parent
             int bitLengthOfNextLevelPrefixes = nextLevelPrefixes.get(0).getBitLength();
-            BitString parentId = getParentPrefix(processedPrefixes.keySet(), bitLengthOfNextLevelPrefixes);
-            Point parentPoint = processedPrefixes.get(parentId);
+            BitString parentPrefix = getParentPrefix(processedPrefixes.keySet(), nextLevelPrefixes.get(0));
+            Point parentPoint = processedPrefixes.get(parentPrefix);
             
-            // Calculate number of bits after prefix
-            int newBitsOffset = parentId.getBitLength();
-            int newBitsLength = bitLengthOfNextLevelPrefixes - parentId.getBitLength();
+            // Calculate number of bits after parent prefix (the bits to display)
+            int newBitsOffset = parentPrefix.getBitLength();
+            int newBitsLength = bitLengthOfNextLevelPrefixes - parentPrefix.getBitLength();
             
             // Calculate starting x and y positions
             double numBranches = 1 << newBitsLength;
@@ -150,7 +222,9 @@ final class GraphHelper {
             
             // Add prefixes from routing tree
             for (BitString nextPrefix : nextLevelPrefixes) {
-                addPrefixToGraph(nextPrefix, newBitsOffset, newBitsLength, xPosition, yPosition, ctx, parentId, processedPrefixes);
+                routeTreePrefixToIds.put(nextPrefix, new TreeSet<>(idComparator));
+                
+                addPrefixToGraph(nextPrefix, newBitsOffset, newBitsLength, xPosition, yPosition, ctx, parentPrefix, processedPrefixes);
                 xPosition += xSpreadAtLevel;
             }
             
@@ -161,9 +235,9 @@ final class GraphHelper {
     
     private void addRootToGraph(Context ctx, Map<BitString, Point> processedPrefixes) {
         BitString id = BitString.createFromString("");
-        ctx.addOutgoingMessage(routingTreeGraphAddress, new AddNode(id.toString()));
-        ctx.addOutgoingMessage(routingTreeGraphAddress, new MoveNode(id.toString(), 0.0, 0.0));
-        ctx.addOutgoingMessage(routingTreeGraphAddress, new StyleNode(id.toString(), 0x7F7F7F));
+        ctx.addOutgoingMessage(graphAddress, new AddNode(id.toString()));
+        ctx.addOutgoingMessage(graphAddress, new MoveNode(id.toString(), 0.0, 0.0));
+        ctx.addOutgoingMessage(graphAddress, new StyleNode(id.toString(), 0x7F7F7F));
         processedPrefixes.put(id, new Point(0.0, 0.0));
     }
 
@@ -171,23 +245,21 @@ final class GraphHelper {
             Context ctx, BitString parentId, Map<BitString, Point> processedPrefixes) {
         BitString displayBits = nextPrefix.getBits(newBitsOffset, newBitsLength);
         Point displayPoint = new Point(xPosition, yPosition);
-        ctx.addOutgoingMessage(routingTreeGraphAddress, new AddNode(nextPrefix.toString()));
-        ctx.addOutgoingMessage(routingTreeGraphAddress, new LabelNode(nextPrefix.toString(), displayBits.toString()));
-        ctx.addOutgoingMessage(routingTreeGraphAddress, new MoveNode(nextPrefix.toString(), displayPoint.x, displayPoint.y));
-        ctx.addOutgoingMessage(routingTreeGraphAddress, new StyleNode(nextPrefix.toString(), 0x7F7F7F));
-        ctx.addOutgoingMessage(routingTreeGraphAddress, new AddEdge(parentId.toString(), nextPrefix.toString()));
+        ctx.addOutgoingMessage(graphAddress, new AddNode(nextPrefix.toString()));
+        ctx.addOutgoingMessage(graphAddress, new LabelNode(nextPrefix.toString(), displayBits.toString()));
+        ctx.addOutgoingMessage(graphAddress, new MoveNode(nextPrefix.toString(), displayPoint.x, displayPoint.y));
+        ctx.addOutgoingMessage(graphAddress, new StyleNode(nextPrefix.toString(), 0x7F7F7F));
+        ctx.addOutgoingMessage(graphAddress, new AddEdge(parentId.toString(), nextPrefix.toString()));
         processedPrefixes.put(nextPrefix, displayPoint);
     }
     
-    private BitString getParentPrefix(Set<BitString> addedPrefixes, int prefixLength) {
-        BitString checkBitString = baseId.getBitString().getBits(0, prefixLength);
-        
-        while (checkBitString.getBitLength() >= 0) {
-            if (addedPrefixes.contains(checkBitString)) {
+    private BitString getParentPrefix(Set<BitString> treePrefixes, BitString checkBitString) {
+        do {
+            checkBitString = checkBitString.getBits(0, checkBitString.getBitLength() - 1);
+            if (treePrefixes.contains(checkBitString)) {
                 return checkBitString;
             }
-            checkBitString = checkBitString.getBits(0, checkBitString.getBitLength() - 1);
-        }
+        } while (checkBitString.getBitLength() >= 0);
         
         throw new IllegalStateException(); // should never happen
     }
