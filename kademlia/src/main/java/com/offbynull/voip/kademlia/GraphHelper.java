@@ -58,10 +58,10 @@ final class GraphHelper {
     }
     
     public void applyRouterChanges(Context ctx, RouterChangeSet changeSet) {
-        applyNeatBucketChanges(ctx, changeSet.getNearBucketChangeSet());
+        applyNearBucketChanges(ctx, changeSet.getNearBucketChangeSet());
     }
     
-    private void applyNeatBucketChanges(Context ctx, NearBucketChangeSet changeSet) {
+    private void applyNearBucketChanges(Context ctx, NearBucketChangeSet changeSet) {
         // Remove nodes from graph and set
         for (Node removedNode : changeSet.getBucketChangeSet().viewRemoved()) {
             Id id = removedNode.getId();
@@ -72,7 +72,7 @@ final class GraphHelper {
         // Add nodes to graph and set
         for (Node addedNode : changeSet.getBucketChangeSet().viewAdded()) {
             Id id = addedNode.getId();
-            closestGraphNodes.remove(id);
+            closestGraphNodes.add(id);
             ctx.addOutgoingMessage(closestGraphAddress, new AddNode(id.toString()));
         }
         

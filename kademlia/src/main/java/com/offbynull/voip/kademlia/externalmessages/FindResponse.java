@@ -13,7 +13,7 @@ public final class FindResponse implements Serializable {
     public FindResponse(Node[] nodes) {
         Validate.notNull(nodes);
         Validate.noNullElements(nodes);
-        this.nodes = nodes;
+        this.nodes = Arrays.copyOf(nodes, nodes.length);
     }
 
     public Node[] getNodes() {

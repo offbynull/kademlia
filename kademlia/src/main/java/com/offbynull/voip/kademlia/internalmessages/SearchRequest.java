@@ -21,10 +21,5 @@ public final class SearchRequest {
     public int getMaxResults() {
         return maxResults;
     }
-
-    @Override
-    public String toString() {
-        return "SearchRequest{" + "findId=" + findId + ", maxResults=" + maxResults + '}';
-    }
     
 }

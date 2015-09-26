@@ -16,6 +16,7 @@
  */
 package com.offbynull.voip.kademlia.model;
 
+import java.io.Serializable;
 import java.util.Objects;
 import org.apache.commons.lang3.Validate;
 
@@ -25,7 +26,9 @@ import org.apache.commons.lang3.Validate;
  * Class is immutable.
  * @author Kasra Faghihi
  */
-public final class Node {
+public final class Node implements Serializable {
+    private static final long serialVersionUID = 1L;
+    
     private final Id id;
     private final String link;
 

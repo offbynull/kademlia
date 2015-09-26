@@ -72,11 +72,11 @@ public final class Start {
     }
 
     public byte[] getSeed1() {
-        return seed1;
+        return Arrays.copyOf(seed1, seed1.length);
     }
 
     public byte[] getSeed2() {
-        return seed2;
+        return Arrays.copyOf(seed2, seed2.length);
     }
 
     public Address getTimerAddress() {

@@ -66,19 +66,19 @@ public final class Router {
 
         
         
-        // Touch routing tree -- apply changes to nearbucket
+        // Touch routing tree + apply changes to nearbucket
         RouteTreeChangeSet routeTreeChangeSet = routeTree.touch(time, node);
-        NearBucketChangeSet nearBucketChangeSetFromSync = synchronizeChangesFromRouteTreeToNearBucket(routeTreeChangeSet);
+        NearBucketChangeSet nearBucketChangeSet = synchronizeChangesFromRouteTreeToNearBucket(routeTreeChangeSet);
 
-        // Was it added to the routing tree? then it needs to be put in to the "replacement" cache of the nearBucket
-        boolean existsInRoutingTree
-                = !routeTreeChangeSet.getKBucketChangeSet().getBucketChangeSet().viewAdded().isEmpty() 
-                || !routeTreeChangeSet.getKBucketChangeSet().getBucketChangeSet().viewUpdated().isEmpty();
-        NearBucketChangeSet nearBucketChangeSetFromTouch = nearBucket.touch(node, existsInRoutingTree);
+        // In case it wasn't added from the sync (sync will try to put it in near bucket's cache if it was added/update in the router, which
+        // may also put it in to near bucket's bucket if it's part of the closest nodes), then explictly try to add it here
+        if (routeTreeChangeSet.getKBucketChangeSet().getBucketChangeSet().viewAdded().isEmpty()
+                && routeTreeChangeSet.getKBucketChangeSet().getBucketChangeSet().viewUpdated().isEmpty()) {
+            NearBucketChangeSet nearBucketChangeSetFromTouch = nearBucket.touch(node, false);
+            nearBucketChangeSet = combineNearBucketChangeSets(nearBucketChangeSet, nearBucketChangeSetFromTouch);
+        }
         
-        
-        return new RouterChangeSet(routeTreeChangeSet,
-                collateNearBucketChangeSets(nearBucketChangeSetFromSync, nearBucketChangeSetFromTouch));
+        return new RouterChangeSet(routeTreeChangeSet, nearBucketChangeSet);
     }
     
     
@@ -179,25 +179,25 @@ public final class Router {
         for (Activity addedNode : kBucketChangeSet.getBucketChangeSet().viewAdded()) {
             // this is a new peer, so let the near bucket know
             NearBucketChangeSet tempChangeSet = nearBucket.touch(addedNode.getNode(), true);
-            nearBucketChangeSet = collateNearBucketChangeSets(tempChangeSet, nearBucketChangeSet);
+            nearBucketChangeSet = combineNearBucketChangeSets(tempChangeSet, nearBucketChangeSet);
         }
 
         for (Activity removedNode : kBucketChangeSet.getBucketChangeSet().viewRemoved()) {
             // a peer was removed, so let the neat bucket know
             NearBucketChangeSet tempChangeSet = nearBucket.remove(removedNode.getNode());
-            nearBucketChangeSet = collateNearBucketChangeSets(tempChangeSet, nearBucketChangeSet);
+            nearBucketChangeSet = combineNearBucketChangeSets(tempChangeSet, nearBucketChangeSet);
         }
 
         for (Activity updatedNode : kBucketChangeSet.getBucketChangeSet().viewUpdated()) {
             // this is a existing peer, so let the near bucket know
             NearBucketChangeSet tempChangeSet = nearBucket.touch(updatedNode.getNode(), true);
-            nearBucketChangeSet = collateNearBucketChangeSets(tempChangeSet, nearBucketChangeSet);
+            nearBucketChangeSet = combineNearBucketChangeSets(tempChangeSet, nearBucketChangeSet);
         }
         
         return nearBucketChangeSet;
     }
     
-    private NearBucketChangeSet collateNearBucketChangeSets(NearBucketChangeSet one, NearBucketChangeSet two) {
+    private NearBucketChangeSet combineNearBucketChangeSets(NearBucketChangeSet one, NearBucketChangeSet two) {
         return new NearBucketChangeSet(
                 new NodeChangeSet(
                         CollectionUtils.union(
