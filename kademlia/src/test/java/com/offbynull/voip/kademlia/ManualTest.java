@@ -9,13 +9,17 @@ import com.offbynull.peernetic.core.actor.helpers.SimpleAddressTransformer;
 import com.offbynull.peernetic.core.gateways.direct.DirectGateway;
 import com.offbynull.peernetic.visualizer.gateways.graph.GraphGateway;
 import com.offbynull.voip.kademlia.internalmessages.SearchRequest;
+import com.offbynull.voip.kademlia.internalmessages.SearchResponse;
 import com.offbynull.voip.kademlia.internalmessages.Start;
-import com.offbynull.voip.kademlia.internalmessages.Start.KademliaParameters;
+import com.offbynull.voip.kademlia.model.BitString;
 import com.offbynull.voip.kademlia.model.Id;
 import com.offbynull.voip.kademlia.model.Node;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
+import com.offbynull.voip.kademlia.model.RouteTreeBranchSpecificationSupplier;
+import com.offbynull.voip.kademlia.model.RouteTreeBucketSpecificationSupplier;
+import com.offbynull.voip.kademlia.model.RouteTreeBucketSpecificationSupplier.BucketParameters;
 import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.ArrayBlockingQueue;
 import org.apache.commons.io.Charsets;
 
 public final class ManualTest {
@@ -41,6 +45,11 @@ public final class ManualTest {
         LogGateway logGateway = new LogGateway(BASE_LOG_ADDRESS_STRING);
         ActorRunner actorRunner = new ActorRunner(BASE_ACTOR_ADDRESS_STRING);
 
+        
+        graphGateway.addStage(() -> new ConsoleStage());
+        ConsoleStage consoleStage = ConsoleStage.getInstance();
+        
+        
         timerGateway.addOutgoingShuttle(actorRunner.getIncomingShuttle());
         directGateway.addOutgoingShuttle(actorRunner.getIncomingShuttle());
 
@@ -50,23 +59,47 @@ public final class ManualTest {
         actorRunner.addOutgoingShuttle(logGateway.getIncomingShuttle());
 
         // Seed node
-        addNode("111", null, actorRunner);
+        addNode("1111", null, actorRunner);
 
         // Connecting nodes
-        addNode("000", "111", actorRunner);
-        addNode("001", "111", actorRunner);
-        addNode("100", "111", actorRunner);
-        addNode("101", "111", actorRunner);
-        addNode("110", "111", actorRunner);
+        addNode("0000", "1111", actorRunner);
+        addNode("0001", "1111", actorRunner);
+        addNode("0010", "1111", actorRunner);
+        addNode("0011", "1111", actorRunner);
+        addNode("0100", "1111", actorRunner);
+        addNode("0101", "1111", actorRunner);
+        addNode("0110", "1111", actorRunner);
+        addNode("0111", "1111", actorRunner);
+        addNode("1000", "1111", actorRunner);
+        addNode("1001", "1111", actorRunner);
+        addNode("1010", "1111", actorRunner);
+        addNode("1011", "1111", actorRunner);
+        addNode("1100", "1111", actorRunner);
+        addNode("1101", "1111", actorRunner);
+        addNode("1110", "1111", actorRunner);
+//        addNode("1111", "1111", actorRunner);
 
-        BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+        
+
+        // Search for nodes based on input
+        consoleStage.outputLine("Wait until 1111 has loaded before querying...");
         while (true) {
-            System.out.print("Enter node to search for: ");
-            String idStr = in.readLine();
-
-            directGateway.writeMessage(Address.of("actor", "111", "router", "internalhandler"), new SearchRequest(Id.create(idStr), 1));
-            System.out.println(directGateway.readMessages());
-//            DO SOMETHING HERE
+            ArrayBlockingQueue<String> outputQueue = new ArrayBlockingQueue<>(1);
+            consoleStage.outputLine("Enter node to search for");
+            consoleStage.setCommandProcessor((input) -> {
+                outputQueue.add(input);
+                return "Querying " + input + " nodes";
+            });
+            String searchId = outputQueue.take();
+            
+            
+            SearchRequest req = new SearchRequest(Id.create(searchId), 1);
+            directGateway.writeMessage(Address.of("actor", "1111", "router", "internalhandler"), req);
+            
+            SearchResponse resp = (SearchResponse) directGateway.readMessages().get(0).getMessage();
+            List<Node> foundNodes = Arrays.asList(resp.getNodes());
+            
+            consoleStage.outputLine(foundNodes.toString());
         }
     }
 
@@ -84,33 +117,33 @@ public final class ManualTest {
                         new SimpleAddressTransformer(BASE_ACTOR_ADDRESS),
                         id,
                         bootstrapNode,
-                        new KademliaParameters(id, 2, 20, 20, 20, 3),
-//                        new Start.KademliaParameters(
-//                                // only 2 branches in routing tree 1xx and 0xx
-//                                () -> new RouteTreeBranchSpecificationSupplier() {
-//
-//                                    @Override
-//                                    public int getBranchCount(BitString prefix) {
-//                                        if (prefix.getBitLength() == 0) {
-//                                            return 2;
-//                                        } else {
-//                                            return 0;
-//                                        }
-//                                    }
-//                                },
-//                                // only 1 node per bucket, 0 cache per bucket
-//                                () -> new RouteTreeBucketSpecificationSupplier() {
-//                                    @Override
-//                                    public RouteTreeBucketSpecificationSupplier.BucketParameters getBucketParameters(BitString prefix) {
-//                                        if (prefix.getBitLength() == 1) {
-//                                            return new BucketParameters(1, 0);
-//                                        } else {
-//                                            throw new IllegalArgumentException();
-//                                        }
-//                                    }
-//                                },
-//                                1, // 1 node in near bucket
-//                                1), // 1 find concurrency request
+//                        new KademliaParameters(id, 2, 20, 20, 20, 3),
+                        new Start.KademliaParameters(
+                                // only 2 branches in routing tree 1xx and 0xx
+                                () -> new RouteTreeBranchSpecificationSupplier() {
+
+                                    @Override
+                                    public int getBranchCount(BitString prefix) {
+                                        if (prefix.getBitLength() == 0) {
+                                            return 2;
+                                        } else {
+                                            return 0;
+                                        }
+                                    }
+                                },
+                                // only 1 node per bucket, 0 cache per bucket
+                                () -> new RouteTreeBucketSpecificationSupplier() {
+                                    @Override
+                                    public RouteTreeBucketSpecificationSupplier.BucketParameters getBucketParameters(BitString prefix) {
+                                        if (prefix.getBitLength() == 1) {
+                                            return new BucketParameters(1, 0);
+                                        } else {
+                                            throw new IllegalArgumentException();
+                                        }
+                                    }
+                                },
+                                1, // 1 node in near bucket
+                                1), // 1 find concurrency request
                         seed1,
                         seed2,
                         BASE_TIMER_ADDRESS,

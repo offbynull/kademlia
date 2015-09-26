@@ -46,8 +46,9 @@ final class FindSubcoroutine implements Subcoroutine<List<Node>> {
     private final int maxConcurrentRequests;
     
     private final boolean advertiseSelf;
+    private final boolean ignoreSelf;
     
-    public FindSubcoroutine(Address subAddress, State state, Id findId, int maxResults, boolean advertiseSelf) {
+    public FindSubcoroutine(Address subAddress, State state, Id findId, int maxResults, boolean advertiseSelf, boolean ignoreSelf) {
         Validate.notNull(subAddress);
         Validate.notNull(state);
         Validate.notNull(findId);
@@ -67,6 +68,7 @@ final class FindSubcoroutine implements Subcoroutine<List<Node>> {
         this.maxConcurrentRequests = state.getMaxConcurrentRequestsPerFind();
         
         this.advertiseSelf = advertiseSelf;
+        this.ignoreSelf = ignoreSelf;
     }
     
     @Override
@@ -112,7 +114,7 @@ final class FindSubcoroutine implements Subcoroutine<List<Node>> {
                 if (!added) {
                     continue;
                 }
-                
+                                
                 // Add it to the set of closest nodes (will be removed if node fails to respond)
                 closestSet.add(contactNode);
                 
@@ -181,6 +183,12 @@ final class FindSubcoroutine implements Subcoroutine<List<Node>> {
                     // If success, then add returned nodes to contacts
                     Node[] nodes = findResponse.getNodes();
                     contactSet.addAll(Arrays.asList(nodes));
+                    
+                    // If we don't want to find our own ID / query ourselves... remove any reference to our own ID in the contactSet
+                    // TODO: optimize this by removing before it's added to contactSet
+                    if (ignoreSelf) {
+                        contactSet.removeIf(x -> x.getId().equals(baseId));
+                    }
                 }
             }
         }

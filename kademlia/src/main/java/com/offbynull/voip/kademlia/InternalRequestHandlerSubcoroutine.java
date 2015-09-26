@@ -78,8 +78,9 @@ final class InternalRequestHandlerSubcoroutine implements Subcoroutine<Void> {
 
                     ctx.addOutgoingMessage(subAddress, logAddress, info("Incoming search request for: {}", findId));
 
+                    // make sure ignoreSelf == true, we never want to return ourself even if our id is the one being searched for
                     FindSubcoroutine findSubcoroutine
-                            = new FindSubcoroutine(routerAddress.appendSuffix("find"), state, findId, maxResults, true);
+                            = new FindSubcoroutine(routerAddress.appendSuffix("find"), state, findId, maxResults, true, true);
                     subcoroutineRouterController.add(findSubcoroutine, AddBehaviour.ADD_PRIME);
                     responseAddresses.put(findSubcoroutine, ctx.getSource());
                 } else if (msg instanceof Kill) {

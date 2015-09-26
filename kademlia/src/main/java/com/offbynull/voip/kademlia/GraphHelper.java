@@ -34,6 +34,13 @@ import org.apache.commons.lang3.Validate;
 final class GraphHelper {
     
     private static final String CLOSEST_NODE_ID = "CLOSEST_NODE_SPECIAL_ID";
+    private static final String CLOSEST_LABEL = "CLOSEST:";
+    private static final int CLOSEST_COLOR = 0xFF00FF;
+    
+    private static final String TREE_ROOT_LABEL = "ROOT";
+    private static final int TREE_ROOT_COLOR = 0x7F7F7F;
+    private static final int TREE_BUCKET_COLOR = 0x7F7F7F;
+    
     private static final double Y_SPREAD = 50.0;
     private static final double X_SPREAD = 50.0;
     
@@ -107,16 +114,9 @@ final class GraphHelper {
             int newBitsLength = prefixBitLength - parentPrefix.getBitLength();
             BitString prefixDisplayBits = updatedPrefix.getBits(newBitsOffset, newBitsLength);
             
-            // Add 
+            // Change label to contain all nodes in the bucket
             joiner.add(prefixDisplayBits.toString());
-            joiner.add("");
-            
-            routeTreePrefixToIds.get(updatedPrefix).forEach(id -> {
-//                BitString suffixIdBits = id.getBitString().getBits(prefixBitLength, id.getBitLength() - prefixBitLength);
-//                joiner.add(suffixIdBits.toString());
-                joiner.add(id.getBitString().toString());
-            });
-
+            routeTreePrefixToIds.get(updatedPrefix).forEach(id -> joiner.add(id.getBitString().toString()));
             ctx.addOutgoingMessage(graphAddress, new LabelNode(updatedPrefix.toString(), joiner.toString()));
         }
     }
@@ -148,6 +148,7 @@ final class GraphHelper {
         
         // Concatenate set to string and set as label
         StringJoiner joiner = new StringJoiner("\n");
+        joiner.add(CLOSEST_LABEL);
         nearBucketIds.forEach(id -> joiner.add(id.getBitString().toString()));
         
         ctx.addOutgoingMessage(graphAddress, new LabelNode(CLOSEST_NODE_ID, joiner.toString()));
@@ -155,8 +156,8 @@ final class GraphHelper {
     
     private void setupNearBucketGraph(Context ctx) {        
         ctx.addOutgoingMessage(graphAddress, new AddNode(CLOSEST_NODE_ID));
-        ctx.addOutgoingMessage(graphAddress, new LabelNode(CLOSEST_NODE_ID, ""));
-        ctx.addOutgoingMessage(graphAddress, new StyleNode(CLOSEST_NODE_ID, 0xFF00FF));
+        ctx.addOutgoingMessage(graphAddress, new LabelNode(CLOSEST_NODE_ID, CLOSEST_LABEL));
+        ctx.addOutgoingMessage(graphAddress, new StyleNode(CLOSEST_NODE_ID, CLOSEST_COLOR));
         ctx.addOutgoingMessage(graphAddress, new MoveNode(CLOSEST_NODE_ID, X_SPREAD, -Y_SPREAD)); // move it up and to the right a bit
     }
     
@@ -236,8 +237,9 @@ final class GraphHelper {
     private void addRootToGraph(Context ctx, Map<BitString, Point> processedPrefixes) {
         BitString id = BitString.createFromString("");
         ctx.addOutgoingMessage(graphAddress, new AddNode(id.toString()));
+        ctx.addOutgoingMessage(graphAddress, new LabelNode(id.toString(), TREE_ROOT_LABEL));
         ctx.addOutgoingMessage(graphAddress, new MoveNode(id.toString(), 0.0, 0.0));
-        ctx.addOutgoingMessage(graphAddress, new StyleNode(id.toString(), 0x7F7F7F));
+        ctx.addOutgoingMessage(graphAddress, new StyleNode(id.toString(), TREE_ROOT_COLOR));
         processedPrefixes.put(id, new Point(0.0, 0.0));
     }
 
@@ -248,7 +250,7 @@ final class GraphHelper {
         ctx.addOutgoingMessage(graphAddress, new AddNode(nextPrefix.toString()));
         ctx.addOutgoingMessage(graphAddress, new LabelNode(nextPrefix.toString(), displayBits.toString()));
         ctx.addOutgoingMessage(graphAddress, new MoveNode(nextPrefix.toString(), displayPoint.x, displayPoint.y));
-        ctx.addOutgoingMessage(graphAddress, new StyleNode(nextPrefix.toString(), 0x7F7F7F));
+        ctx.addOutgoingMessage(graphAddress, new StyleNode(nextPrefix.toString(), TREE_BUCKET_COLOR));
         ctx.addOutgoingMessage(graphAddress, new AddEdge(parentId.toString(), nextPrefix.toString()));
         processedPrefixes.put(nextPrefix, displayPoint);
     }

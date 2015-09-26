@@ -60,19 +60,11 @@ final class AdvertiseSubcoroutine implements Subcoroutine<Void> {
                     .run(cnt);
             
             
-            List<Node> closestNodes = new FindSubcoroutine(subAddress.appendSuffix("find"), state, baseId, 20, true).run(cnt);
-            applyNodesToRouter(ctx, closestNodes);
-        }
-    }
-    
-    private void applyNodesToRouter(Context ctx, List<Node> nodes) {
-        for (Node node : nodes) {
-            if (node.getId().equals(baseId)) { // If we reached a node with our own id, skip it
-                continue;
+            List<Node> closestNodes = new FindSubcoroutine(subAddress.appendSuffix("find"), state, baseId, 20, true, true).run(cnt);
+            for (Node node : closestNodes) {
+                RouterChangeSet changeSet = router.touch(ctx.getTime(), node); // since we set ignoreSelf to true, node will never == baseId
+                graphHelper.applyRouterChanges(ctx, changeSet);
             }
-
-            RouterChangeSet changeSet = router.touch(ctx.getTime(), node);
-            graphHelper.applyRouterChanges(ctx, changeSet);
         }
     }
 }

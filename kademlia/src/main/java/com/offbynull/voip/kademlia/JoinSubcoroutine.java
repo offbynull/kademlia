@@ -74,7 +74,7 @@ final class JoinSubcoroutine implements Subcoroutine<Void> {
         
         // 2. Find yourself
         ctx.addOutgoingMessage(subAddress, logAddress, info("Attempting to find self...", bootstrapNode));
-        closestNodes = new FindSubcoroutine(subAddress.appendSuffix("selffind"), state, baseId, 20, false).run(cnt);
+        closestNodes = new FindSubcoroutine(subAddress.appendSuffix("selffind"), state, baseId, 20, false, false).run(cnt);
         Validate.validState(!closestNodes.isEmpty(), "No results from bootstrap");
         Validate.validState(!closestNodes.get(0).getId().equals(baseId), "Self already exists in network");
         applyNodesToRouter(ctx, closestNodes);
@@ -101,7 +101,7 @@ final class JoinSubcoroutine implements Subcoroutine<Void> {
             ctx.addOutgoingMessage(subAddress, logAddress, info("Searching for random ID {}...", randomId));
             
             // Find closest nodes
-            closestNodes = new FindSubcoroutine(subAddress.appendSuffix("bucketfind"), state, randomId, 20, false).run(cnt);
+            closestNodes = new FindSubcoroutine(subAddress.appendSuffix("bucketfind"), state, randomId, 20, false, false).run(cnt);
             
             // Touch router with these nodes
             applyNodesToRouter(ctx, closestNodes);
@@ -109,7 +109,7 @@ final class JoinSubcoroutine implements Subcoroutine<Void> {
         
         // 4. Advertise self to closest nodes so people can reach you
         ctx.addOutgoingMessage(subAddress, logAddress, info("Finding closest nodes to self..."));
-        closestNodes = new FindSubcoroutine(subAddress.appendSuffix("adv"), state, baseId, 20, true).run(cnt);
+        closestNodes = new FindSubcoroutine(subAddress.appendSuffix("adv"), state, baseId, 20, true, true).run(cnt);
         applyNodesToRouter(ctx, closestNodes);
 
         
