@@ -38,33 +38,23 @@ public final class NearBucket {
         this.peers = new NodeNearSet(baseId, Integer.MAX_VALUE);
     }
 
-    // A peer that has been added to the routing table. okay to call this more than once on same node
-    public NearBucketChangeSet touchPeer(Node node) {
+    // if cacheable == true, it means that node can be used as a replacement if number of nodes goes under bucket.maxSize
+    public NearBucketChangeSet touch(Node node, boolean cacheable) {
         Validate.notNull(node);
 
         Id nodeId = node.getId();
 
         InternalValidate.matchesLength(baseId.getBitLength(), nodeId);
         InternalValidate.notMatchesBase(baseId, nodeId);
+
         
-        NodeChangeSet networkChangeSet = peers.touch(node);
+        NodeChangeSet networkChangeSet = NodeChangeSet.NO_CHANGE;
+        if (cacheable) {
+            networkChangeSet = peers.touch(node);
+        }
         NodeChangeSet bucketChangeSet = bucket.touch(node);
         
         return new NearBucketChangeSet(bucketChangeSet, networkChangeSet);
-    }
-    
-    public NearBucketChangeSet touch(Node node) {
-        Validate.notNull(node);
-
-        Id nodeId = node.getId();
-
-        InternalValidate.matchesLength(baseId.getBitLength(), nodeId);
-        InternalValidate.notMatchesBase(baseId, nodeId);
-
-        
-        // Touch the bucket
-        NodeChangeSet bucketChangeSet = bucket.touch(node);
-        return new NearBucketChangeSet(bucketChangeSet, NodeChangeSet.NO_CHANGE);
     }
     
     // Node has been removed. doesn't matter if its in network or bucket

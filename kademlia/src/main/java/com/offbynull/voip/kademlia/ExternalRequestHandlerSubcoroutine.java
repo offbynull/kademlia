@@ -14,6 +14,7 @@ import com.offbynull.voip.kademlia.externalmessages.PingResponse;
 import com.offbynull.voip.kademlia.model.Id;
 import com.offbynull.voip.kademlia.model.Node;
 import com.offbynull.voip.kademlia.model.Router;
+import com.offbynull.voip.kademlia.model.RouterChangeSet;
 import java.util.List;
 import org.apache.commons.lang3.Validate;
 
@@ -25,6 +26,8 @@ final class ExternalRequestHandlerSubcoroutine implements Subcoroutine<Void> {
     
     private final Id baseId;
     private final Router router;
+    
+    private final GraphHelper graphHelper;
 
     public ExternalRequestHandlerSubcoroutine(Address subAddress, State state) {
         Validate.notNull(subAddress);
@@ -35,6 +38,8 @@ final class ExternalRequestHandlerSubcoroutine implements Subcoroutine<Void> {
         
         this.baseId = state.getBaseId();
         this.router = state.getRouter();
+        
+        this.graphHelper = state.getGraphHelper();
     }
 
     @Override
@@ -63,7 +68,8 @@ final class ExternalRequestHandlerSubcoroutine implements Subcoroutine<Void> {
                 String srcLink = addressTransformer.toLinkId(ctx.getSource());
                 Node srcNode = new Node(srcId, srcLink);
 
-                router.touch(ctx.getTime(), srcNode);
+                RouterChangeSet routerChangeSet = router.touch(ctx.getTime(), srcNode);
+                graphHelper.applyRouterChanges(ctx, routerChangeSet);
             }
             
             if (msg instanceof PingRequest) {

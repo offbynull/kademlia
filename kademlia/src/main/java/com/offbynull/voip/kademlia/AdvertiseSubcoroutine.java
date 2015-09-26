@@ -8,6 +8,7 @@ import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.voip.kademlia.model.Id;
 import com.offbynull.voip.kademlia.model.Node;
 import com.offbynull.voip.kademlia.model.Router;
+import com.offbynull.voip.kademlia.model.RouterChangeSet;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -23,6 +24,8 @@ final class AdvertiseSubcoroutine implements Subcoroutine<Void> {
     private final Router router;
     private final Id baseId;
     
+    private final GraphHelper graphHelper;
+    
     public AdvertiseSubcoroutine(Address subAddress, State state) {
         Validate.notNull(subAddress);
         Validate.notNull(state);
@@ -35,6 +38,7 @@ final class AdvertiseSubcoroutine implements Subcoroutine<Void> {
         this.baseId = state.getBaseId();
         this.router = state.getRouter();
         
+        this.graphHelper = state.getGraphHelper();
     }
     
     @Override
@@ -57,17 +61,18 @@ final class AdvertiseSubcoroutine implements Subcoroutine<Void> {
             
             
             List<Node> closestNodes = new FindSubcoroutine(subAddress.appendSuffix("find"), state, baseId, 20, true).run(cnt);
-            applyNodesToRouter(ctx.getTime(), closestNodes);
+            applyNodesToRouter(ctx, closestNodes);
         }
     }
     
-    private void applyNodesToRouter(Instant time, List<Node> nodes) {
+    private void applyNodesToRouter(Context ctx, List<Node> nodes) {
         for (Node node : nodes) {
             if (node.getId().equals(baseId)) { // If we reached a node with our own id, skip it
                 continue;
             }
 
-            router.touch(time, node);
+            RouterChangeSet changeSet = router.touch(ctx.getTime(), node);
+            graphHelper.applyRouterChanges(ctx, changeSet);
         }
     }
 }

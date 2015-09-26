@@ -53,11 +53,11 @@ public final class ManualTest {
         addNode("111", null, actorRunner);
 
         // Connecting nodes
-//        addNode("000", "111", actorRunner);
-//        addNode("001", "111", actorRunner);
-//        addNode("100", "111", actorRunner);
-//        addNode("101", "111", actorRunner);
-//        addNode("110", "111", actorRunner);
+        addNode("000", "111", actorRunner);
+        addNode("001", "111", actorRunner);
+        addNode("100", "111", actorRunner);
+        addNode("101", "111", actorRunner);
+        addNode("110", "111", actorRunner);
 
         BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
         while (true) {

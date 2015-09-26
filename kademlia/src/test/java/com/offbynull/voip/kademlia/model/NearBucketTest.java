@@ -1,10 +1,5 @@
 package com.offbynull.voip.kademlia.model;
 
-import com.offbynull.voip.kademlia.model.LinkMismatchException;
-import com.offbynull.voip.kademlia.model.NearBucketChangeSet;
-import com.offbynull.voip.kademlia.model.NearBucket;
-import com.offbynull.voip.kademlia.model.Id;
-import com.offbynull.voip.kademlia.model.Node;
 import static com.offbynull.voip.kademlia.model.TestUtils.verifyNodeChangeSetAdded;
 import static com.offbynull.voip.kademlia.model.TestUtils.verifyNodeChangeSetCounts;
 import static com.offbynull.voip.kademlia.model.TestUtils.verifyNodeChangeSetRemoved;
@@ -34,35 +29,35 @@ public final class NearBucketTest {
     public void mustRetainClosestNodesOnTouch() throws Throwable {
         NearBucketChangeSet res;
         
-        res = fixture.touch(NODE_001);
+        res = fixture.touch(NODE_001, false);
         verifyNodeChangeSetCounts(res.getBucketChangeSet(), 1, 0, 0);
         verifyNodeChangeSetAdded(res.getBucketChangeSet(), NODE_001);
-        verifyNodeChangeSetCounts(res.getPeerChangeSet(), 0, 0, 0);
+        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
         
-        res = fixture.touch(NODE_010);
+        res = fixture.touch(NODE_010, false);
         verifyNodeChangeSetCounts(res.getBucketChangeSet(), 1, 0, 0);
         verifyNodeChangeSetAdded(res.getBucketChangeSet(), NODE_010);
-        verifyNodeChangeSetCounts(res.getPeerChangeSet(), 0, 0, 0);
+        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
         
-        res = fixture.touch(NODE_011);
+        res = fixture.touch(NODE_011, false);
         verifyNodeChangeSetCounts(res.getBucketChangeSet(), 0, 0, 0);
-        verifyNodeChangeSetCounts(res.getPeerChangeSet(), 0, 0, 0);
+        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
         
-        res = fixture.touch(NODE_100);
+        res = fixture.touch(NODE_100, false);
         verifyNodeChangeSetCounts(res.getBucketChangeSet(), 0, 0, 0);
-        verifyNodeChangeSetCounts(res.getPeerChangeSet(), 0, 0, 0);
+        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
         
-        res = fixture.touch(NODE_101);
+        res = fixture.touch(NODE_101, false);
         verifyNodeChangeSetCounts(res.getBucketChangeSet(), 0, 0, 0);
-        verifyNodeChangeSetCounts(res.getPeerChangeSet(), 0, 0, 0);
+        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
         
-        res = fixture.touch(NODE_110);
+        res = fixture.touch(NODE_110, false);
         verifyNodeChangeSetCounts(res.getBucketChangeSet(), 0, 0, 0);
-        verifyNodeChangeSetCounts(res.getPeerChangeSet(), 0, 0, 0);
+        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
         
-        res = fixture.touch(NODE_111);
+        res = fixture.touch(NODE_111, false);
         verifyNodeChangeSetCounts(res.getBucketChangeSet(), 0, 0, 0);
-        verifyNodeChangeSetCounts(res.getPeerChangeSet(), 0, 0, 0);
+        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
         
         verifyNodes(fixture.dumpBucket(), NODE_001, NODE_010);
     }
@@ -71,15 +66,15 @@ public final class NearBucketTest {
     public void mustBeAbleToTouchSameNodeMultipleTimes() throws Throwable {
         NearBucketChangeSet res;
         
-        res = fixture.touch(NODE_001);
+        res = fixture.touch(NODE_001, false);
         verifyNodeChangeSetCounts(res.getBucketChangeSet(), 1, 0, 0);
         verifyNodeChangeSetAdded(res.getBucketChangeSet(), NODE_001);
-        verifyNodeChangeSetCounts(res.getPeerChangeSet(), 0, 0, 0);
+        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
         
-        res = fixture.touch(NODE_001);
+        res = fixture.touch(NODE_001, false);
         verifyNodeChangeSetCounts(res.getBucketChangeSet(), 0, 0, 1);
         verifyNodeChangeSetUpdated(res.getBucketChangeSet(), NODE_001);
-        verifyNodeChangeSetCounts(res.getPeerChangeSet(), 0, 0, 0);
+        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
         
         verifyNodes(fixture.dumpBucket(), NODE_001);
     }
@@ -88,17 +83,17 @@ public final class NearBucketTest {
     public void mustBeAbleToTouchSamePeerNodeMultipleTimes() throws Throwable {
         NearBucketChangeSet res;
         
-        res = fixture.touchPeer(NODE_001);
+        res = fixture.touch(NODE_001, true);
         verifyNodeChangeSetCounts(res.getBucketChangeSet(), 1, 0, 0);
         verifyNodeChangeSetAdded(res.getBucketChangeSet(), NODE_001);
-        verifyNodeChangeSetCounts(res.getPeerChangeSet(), 1, 0, 0);
-        verifyNodeChangeSetAdded(res.getPeerChangeSet(), NODE_001);
+        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 1, 0, 0);
+        verifyNodeChangeSetAdded(res.getCacheChangeSet(), NODE_001);
         
-        res = fixture.touchPeer(NODE_001);
+        res = fixture.touch(NODE_001, true);
         verifyNodeChangeSetCounts(res.getBucketChangeSet(), 0, 0, 1);
         verifyNodeChangeSetUpdated(res.getBucketChangeSet(), NODE_001);
-        verifyNodeChangeSetCounts(res.getPeerChangeSet(), 0, 0, 1);
-        verifyNodeChangeSetUpdated(res.getPeerChangeSet(), NODE_001);
+        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 0, 0, 1);
+        verifyNodeChangeSetUpdated(res.getCacheChangeSet(), NODE_001);
         
         verifyNodes(fixture.dumpBucket(), NODE_001);
     }
@@ -107,45 +102,45 @@ public final class NearBucketTest {
     public void mustRetainClosestNodesOnTouchWhenInsertedBackwards() throws Throwable {
         NearBucketChangeSet res;
         
-        res = fixture.touch(NODE_111);
+        res = fixture.touch(NODE_111, false);
         verifyNodeChangeSetCounts(res.getBucketChangeSet(), 1, 0, 0);
         verifyNodeChangeSetAdded(res.getBucketChangeSet(), NODE_111);
-        verifyNodeChangeSetCounts(res.getPeerChangeSet(), 0, 0, 0);
+        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
         
-        res = fixture.touch(NODE_110);
+        res = fixture.touch(NODE_110, false);
         verifyNodeChangeSetCounts(res.getBucketChangeSet(), 1, 0, 0);
         verifyNodeChangeSetAdded(res.getBucketChangeSet(), NODE_110);
-        verifyNodeChangeSetCounts(res.getPeerChangeSet(), 0, 0, 0);
+        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
         
-        res = fixture.touch(NODE_101);
+        res = fixture.touch(NODE_101, false);
         verifyNodeChangeSetCounts(res.getBucketChangeSet(), 1, 1, 0);
         verifyNodeChangeSetAdded(res.getBucketChangeSet(), NODE_101);
         verifyNodeChangeSetRemoved(res.getBucketChangeSet(), NODE_111);
-        verifyNodeChangeSetCounts(res.getPeerChangeSet(), 0, 0, 0);
+        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
         
-        res = fixture.touch(NODE_100);
+        res = fixture.touch(NODE_100, false);
         verifyNodeChangeSetCounts(res.getBucketChangeSet(), 1, 1, 0);
         verifyNodeChangeSetAdded(res.getBucketChangeSet(), NODE_100);
         verifyNodeChangeSetRemoved(res.getBucketChangeSet(), NODE_110);
-        verifyNodeChangeSetCounts(res.getPeerChangeSet(), 0, 0, 0);
+        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
         
-        res = fixture.touch(NODE_011);
+        res = fixture.touch(NODE_011, false);
         verifyNodeChangeSetCounts(res.getBucketChangeSet(), 1, 1, 0);
         verifyNodeChangeSetAdded(res.getBucketChangeSet(), NODE_011);
         verifyNodeChangeSetRemoved(res.getBucketChangeSet(), NODE_101);
-        verifyNodeChangeSetCounts(res.getPeerChangeSet(), 0, 0, 0);
+        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
         
-        res = fixture.touch(NODE_010);
+        res = fixture.touch(NODE_010, false);
         verifyNodeChangeSetCounts(res.getBucketChangeSet(), 1, 1, 0);
         verifyNodeChangeSetAdded(res.getBucketChangeSet(), NODE_010);
         verifyNodeChangeSetRemoved(res.getBucketChangeSet(), NODE_100);
-        verifyNodeChangeSetCounts(res.getPeerChangeSet(), 0, 0, 0);
+        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
         
-        res = fixture.touch(NODE_001);
+        res = fixture.touch(NODE_001, false);
         verifyNodeChangeSetCounts(res.getBucketChangeSet(), 1, 1, 0);
         verifyNodeChangeSetAdded(res.getBucketChangeSet(), NODE_001);
         verifyNodeChangeSetRemoved(res.getBucketChangeSet(), NODE_011);
-        verifyNodeChangeSetCounts(res.getPeerChangeSet(), 0, 0, 0);
+        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
         
         verifyNodes(fixture.dumpBucket(), NODE_001, NODE_010);
     }
@@ -154,44 +149,44 @@ public final class NearBucketTest {
     public void mustUsePeerNodesForBucket() throws Throwable {
         NearBucketChangeSet res;
         
-        res = fixture.touchPeer(NODE_001);
+        res = fixture.touch(NODE_001, true);
         verifyNodeChangeSetCounts(res.getBucketChangeSet(), 1, 0, 0);
         verifyNodeChangeSetAdded(res.getBucketChangeSet(), NODE_001);
-        verifyNodeChangeSetCounts(res.getPeerChangeSet(), 1, 0, 0);
-        verifyNodeChangeSetAdded(res.getPeerChangeSet(), NODE_001);
+        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 1, 0, 0);
+        verifyNodeChangeSetAdded(res.getCacheChangeSet(), NODE_001);
         
-        res = fixture.touchPeer(NODE_010);
+        res = fixture.touch(NODE_010, true);
         verifyNodeChangeSetCounts(res.getBucketChangeSet(), 1, 0, 0);
         verifyNodeChangeSetAdded(res.getBucketChangeSet(), NODE_010);
-        verifyNodeChangeSetCounts(res.getPeerChangeSet(), 1, 0, 0);
-        verifyNodeChangeSetAdded(res.getPeerChangeSet(), NODE_010);
+        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 1, 0, 0);
+        verifyNodeChangeSetAdded(res.getCacheChangeSet(), NODE_010);
         
         verifyNodes(fixture.dumpBucket(), NODE_001, NODE_010);
         
-        res = fixture.touchPeer(NODE_011);
+        res = fixture.touch(NODE_011, true);
         verifyNodeChangeSetCounts(res.getBucketChangeSet(), 0, 0, 0);
-        verifyNodeChangeSetCounts(res.getPeerChangeSet(), 1, 0, 0);
-        verifyNodeChangeSetAdded(res.getPeerChangeSet(), NODE_011);
+        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 1, 0, 0);
+        verifyNodeChangeSetAdded(res.getCacheChangeSet(), NODE_011);
         
-        res = fixture.touchPeer(NODE_100);
+        res = fixture.touch(NODE_100, true);
         verifyNodeChangeSetCounts(res.getBucketChangeSet(), 0, 0, 0);
-        verifyNodeChangeSetCounts(res.getPeerChangeSet(), 1, 0, 0);
-        verifyNodeChangeSetAdded(res.getPeerChangeSet(), NODE_100);
+        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 1, 0, 0);
+        verifyNodeChangeSetAdded(res.getCacheChangeSet(), NODE_100);
         
-        res = fixture.touchPeer(NODE_101);
+        res = fixture.touch(NODE_101, true);
         verifyNodeChangeSetCounts(res.getBucketChangeSet(), 0, 0, 0);
-        verifyNodeChangeSetCounts(res.getPeerChangeSet(), 1, 0, 0);
-        verifyNodeChangeSetAdded(res.getPeerChangeSet(), NODE_101);
+        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 1, 0, 0);
+        verifyNodeChangeSetAdded(res.getCacheChangeSet(), NODE_101);
         
-        res = fixture.touchPeer(NODE_110);
+        res = fixture.touch(NODE_110, true);
         verifyNodeChangeSetCounts(res.getBucketChangeSet(), 0, 0, 0);
-        verifyNodeChangeSetCounts(res.getPeerChangeSet(), 1, 0, 0);
-        verifyNodeChangeSetAdded(res.getPeerChangeSet(), NODE_110);
+        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 1, 0, 0);
+        verifyNodeChangeSetAdded(res.getCacheChangeSet(), NODE_110);
         
-        res = fixture.touchPeer(NODE_111);
+        res = fixture.touch(NODE_111, true);
         verifyNodeChangeSetCounts(res.getBucketChangeSet(), 0, 0, 0);
-        verifyNodeChangeSetCounts(res.getPeerChangeSet(), 1, 0, 0);
-        verifyNodeChangeSetAdded(res.getPeerChangeSet(), NODE_111);
+        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 1, 0, 0);
+        verifyNodeChangeSetAdded(res.getCacheChangeSet(), NODE_111);
         
         verifyNodes(fixture.dumpBucket(), NODE_001, NODE_010);
     }
@@ -200,64 +195,64 @@ public final class NearBucketTest {
     public void mustUsePeerNodesForBucketWhenInsertedBackwards() throws Throwable {
         NearBucketChangeSet res;
 
-        res = fixture.touchPeer(NODE_111);
+        res = fixture.touch(NODE_111, true);
         verifyNodeChangeSetCounts(res.getBucketChangeSet(), 1, 0, 0);
         verifyNodeChangeSetAdded(res.getBucketChangeSet(), NODE_111);
-        verifyNodeChangeSetCounts(res.getPeerChangeSet(), 1, 0, 0);
-        verifyNodeChangeSetAdded(res.getPeerChangeSet(), NODE_111);
+        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 1, 0, 0);
+        verifyNodeChangeSetAdded(res.getCacheChangeSet(), NODE_111);
         
         verifyNodes(fixture.dumpBucket(), NODE_111);
         
-        res = fixture.touchPeer(NODE_110);
+        res = fixture.touch(NODE_110, true);
         verifyNodeChangeSetCounts(res.getBucketChangeSet(), 1, 0, 0);
         verifyNodeChangeSetAdded(res.getBucketChangeSet(), NODE_110);
-        verifyNodeChangeSetCounts(res.getPeerChangeSet(), 1, 0, 0);
-        verifyNodeChangeSetAdded(res.getPeerChangeSet(), NODE_110);
+        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 1, 0, 0);
+        verifyNodeChangeSetAdded(res.getCacheChangeSet(), NODE_110);
         
         verifyNodes(fixture.dumpBucket(), NODE_110, NODE_111);
         
-        res = fixture.touchPeer(NODE_101);
+        res = fixture.touch(NODE_101, true);
         verifyNodeChangeSetCounts(res.getBucketChangeSet(), 1, 1, 0);
         verifyNodeChangeSetAdded(res.getBucketChangeSet(), NODE_101);
         verifyNodeChangeSetRemoved(res.getBucketChangeSet(), NODE_111);
-        verifyNodeChangeSetCounts(res.getPeerChangeSet(), 1, 0, 0);
-        verifyNodeChangeSetAdded(res.getPeerChangeSet(), NODE_101);
+        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 1, 0, 0);
+        verifyNodeChangeSetAdded(res.getCacheChangeSet(), NODE_101);
         
         verifyNodes(fixture.dumpBucket(), NODE_101, NODE_110);
         
-        res = fixture.touchPeer(NODE_100);
+        res = fixture.touch(NODE_100, true);
         verifyNodeChangeSetCounts(res.getBucketChangeSet(), 1, 1, 0);
         verifyNodeChangeSetAdded(res.getBucketChangeSet(), NODE_100);
         verifyNodeChangeSetRemoved(res.getBucketChangeSet(), NODE_110);
-        verifyNodeChangeSetCounts(res.getPeerChangeSet(), 1, 0, 0);
-        verifyNodeChangeSetAdded(res.getPeerChangeSet(), NODE_100);
+        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 1, 0, 0);
+        verifyNodeChangeSetAdded(res.getCacheChangeSet(), NODE_100);
         
         verifyNodes(fixture.dumpBucket(), NODE_100, NODE_101);
         
-        res = fixture.touchPeer(NODE_011);
+        res = fixture.touch(NODE_011, true);
         verifyNodeChangeSetCounts(res.getBucketChangeSet(), 1, 1, 0);
         verifyNodeChangeSetAdded(res.getBucketChangeSet(), NODE_011);
         verifyNodeChangeSetRemoved(res.getBucketChangeSet(), NODE_101);
-        verifyNodeChangeSetCounts(res.getPeerChangeSet(), 1, 0, 0);
-        verifyNodeChangeSetAdded(res.getPeerChangeSet(), NODE_011);
+        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 1, 0, 0);
+        verifyNodeChangeSetAdded(res.getCacheChangeSet(), NODE_011);
         
         verifyNodes(fixture.dumpBucket(), NODE_011, NODE_100);
         
-        res = fixture.touchPeer(NODE_010);
+        res = fixture.touch(NODE_010, true);
         verifyNodeChangeSetCounts(res.getBucketChangeSet(), 1, 1, 0);
         verifyNodeChangeSetAdded(res.getBucketChangeSet(), NODE_010);
         verifyNodeChangeSetRemoved(res.getBucketChangeSet(), NODE_100);
-        verifyNodeChangeSetCounts(res.getPeerChangeSet(), 1, 0, 0);
-        verifyNodeChangeSetAdded(res.getPeerChangeSet(), NODE_010);
+        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 1, 0, 0);
+        verifyNodeChangeSetAdded(res.getCacheChangeSet(), NODE_010);
         
         verifyNodes(fixture.dumpBucket(), NODE_010, NODE_011);
         
-        res = fixture.touchPeer(NODE_001);
+        res = fixture.touch(NODE_001, true);
         verifyNodeChangeSetCounts(res.getBucketChangeSet(), 1, 1, 0);
         verifyNodeChangeSetAdded(res.getBucketChangeSet(), NODE_001);
         verifyNodeChangeSetRemoved(res.getBucketChangeSet(), NODE_011);
-        verifyNodeChangeSetCounts(res.getPeerChangeSet(), 1, 0, 0);
-        verifyNodeChangeSetAdded(res.getPeerChangeSet(), NODE_001);
+        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 1, 0, 0);
+        verifyNodeChangeSetAdded(res.getCacheChangeSet(), NODE_001);
         
         verifyNodes(fixture.dumpBucket(), NODE_001, NODE_010);
     }
@@ -266,14 +261,14 @@ public final class NearBucketTest {
     public void mustUsePeerNodesForBucketAndOverrideWhenTouchingWithNodeCloser() throws Throwable {
         NearBucketChangeSet res;
 
-        fixture.touchPeer(NODE_011);
-        fixture.touchPeer(NODE_010);
+        fixture.touch(NODE_011, true);
+        fixture.touch(NODE_010, true);
 
-        res = fixture.touch(NODE_001);
+        res = fixture.touch(NODE_001, false);
         verifyNodeChangeSetCounts(res.getBucketChangeSet(), 1, 1, 0);
         verifyNodeChangeSetRemoved(res.getBucketChangeSet(), NODE_011);
         verifyNodeChangeSetAdded(res.getBucketChangeSet(), NODE_001);
-        verifyNodeChangeSetCounts(res.getPeerChangeSet(), 0, 0, 0);
+        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
         
         verifyNodes(fixture.dumpBucket(), NODE_001, NODE_010);
     }
@@ -282,12 +277,12 @@ public final class NearBucketTest {
     public void mustUsePeerNodesForBucketAndNotOverrideWhenTouchingWithNodeFartherAway() throws Throwable {
         NearBucketChangeSet res;
 
-        fixture.touchPeer(NODE_011);
-        fixture.touchPeer(NODE_010);
+        fixture.touch(NODE_011, true);
+        fixture.touch(NODE_010, true);
 
-        res = fixture.touch(NODE_100);
+        res = fixture.touch(NODE_100, false);
         verifyNodeChangeSetCounts(res.getBucketChangeSet(), 0, 0, 0);
-        verifyNodeChangeSetCounts(res.getPeerChangeSet(), 0, 0, 0);
+        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
         
         verifyNodes(fixture.dumpBucket(), NODE_010, NODE_011);
     }
@@ -296,10 +291,10 @@ public final class NearBucketTest {
     public void mustRemoveNodeOutOfBucket() throws Throwable {
         NearBucketChangeSet res;
 
-        fixture.touchPeer(NODE_011);
-        fixture.touchPeer(NODE_010);
+        fixture.touch(NODE_011, true);
+        fixture.touch(NODE_010, true);
 
-        fixture.touch(NODE_001);
+        fixture.touch(NODE_001, false);
         
         verifyNodes(fixture.dumpBucket(), NODE_001, NODE_010);
         
@@ -308,7 +303,7 @@ public final class NearBucketTest {
         verifyNodeChangeSetCounts(res.getBucketChangeSet(), 1, 1, 0);
         verifyNodeChangeSetRemoved(res.getBucketChangeSet(), NODE_001);
         verifyNodeChangeSetAdded(res.getBucketChangeSet(), NODE_011);
-        verifyNodeChangeSetCounts(res.getPeerChangeSet(), 0, 0, 0);
+        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
         
         verifyNodes(fixture.dumpBucket(), NODE_010, NODE_011);
     }
@@ -317,18 +312,18 @@ public final class NearBucketTest {
     public void mustRemoveNodeOutOfPeers() throws Throwable {
         NearBucketChangeSet res;
 
-        fixture.touchPeer(NODE_011);
-        fixture.touchPeer(NODE_010);
+        fixture.touch(NODE_011, true);
+        fixture.touch(NODE_010, true);
 
-        fixture.touch(NODE_001);
+        fixture.touch(NODE_001, false);
         
         verifyNodes(fixture.dumpBucket(), NODE_001, NODE_010);
         
         
         res = fixture.remove(NODE_011);
         verifyNodeChangeSetCounts(res.getBucketChangeSet(), 0, 0, 0);
-        verifyNodeChangeSetCounts(res.getPeerChangeSet(), 0, 1, 0);
-        verifyNodeChangeSetRemoved(res.getPeerChangeSet(), NODE_011);
+        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 0, 1, 0);
+        verifyNodeChangeSetRemoved(res.getCacheChangeSet(), NODE_011);
         
         verifyNodes(fixture.dumpBucket(), NODE_001, NODE_010);
     }
@@ -337,10 +332,10 @@ public final class NearBucketTest {
     public void mustRemoveNodeOutOfBothPeersAndBucket() throws Throwable {
         NearBucketChangeSet res;
 
-        fixture.touchPeer(NODE_011);
-        fixture.touchPeer(NODE_010);
+        fixture.touch(NODE_011, true);
+        fixture.touch(NODE_010, true);
 
-        fixture.touch(NODE_001);
+        fixture.touch(NODE_001, false);
         
         verifyNodes(fixture.dumpBucket(), NODE_001, NODE_010);
         
@@ -349,7 +344,7 @@ public final class NearBucketTest {
         verifyNodeChangeSetCounts(res.getBucketChangeSet(), 1, 1, 0);
         verifyNodeChangeSetRemoved(res.getBucketChangeSet(), NODE_010);
         verifyNodeChangeSetAdded(res.getBucketChangeSet(), NODE_011);
-        verifyNodeChangeSetCounts(res.getPeerChangeSet(), 0, 1, 0);
+        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 0, 1, 0);
         verifyNodeChangeSetRemoved(res.getBucketChangeSet(), NODE_010);
         
         verifyNodes(fixture.dumpBucket(), NODE_001, NODE_011);
@@ -359,10 +354,10 @@ public final class NearBucketTest {
     public void mustFailToRemoveIfNodeDoesntExistInEitherPeersOrBucket() throws Throwable {
         NearBucketChangeSet res;
 
-        fixture.touchPeer(NODE_011);
-        fixture.touchPeer(NODE_010);
+        fixture.touch(NODE_011, true);
+        fixture.touch(NODE_010, true);
 
-        fixture.touch(NODE_001);
+        fixture.touch(NODE_001, false);
         
         verifyNodes(fixture.dumpBucket(), NODE_001, NODE_010);
         
@@ -379,65 +374,65 @@ public final class NearBucketTest {
         
         res = fixture.resize(3); // 2 to 3
         verifyNodeChangeSetCounts(res.getBucketChangeSet(), 0, 0, 0);
-        verifyNodeChangeSetCounts(res.getPeerChangeSet(), 0, 0, 0);
+        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
 
-        res = fixture.touchPeer(NODE_111);
+        res = fixture.touch(NODE_111, true);
         verifyNodeChangeSetCounts(res.getBucketChangeSet(), 1, 0, 0);
         verifyNodeChangeSetAdded(res.getBucketChangeSet(), NODE_111);
-        verifyNodeChangeSetCounts(res.getPeerChangeSet(), 1, 0, 0);
-        verifyNodeChangeSetAdded(res.getPeerChangeSet(), NODE_111);
+        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 1, 0, 0);
+        verifyNodeChangeSetAdded(res.getCacheChangeSet(), NODE_111);
         
         verifyNodes(fixture.dumpBucket(), NODE_111);
         
-        res = fixture.touchPeer(NODE_110);
+        res = fixture.touch(NODE_110, true);
         verifyNodeChangeSetCounts(res.getBucketChangeSet(), 1, 0, 0);
         verifyNodeChangeSetAdded(res.getBucketChangeSet(), NODE_110);
-        verifyNodeChangeSetCounts(res.getPeerChangeSet(), 1, 0, 0);
-        verifyNodeChangeSetAdded(res.getPeerChangeSet(), NODE_110);
+        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 1, 0, 0);
+        verifyNodeChangeSetAdded(res.getCacheChangeSet(), NODE_110);
         
         verifyNodes(fixture.dumpBucket(), NODE_110, NODE_111);
         
-        res = fixture.touchPeer(NODE_101);
+        res = fixture.touch(NODE_101, true);
         verifyNodeChangeSetCounts(res.getBucketChangeSet(), 1, 0, 0);
         verifyNodeChangeSetAdded(res.getBucketChangeSet(), NODE_101);
-        verifyNodeChangeSetCounts(res.getPeerChangeSet(), 1, 0, 0);
-        verifyNodeChangeSetAdded(res.getPeerChangeSet(), NODE_101);
+        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 1, 0, 0);
+        verifyNodeChangeSetAdded(res.getCacheChangeSet(), NODE_101);
         
         verifyNodes(fixture.dumpBucket(), NODE_101, NODE_110, NODE_111);
         
-        res = fixture.touchPeer(NODE_100);
+        res = fixture.touch(NODE_100, true);
         verifyNodeChangeSetCounts(res.getBucketChangeSet(), 1, 1, 0);
         verifyNodeChangeSetAdded(res.getBucketChangeSet(), NODE_100);
         verifyNodeChangeSetRemoved(res.getBucketChangeSet(), NODE_111);
-        verifyNodeChangeSetCounts(res.getPeerChangeSet(), 1, 0, 0);
-        verifyNodeChangeSetAdded(res.getPeerChangeSet(), NODE_100);
+        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 1, 0, 0);
+        verifyNodeChangeSetAdded(res.getCacheChangeSet(), NODE_100);
         
         verifyNodes(fixture.dumpBucket(), NODE_100, NODE_101, NODE_110);
         
-        res = fixture.touchPeer(NODE_011);
+        res = fixture.touch(NODE_011, true);
         verifyNodeChangeSetCounts(res.getBucketChangeSet(), 1, 1, 0);
         verifyNodeChangeSetAdded(res.getBucketChangeSet(), NODE_011);
         verifyNodeChangeSetRemoved(res.getBucketChangeSet(), NODE_110);
-        verifyNodeChangeSetCounts(res.getPeerChangeSet(), 1, 0, 0);
-        verifyNodeChangeSetAdded(res.getPeerChangeSet(), NODE_011);
+        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 1, 0, 0);
+        verifyNodeChangeSetAdded(res.getCacheChangeSet(), NODE_011);
         
         verifyNodes(fixture.dumpBucket(), NODE_011, NODE_100, NODE_101);
         
-        res = fixture.touchPeer(NODE_010);
+        res = fixture.touch(NODE_010, true);
         verifyNodeChangeSetCounts(res.getBucketChangeSet(), 1, 1, 0);
         verifyNodeChangeSetAdded(res.getBucketChangeSet(), NODE_010);
         verifyNodeChangeSetRemoved(res.getBucketChangeSet(), NODE_101);
-        verifyNodeChangeSetCounts(res.getPeerChangeSet(), 1, 0, 0);
-        verifyNodeChangeSetAdded(res.getPeerChangeSet(), NODE_010);
+        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 1, 0, 0);
+        verifyNodeChangeSetAdded(res.getCacheChangeSet(), NODE_010);
         
         verifyNodes(fixture.dumpBucket(), NODE_010, NODE_011, NODE_100);
         
-        res = fixture.touchPeer(NODE_001);
+        res = fixture.touch(NODE_001, true);
         verifyNodeChangeSetCounts(res.getBucketChangeSet(), 1, 1, 0);
         verifyNodeChangeSetAdded(res.getBucketChangeSet(), NODE_001);
         verifyNodeChangeSetRemoved(res.getBucketChangeSet(), NODE_100);
-        verifyNodeChangeSetCounts(res.getPeerChangeSet(), 1, 0, 0);
-        verifyNodeChangeSetAdded(res.getPeerChangeSet(), NODE_001);
+        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 1, 0, 0);
+        verifyNodeChangeSetAdded(res.getCacheChangeSet(), NODE_001);
         
         verifyNodes(fixture.dumpBucket(), NODE_001, NODE_010, NODE_011);
     }
@@ -446,18 +441,18 @@ public final class NearBucketTest {
     public void mustMoveFromPeerNodesToBucketNodesWhenIncreasingSize() throws Throwable {
         NearBucketChangeSet res;
 
-        fixture.touchPeer(NODE_111);
-        fixture.touchPeer(NODE_110);
-        fixture.touchPeer(NODE_101);
-        fixture.touchPeer(NODE_100);
-        fixture.touchPeer(NODE_011);
-        fixture.touchPeer(NODE_010);
-        fixture.touchPeer(NODE_001);
+        fixture.touch(NODE_111, true);
+        fixture.touch(NODE_110, true);
+        fixture.touch(NODE_101, true);
+        fixture.touch(NODE_100, true);
+        fixture.touch(NODE_011, true);
+        fixture.touch(NODE_010, true);
+        fixture.touch(NODE_001, true);
         
         
         res = fixture.resize(3); // 2 to 3
         verifyNodeChangeSetCounts(res.getBucketChangeSet(), 1, 0, 0);
-        verifyNodeChangeSetCounts(res.getPeerChangeSet(), 0, 0, 0);
+        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
         verifyNodes(fixture.dumpBucket(), NODE_001, NODE_010, NODE_011);
     }
 
@@ -465,62 +460,62 @@ public final class NearBucketTest {
     public void mustTruncateBucketNodesWhenDecreasingSize() throws Throwable {
         NearBucketChangeSet res;
 
-        fixture.touchPeer(NODE_111);
-        fixture.touchPeer(NODE_110);
-        fixture.touchPeer(NODE_101);
-        fixture.touchPeer(NODE_100);
-        fixture.touchPeer(NODE_011);
-        fixture.touchPeer(NODE_010);
-        fixture.touchPeer(NODE_001);
+        fixture.touch(NODE_111, true);
+        fixture.touch(NODE_110, true);
+        fixture.touch(NODE_101, true);
+        fixture.touch(NODE_100, true);
+        fixture.touch(NODE_011, true);
+        fixture.touch(NODE_010, true);
+        fixture.touch(NODE_001, true);
         
         res = fixture.resize(1); // 2 to 1
         verifyNodeChangeSetCounts(res.getBucketChangeSet(), 0, 1, 0);
         verifyNodeChangeSetRemoved(res.getBucketChangeSet(), NODE_010);
-        verifyNodeChangeSetCounts(res.getPeerChangeSet(), 0, 0, 0);
+        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
         verifyNodes(fixture.dumpBucket(), NODE_001);
     }
     
     @Test
     public void mustPreventConflictingBucketNodeOnTouch() throws Throwable {
-        fixture.touch(NODE_001);
-        fixture.touch(NODE_010);
+        fixture.touch(NODE_001, false);
+        fixture.touch(NODE_010, false);
         
         expectedException.expect(LinkMismatchException.class);
-        fixture.touch(new Node(NODE_010.getId(), "fakelink"));
+        fixture.touch(new Node(NODE_010.getId(), "fakelink"), false);
     }
 
     @Test
     public void mustPreventConflictingPeerNodeOnTouchPeer() throws Throwable {
-        fixture.touchPeer(NODE_001);
-        fixture.touchPeer(NODE_010);
-        fixture.touchPeer(NODE_110);
+        fixture.touch(NODE_001, true);
+        fixture.touch(NODE_010, true);
+        fixture.touch(NODE_110, true);
         
         expectedException.expect(LinkMismatchException.class);
-        fixture.touchPeer(new Node(NODE_110.getId(), "fakelink"));
+        fixture.touch(new Node(NODE_110.getId(), "fakelink"), true);
     }
     
     @Test
     public void mustPreventBucketNodeConflictingWithPeerNodeOnTouch() throws Throwable {
-        fixture.touch(NODE_001);
-        fixture.touch(NODE_010);
+        fixture.touch(NODE_001, false);
+        fixture.touch(NODE_010, false);
         
         expectedException.expect(LinkMismatchException.class);
-        fixture.touchPeer(new Node(NODE_010.getId(), "fakelink"));
+        fixture.touch(new Node(NODE_010.getId(), "fakelink"), true);
     }
 
     @Test
     public void mustPreventPeerNodeConflictingWithBucketNodeOnTouch() throws Throwable {
-        fixture.touchPeer(NODE_001);
-        fixture.touchPeer(NODE_010);
+        fixture.touch(NODE_001, true);
+        fixture.touch(NODE_010, true);
         
         expectedException.expect(LinkMismatchException.class);
-        fixture.touch(new Node(NODE_010.getId(), "fakelink"));
+        fixture.touch(new Node(NODE_010.getId(), "fakelink"), false);
     }
 
     @Test
     public void mustPreventRemoveIfConflictingWithBucketNodeOnTouch() throws Throwable {
-        fixture.touch(NODE_001);
-        fixture.touch(NODE_010);
+        fixture.touch(NODE_001, false);
+        fixture.touch(NODE_010, false);
         
         expectedException.expect(LinkMismatchException.class);
         fixture.remove(new Node(NODE_010.getId(), "fakelink"));
@@ -528,8 +523,8 @@ public final class NearBucketTest {
 
     @Test
     public void mustPreventRemoveIfConflictingWithPeerNodeOnTouch() throws Throwable {
-        fixture.touchPeer(NODE_001);
-        fixture.touchPeer(NODE_010);
+        fixture.touch(NODE_001, true);
+        fixture.touch(NODE_010, true);
         
         expectedException.expect(LinkMismatchException.class);
         fixture.remove(new Node(NODE_010.getId(), "fakelink"));

@@ -9,8 +9,10 @@ import com.offbynull.voip.kademlia.model.BitString;
 import com.offbynull.voip.kademlia.model.Id;
 import com.offbynull.voip.kademlia.model.Node;
 import com.offbynull.voip.kademlia.model.Router;
+import com.offbynull.voip.kademlia.model.RouterChangeSet;
 import java.security.SecureRandom;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.List;
 import org.apache.commons.lang3.Validate;
 
@@ -26,6 +28,8 @@ final class JoinSubcoroutine implements Subcoroutine<Void> {
     private final Router router;
     private final Id baseId;
     
+    private final GraphHelper graphHelper;
+    
     public JoinSubcoroutine(Address subAddress, State state, Node bootstrapNode) {
         Validate.notNull(subAddress);
         Validate.notNull(state);
@@ -39,6 +43,8 @@ final class JoinSubcoroutine implements Subcoroutine<Void> {
         this.bootstrapNode = bootstrapNode;
         this.baseId = state.getBaseId();
         this.router = state.getRouter();
+        
+        this.graphHelper = state.getGraphHelper();
         
         if (bootstrapNode != null) {
             Validate.isTrue(!bootstrapNode.getId().equals(baseId)); // bootstrap must not be self
@@ -64,14 +70,14 @@ final class JoinSubcoroutine implements Subcoroutine<Void> {
         
         // 1. Add bootstrap node to routing tree
         ctx.addOutgoingMessage(subAddress, logAddress, info("Attempting to join the network via {}...", bootstrapNode));
-        router.touch(ctx.getTime(), bootstrapNode);
+        applyNodesToRouter(ctx, Collections.singletonList(bootstrapNode));
         
         // 2. Find yourself
         ctx.addOutgoingMessage(subAddress, logAddress, info("Attempting to find self...", bootstrapNode));
         closestNodes = new FindSubcoroutine(subAddress.appendSuffix("selffind"), state, baseId, 20, false).run(cnt);
         Validate.validState(!closestNodes.isEmpty(), "No results from bootstrap");
         Validate.validState(!closestNodes.get(0).getId().equals(baseId), "Self already exists in network");
-        applyNodesToRouter(ctx.getTime(), closestNodes);
+        applyNodesToRouter(ctx, closestNodes);
         
         // There's a race condition here where 2 nodes with the same ID can be joining at the same time. There's no way to detect that case.
         
@@ -98,25 +104,26 @@ final class JoinSubcoroutine implements Subcoroutine<Void> {
             closestNodes = new FindSubcoroutine(subAddress.appendSuffix("bucketfind"), state, randomId, 20, false).run(cnt);
             
             // Touch router with these nodes
-            applyNodesToRouter(ctx.getTime(), closestNodes);
+            applyNodesToRouter(ctx, closestNodes);
         }
         
         // 4. Advertise self to closest nodes so people can reach you
         ctx.addOutgoingMessage(subAddress, logAddress, info("Finding closest nodes to self..."));
         closestNodes = new FindSubcoroutine(subAddress.appendSuffix("adv"), state, baseId, 20, true).run(cnt);
-        applyNodesToRouter(ctx.getTime(), closestNodes);
+        applyNodesToRouter(ctx, closestNodes);
 
         
         return null;
     }
 
-    private void applyNodesToRouter(Instant time, List<Node> nodes) {
+    private void applyNodesToRouter(Context ctx, List<Node> nodes) {
         for (Node node : nodes) {
             if (node.getId().equals(baseId)) { // If we reached a node with our own id, skip it
                 continue;
             }
 
-            router.touch(time, node);
+            RouterChangeSet changeSet = router.touch(ctx.getTime(), node);
+            graphHelper.applyRouterChanges(ctx, changeSet);
         }
     }
 }

@@ -141,60 +141,60 @@ public class RouterTest {
         verifyNodes(ret, NODE_1000, NODE_1001, NODE_1010); // 1001 and 1010 in kbucket, and 1000 in nearset
     }
 
-    @Test
-    public void mustMakeSearchableAgainIfLockedNodeUnlocked() throws Throwable {
-        // touch all 1 buckets, from smallest to largest
-        fixture.touch(BASE_TIME.plusMillis(1L), NODE_1000);
-        fixture.touch(BASE_TIME.plusMillis(2L), NODE_1001);
-        fixture.touch(BASE_TIME.plusMillis(3L), NODE_1010);
-        fixture.touch(BASE_TIME.plusMillis(4L), NODE_1011);
-        
-        fixture.lock(NODE_1000); // 1000 removed from nearset, and 1000 locked in kbucket (NOT REMOVED/REPLACED)
-        
-        List<Node> ret;
-        
-        ret = fixture.find(NODE_1000.getId(), 100);
-        verifyNodes(ret, NODE_1001); // 1000 is not findable because locked and not in nearset, 1010+1011 in kbucket cache / not in nearset
-        
-        fixture.unlock(NODE_1000); // 1000 re-added to nearset, and 1000 unlocked in kbucket
-        
-        ret = fixture.find(NODE_1000.getId(), 100);
-        verifyNodes(ret, NODE_1000, NODE_1001); // 1000 and 1001 findable in kbucket, and exist in nearset
-    }
-
-    @Test
-    public void mustNotAllowLockIfStale() throws Throwable {
-        // touch all 1 buckets, from smallest to largest
-        fixture.touch(BASE_TIME.plusMillis(1L), NODE_1000);
-        fixture.touch(BASE_TIME.plusMillis(2L), NODE_1001);
-        
-        fixture.stale(NODE_1000);
-        
-        expectedException.expect(IllegalArgumentException.class);
-        fixture.lock(NODE_1000);
-    }
-
-    @Test
-    public void mustNotAllowUnlockIfStale() throws Throwable {
-        // touch all 1 buckets, from smallest to largest
-        fixture.touch(BASE_TIME.plusMillis(1L), NODE_1000);
-        fixture.touch(BASE_TIME.plusMillis(2L), NODE_1001);
-        
-        fixture.stale(NODE_1000);
-        
-        expectedException.expect(IllegalArgumentException.class);
-        fixture.unlock(NODE_1000);
-    }
-
-    @Test
-    public void mustNotAllowStaleIfLocked() throws Throwable {
-        // touch all 1 buckets, from smallest to largest
-        fixture.touch(BASE_TIME.plusMillis(1L), NODE_1000);
-        fixture.touch(BASE_TIME.plusMillis(2L), NODE_1001);
-        
-        fixture.lock(NODE_1000);
-        
-        expectedException.expect(IllegalArgumentException.class);
-        fixture.stale(NODE_1000);
-    }
+//    @Test
+//    public void mustMakeSearchableAgainIfLockedNodeUnlocked() throws Throwable {
+//        // touch all 1 buckets, from smallest to largest
+//        fixture.touch(BASE_TIME.plusMillis(1L), NODE_1000);
+//        fixture.touch(BASE_TIME.plusMillis(2L), NODE_1001);
+//        fixture.touch(BASE_TIME.plusMillis(3L), NODE_1010);
+//        fixture.touch(BASE_TIME.plusMillis(4L), NODE_1011);
+//        
+//        fixture.lock(NODE_1000); // 1000 removed from nearset, and 1000 locked in kbucket (NOT REMOVED/REPLACED)
+//        
+//        List<Node> ret;
+//        
+//        ret = fixture.find(NODE_1000.getId(), 100);
+//        verifyNodes(ret, NODE_1001); // 1000 is not findable because locked and not in nearset, 1010+1011 in kbucket cache / not in nearset
+//        
+//        fixture.unlock(NODE_1000); // 1000 re-added to nearset, and 1000 unlocked in kbucket
+//        
+//        ret = fixture.find(NODE_1000.getId(), 100);
+//        verifyNodes(ret, NODE_1000, NODE_1001); // 1000 and 1001 findable in kbucket, and exist in nearset
+//    }
+//
+//    @Test
+//    public void mustNotAllowLockIfStale() throws Throwable {
+//        // touch all 1 buckets, from smallest to largest
+//        fixture.touch(BASE_TIME.plusMillis(1L), NODE_1000);
+//        fixture.touch(BASE_TIME.plusMillis(2L), NODE_1001);
+//        
+//        fixture.stale(NODE_1000);
+//        
+//        expectedException.expect(IllegalArgumentException.class);
+//        fixture.lock(NODE_1000);
+//    }
+//
+//    @Test
+//    public void mustNotAllowUnlockIfStale() throws Throwable {
+//        // touch all 1 buckets, from smallest to largest
+//        fixture.touch(BASE_TIME.plusMillis(1L), NODE_1000);
+//        fixture.touch(BASE_TIME.plusMillis(2L), NODE_1001);
+//        
+//        fixture.stale(NODE_1000);
+//        
+//        expectedException.expect(IllegalArgumentException.class);
+//        fixture.unlock(NODE_1000);
+//    }
+//
+//    @Test
+//    public void mustNotAllowStaleIfLocked() throws Throwable {
+//        // touch all 1 buckets, from smallest to largest
+//        fixture.touch(BASE_TIME.plusMillis(1L), NODE_1000);
+//        fixture.touch(BASE_TIME.plusMillis(2L), NODE_1001);
+//        
+//        fixture.lock(NODE_1000);
+//        
+//        expectedException.expect(IllegalArgumentException.class);
+//        fixture.stale(NODE_1000);
+//    }
 }

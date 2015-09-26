@@ -37,20 +37,19 @@ public final class KademliaCoroutine implements Coroutine {
         byte[] seed2 = start.getSeed2();
         AddressTransformer addressTransformer = start.getAddressTransformer();
 
+        State state = new State(
+                timerAddress,
+                graphAddress,
+                logAddress,
+                seed1,
+                seed2,
+                baseId,
+                kademliaParameters,
+                addressTransformer);
+
+        state.getGraphHelper().createGraphs(ctx);
 
         try {
-            State state = new State(
-                    timerAddress,
-                    graphAddress,
-                    logAddress,
-                    seed1,
-                    seed2,
-                    baseId,
-                    kademliaParameters,
-                    addressTransformer);
-
-            state.getGraphHelper().addPrefixNodesToGraph(ctx);
-            
             // Join (or just initialize if no bootstrap node is set)
             JoinSubcoroutine joinTask = new JoinSubcoroutine(JOIN_RELATIVE_ADDRESS, state, bootstrapNode);
             joinTask.run(cnt);

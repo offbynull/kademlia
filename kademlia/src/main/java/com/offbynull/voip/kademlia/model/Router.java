@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Stream;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.Validate;
 
 public final class Router {
@@ -52,7 +53,7 @@ public final class Router {
                 maxNearNodes);
     }
     
-    public void touch(Instant time, Node node) {
+    public RouterChangeSet touch(Instant time, Node node) {
         Validate.notNull(time);
         Validate.notNull(node);
         
@@ -67,16 +68,17 @@ public final class Router {
         
         // Touch routing tree -- apply changes to nearbucket
         RouteTreeChangeSet routeTreeChangeSet = routeTree.touch(time, node);
-        synchronizeChangesFromRouteTreeToNearBucket(routeTreeChangeSet);
+        NearBucketChangeSet nearBucketChangeSetFromSync = synchronizeChangesFromRouteTreeToNearBucket(routeTreeChangeSet);
 
         // Was it added to the routing tree? then it needs to be put in to the "replacement" cache of the nearBucket
-        if (!routeTreeChangeSet.getKBucketChangeSet().getBucketChangeSet().viewAdded().isEmpty()
-                || !routeTreeChangeSet.getKBucketChangeSet().getBucketChangeSet().viewUpdated().isEmpty()) {
-            nearBucket.touchPeer(node);
-        }
+        boolean existsInRoutingTree
+                = !routeTreeChangeSet.getKBucketChangeSet().getBucketChangeSet().viewAdded().isEmpty() 
+                || !routeTreeChangeSet.getKBucketChangeSet().getBucketChangeSet().viewUpdated().isEmpty();
+        NearBucketChangeSet nearBucketChangeSetFromTouch = nearBucket.touch(node, existsInRoutingTree);
         
-        // In addition to that, touch the nearbucket anyways -- if wasn't added to route tree, we may still want it because it may be nearer
-        nearBucket.touch(node);
+        
+        return new RouterChangeSet(routeTreeChangeSet,
+                collateNearBucketChangeSets(nearBucketChangeSetFromSync, nearBucketChangeSetFromTouch));
     }
     
     
@@ -116,7 +118,7 @@ public final class Router {
     // When a contact fails to respond to 5 RPCs in a row, it is considered stale. If a k-bucket is not full or its replacement cache is
     // empty, Kademlia merely flags stale contacts rather than remove them. This ensures, among other things, that if a node’s own network
     // connection goes down teporarily, the node won’t completely void all of its k-buckets
-    public void stale(Node node) {
+    public RouterChangeSet stale(Node node) {
         Validate.notNull(node);
         
         Id nodeId = node.getId();
@@ -125,8 +127,9 @@ public final class Router {
         InternalValidate.notMatchesBase(baseId, nodeId); 
         
         RouteTreeChangeSet routeTreeChangeSet = routeTree.stale(node);
+        NearBucketChangeSet nearBucketChangeSet = synchronizeChangesFromRouteTreeToNearBucket(routeTreeChangeSet);
         
-        synchronizeChangesFromRouteTreeToNearBucket(routeTreeChangeSet);
+        return new RouterChangeSet(routeTreeChangeSet, nearBucketChangeSet);
     }
     
     // lock means "avoid contact" AKA avoid returning on "find" until unlocked. unlocking only happens on unlock(), not on touch()...
@@ -139,46 +142,91 @@ public final class Router {
     //
     // that means because we're in a "backoff period", even if we get touch()'d by that node, we still want to keep it unfindable/locked...
     // up until the point that we explictly decide to to make it findable/unlocked.
-    public void lock(Node node) {
-        Validate.notNull(node);
-        
-        Id nodeId = node.getId();
-        
-        InternalValidate.matchesLength(baseId.getBitLength(), nodeId);
-        InternalValidate.notMatchesBase(baseId, nodeId); 
-        
-        routeTree.lock(node); // will throw illargexc if node not in routetree
-        
-        nearBucket.remove(node); // remove from nearset / nearset's cache
-    }
-
-    public void unlock(Node node) {
-        Validate.notNull(node);
-        
-        Id nodeId = node.getId();
-        
-        InternalValidate.matchesLength(baseId.getBitLength(), nodeId);
-        InternalValidate.notMatchesBase(baseId, nodeId); 
-        
-        routeTree.unlock(node); // will throw illargexc if node not in routetree
-        
-        nearBucket.touch(node); // re-enter in to nearset / nearset's cache
-        nearBucket.touchPeer(node);
-    }
+//
+//COMMENTED OUT METHODS BELOW BECAUSE THEY DONT RETURN A ROUTERTREECHANGSET AND ARENT CURRENTLY BEING USED FOR ANYTHING. IF YOU'RE GOING TO
+//RE-ENABLE, HAVE ROUTER DECIDE WHAT SHOULD BE LOCKED/STALE BASED ON AN UNRESPONSIVE COUNTER THAT GETS HIT WHENEVER SOMETHING IS
+//UNRESPONSIVE
+//    public void lock(Node node) {
+//        Validate.notNull(node);
+//        
+//        Id nodeId = node.getId();
+//        
+//        InternalValidate.matchesLength(baseId.getBitLength(), nodeId);
+//        InternalValidate.notMatchesBase(baseId, nodeId); 
+//        
+//        routeTree.lock(node); // will throw exc if node not in routetree
+//        
+//        nearBucket.remove(node); // remove from nearset / nearset's cache
+//    }
+//
+//    public void unlock(Node node) {
+//        Validate.notNull(node);
+//        
+//        Id nodeId = node.getId();
+//        
+//        InternalValidate.matchesLength(baseId.getBitLength(), nodeId);
+//        InternalValidate.notMatchesBase(baseId, nodeId); 
+//        
+//        routeTree.unlock(node); // will throw exc if node not in routetree
+//        
+//        nearBucket.touch(node, true); // re-enter in to nearset / nearset's cache
+//    }
     
-    private void synchronizeChangesFromRouteTreeToNearBucket(RouteTreeChangeSet routeTreeChangeSet) {
+    private NearBucketChangeSet synchronizeChangesFromRouteTreeToNearBucket(RouteTreeChangeSet routeTreeChangeSet) {
         KBucketChangeSet kBucketChangeSet = routeTreeChangeSet.getKBucketChangeSet();
+        NearBucketChangeSet nearBucketChangeSet = new NearBucketChangeSet(NodeChangeSet.NO_CHANGE, NodeChangeSet.NO_CHANGE);
         
         for (Activity addedNode : kBucketChangeSet.getBucketChangeSet().viewAdded()) {
-            nearBucket.touchPeer(addedNode.getNode()); // this is a new peer, so let the near bucket know
+            // this is a new peer, so let the near bucket know
+            NearBucketChangeSet tempChangeSet = nearBucket.touch(addedNode.getNode(), true);
+            nearBucketChangeSet = collateNearBucketChangeSets(tempChangeSet, nearBucketChangeSet);
         }
 
         for (Activity removedNode : kBucketChangeSet.getBucketChangeSet().viewRemoved()) {
-            nearBucket.remove(removedNode.getNode()); // a peer was removed, so let the neat bucket know
+            // a peer was removed, so let the neat bucket know
+            NearBucketChangeSet tempChangeSet = nearBucket.remove(removedNode.getNode());
+            nearBucketChangeSet = collateNearBucketChangeSets(tempChangeSet, nearBucketChangeSet);
         }
 
         for (Activity updatedNode : kBucketChangeSet.getBucketChangeSet().viewUpdated()) {
-            nearBucket.touchPeer(updatedNode.getNode()); // this is a existing peer, so let the near bucket know
+            // this is a existing peer, so let the near bucket know
+            NearBucketChangeSet tempChangeSet = nearBucket.touch(updatedNode.getNode(), true);
+            nearBucketChangeSet = collateNearBucketChangeSets(tempChangeSet, nearBucketChangeSet);
         }
+        
+        return nearBucketChangeSet;
+    }
+    
+    private NearBucketChangeSet collateNearBucketChangeSets(NearBucketChangeSet one, NearBucketChangeSet two) {
+        return new NearBucketChangeSet(
+                new NodeChangeSet(
+                        CollectionUtils.union(
+                                one.getBucketChangeSet().viewAdded(),
+                                two.getBucketChangeSet().viewAdded()
+                        ),
+                        CollectionUtils.union(
+                                one.getBucketChangeSet().viewRemoved(),
+                                two.getBucketChangeSet().viewRemoved()
+                        ),
+                        CollectionUtils.union(
+                                one.getBucketChangeSet().viewUpdated(),
+                                two.getBucketChangeSet().viewUpdated()
+                        )
+                ),
+                new NodeChangeSet(
+                        CollectionUtils.union(
+                                one.getCacheChangeSet().viewAdded(),
+                                two.getCacheChangeSet().viewAdded()
+                        ),
+                        CollectionUtils.union(
+                                one.getCacheChangeSet().viewRemoved(),
+                                two.getCacheChangeSet().viewRemoved()
+                        ),
+                        CollectionUtils.union(
+                                one.getCacheChangeSet().viewUpdated(),
+                                two.getCacheChangeSet().viewUpdated()
+                        )
+                )
+        );
     }
 }

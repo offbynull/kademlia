@@ -16,7 +16,7 @@ public class BitStringTest {
     @Test
     public void mustCreateFromString() {
         BitString bitString1 = BitString.createFromString("100001011111");
-        assertEquals("(12) 1000 0101 1111", bitString1.toString());
+        assertEquals("100001011111", bitString1.toString());
     }
 
     @Test

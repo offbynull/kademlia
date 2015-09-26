@@ -505,8 +505,7 @@ public final class RouteTreeTest {
     }
     
     @Test
-    public void mustRejectIfFindingSelfId() throws Throwable {
-        expectedException.expect(IllegalArgumentException.class);
+    public void mustNotRejectIfFindingSelfId() throws Throwable {
         fixture.find(NODE_0000.getId(), 1);
     }
 

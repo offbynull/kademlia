@@ -19,30 +19,30 @@ package com.offbynull.voip.kademlia.model;
 import java.util.Objects;
 import org.apache.commons.lang3.Validate;
 
-public final class NearBucketChangeSet {
-    private final NodeChangeSet bucketChangeSet;
-    private final NodeChangeSet peerChangeSet;
+public final class RouterChangeSet {
+    private final RouteTreeChangeSet routeTreeChangeSet;
+    private final NearBucketChangeSet nearBucketChangeSet;
 
-    public NearBucketChangeSet(NodeChangeSet bucketChangeSet, NodeChangeSet peerChangeSet) {
-        Validate.notNull(bucketChangeSet);
-        Validate.notNull(peerChangeSet);
-        this.bucketChangeSet = bucketChangeSet;
-        this.peerChangeSet = peerChangeSet;
+    public RouterChangeSet(RouteTreeChangeSet routeTreeChangeSet, NearBucketChangeSet nearBucketChangeSet) {
+        Validate.notNull(routeTreeChangeSet);
+        Validate.notNull(nearBucketChangeSet);
+        this.routeTreeChangeSet = routeTreeChangeSet;
+        this.nearBucketChangeSet = nearBucketChangeSet;
     }
 
-    public NodeChangeSet getBucketChangeSet() {
-        return bucketChangeSet;
+    public RouteTreeChangeSet getRouteTreeChangeSet() {
+        return routeTreeChangeSet;
     }
 
-    public NodeChangeSet getCacheChangeSet() {
-        return peerChangeSet;
+    public NearBucketChangeSet getNearBucketChangeSet() {
+        return nearBucketChangeSet;
     }
 
     @Override
     public int hashCode() {
         int hash = 3;
-        hash = 83 * hash + Objects.hashCode(this.bucketChangeSet);
-        hash = 83 * hash + Objects.hashCode(this.peerChangeSet);
+        hash = 79 * hash + Objects.hashCode(this.routeTreeChangeSet);
+        hash = 79 * hash + Objects.hashCode(this.nearBucketChangeSet);
         return hash;
     }
 
@@ -54,18 +54,14 @@ public final class NearBucketChangeSet {
         if (getClass() != obj.getClass()) {
             return false;
         }
-        final NearBucketChangeSet other = (NearBucketChangeSet) obj;
-        if (!Objects.equals(this.bucketChangeSet, other.bucketChangeSet)) {
+        final RouterChangeSet other = (RouterChangeSet) obj;
+        if (!Objects.equals(this.routeTreeChangeSet, other.routeTreeChangeSet)) {
             return false;
         }
-        if (!Objects.equals(this.peerChangeSet, other.peerChangeSet)) {
+        if (!Objects.equals(this.nearBucketChangeSet, other.nearBucketChangeSet)) {
             return false;
         }
         return true;
     }
 
-    @Override
-    public String toString() {
-        return "NearBucketChangeSet{" + "nearChangeSet=" + bucketChangeSet + ", networkChangeSet=" + peerChangeSet + '}';
-    }
 }
