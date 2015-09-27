@@ -95,28 +95,24 @@ public final class Start {
     public static final class KademliaParameters {
         private final Supplier<RouteTreeBranchSpecificationSupplier> branchSpecSupplier;
         private final Supplier<RouteTreeBucketSpecificationSupplier> bucketSpecSupplier;
-        private final int nearBucketSize;
         private final int maxConcurrentRequestsPerFind;
 
 
-        public KademliaParameters(Id baseId, int branchesPerLevel, int nodesPerBucket, int cacheNodesPerBucket, int nearBucketSize,
+        public KademliaParameters(Id baseId, int branchesPerLevel, int nodesPerBucket, int cacheNodesPerBucket,
                 int maxConcurrentRequestsPerFind) {
             this(() -> new SimpleRouteTreeSpecificationSupplier(baseId, branchesPerLevel, nodesPerBucket, cacheNodesPerBucket),
                     () -> new SimpleRouteTreeSpecificationSupplier(baseId, branchesPerLevel, nodesPerBucket, cacheNodesPerBucket),
-                    nearBucketSize, maxConcurrentRequestsPerFind);
+                    maxConcurrentRequestsPerFind);
         }
 
         public KademliaParameters(Supplier<RouteTreeBranchSpecificationSupplier> branchSpecSupplier,
                 Supplier<RouteTreeBucketSpecificationSupplier> bucketSpecSupplier,
-                int nearBucketSize,
                 int maxConcurrentRequestsPerFind) {
             Validate.notNull(branchSpecSupplier);
             Validate.notNull(bucketSpecSupplier);
-            Validate.isTrue(nearBucketSize > 0);
             Validate.notNull(maxConcurrentRequestsPerFind > 0);
             this.branchSpecSupplier = branchSpecSupplier;
             this.bucketSpecSupplier = bucketSpecSupplier;
-            this.nearBucketSize = nearBucketSize;
             this.maxConcurrentRequestsPerFind = maxConcurrentRequestsPerFind;
         }
 
@@ -126,10 +122,6 @@ public final class Start {
 
         public Supplier<RouteTreeBucketSpecificationSupplier> getBucketSpecSupplier() {
             return bucketSpecSupplier;
-        }
-
-        public int getNearBucketSize() {
-            return nearBucketSize;
         }
 
         public int getMaxConcurrentRequestsPerFind() {

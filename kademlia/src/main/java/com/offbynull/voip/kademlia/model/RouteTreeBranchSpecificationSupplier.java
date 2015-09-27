@@ -18,7 +18,5 @@ package com.offbynull.voip.kademlia.model;
 
 
 public interface RouteTreeBranchSpecificationSupplier {
-    // result must be pow of 2
-    // if prefix is empty, result must be at least 1 (explained in RouteTree)
     int getBranchCount(BitString prefix);
 }

@@ -246,10 +246,7 @@ public final class RouteTree {
         
         // Get number of buckets to create for new level
         int numOfBuckets = branchSpecSupplier.getBranchCount(splitBucketPrefix);
-        Validate.isTrue(numOfBuckets >= 0, "Branch cannot be negative, was %d", numOfBuckets);
-        if (numOfBuckets == 0) {
-            return null; // 0 means do not grow
-        }
+        Validate.isTrue(numOfBuckets >= 2, "Branch count must be atleast 2, was %d", numOfBuckets);
         Validate.isTrue(Integer.bitCount(numOfBuckets) == 1, "Branch count must be power of 2");
         int suffixBitCount = Integer.bitCount(numOfBuckets - 1); // num of bits   e.g. 8 (1000) -- 1000 - 1 = 0111, bitcount(0111) = 3
         Validate.isTrue(splitBucketPrefix.getBitLength() + suffixBitCount <= baseId.getBitLength(),

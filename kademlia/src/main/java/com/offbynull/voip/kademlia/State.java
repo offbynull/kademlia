@@ -62,8 +62,7 @@ final class State {
         this.baseId = baseId;
         this.router = new Router(baseId,
                 kademliaParameters.getBranchSpecSupplier().get(),
-                kademliaParameters.getBucketSpecSupplier().get(),
-                kademliaParameters.getNearBucketSize());
+                kademliaParameters.getBucketSpecSupplier().get());
         this.maxConcurrentRequestsPerFind = kademliaParameters.getMaxConcurrentRequestsPerFind();
         
         this.graphHelper = new GraphHelper(baseId, graphAddress, router);

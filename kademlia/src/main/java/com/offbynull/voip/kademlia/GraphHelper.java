@@ -11,8 +11,6 @@ import com.offbynull.voip.kademlia.model.Activity;
 import com.offbynull.voip.kademlia.model.BitString;
 import com.offbynull.voip.kademlia.model.Id;
 import com.offbynull.voip.kademlia.model.IdXorMetricComparator;
-import com.offbynull.voip.kademlia.model.NearBucketChangeSet;
-import com.offbynull.voip.kademlia.model.Node;
 import com.offbynull.voip.kademlia.model.RouteTreeChangeSet;
 import com.offbynull.voip.kademlia.model.Router;
 import com.offbynull.voip.kademlia.model.RouterChangeSet;
@@ -32,10 +30,6 @@ import java.util.TreeSet;
 import org.apache.commons.lang3.Validate;
 
 final class GraphHelper {
-    
-    private static final String CLOSEST_NODE_ID = "CLOSEST_NODE_SPECIAL_ID";
-    private static final String CLOSEST_LABEL = "CLOSEST:";
-    private static final int CLOSEST_COLOR = 0xFF00FF;
     
     private static final String TREE_ROOT_LABEL = "ROOT";
     private static final int TREE_ROOT_COLOR = 0x7F7F7F;
@@ -72,12 +66,10 @@ final class GraphHelper {
     }
 
     public void createGraphs(Context ctx) {
-        setupNearBucketGraph(ctx);
         setupRoutingTreeGraph(ctx);
     }
     
     public void applyRouterChanges(Context ctx, RouterChangeSet changeSet) {
-        applyNearBucketChanges(ctx, changeSet.getNearBucketChangeSet());
         applyRoutingTreeChanges(ctx, changeSet.getRouteTreeChangeSet());
     }
     
@@ -131,34 +123,6 @@ final class GraphHelper {
         }
         
         return routeTreeNode;
-    }
-    
-    private void applyNearBucketChanges(Context ctx, NearBucketChangeSet changeSet) {
-        // Remove nodes from set
-        for (Node removedNode : changeSet.getBucketChangeSet().viewRemoved()) {
-            Id id = removedNode.getId();
-            nearBucketIds.remove(id);
-        }
-
-        // Add nodes to set
-        for (Node addedNode : changeSet.getBucketChangeSet().viewAdded()) {
-            Id id = addedNode.getId();
-            nearBucketIds.add(id);
-        }
-        
-        // Concatenate set to string and set as label
-        StringJoiner joiner = new StringJoiner("\n");
-        joiner.add(CLOSEST_LABEL);
-        nearBucketIds.forEach(id -> joiner.add(id.getBitString().toString()));
-        
-        ctx.addOutgoingMessage(graphAddress, new LabelNode(CLOSEST_NODE_ID, joiner.toString()));
-    }
-    
-    private void setupNearBucketGraph(Context ctx) {        
-        ctx.addOutgoingMessage(graphAddress, new AddNode(CLOSEST_NODE_ID));
-        ctx.addOutgoingMessage(graphAddress, new LabelNode(CLOSEST_NODE_ID, CLOSEST_LABEL));
-        ctx.addOutgoingMessage(graphAddress, new StyleNode(CLOSEST_NODE_ID, CLOSEST_COLOR));
-        ctx.addOutgoingMessage(graphAddress, new MoveNode(CLOSEST_NODE_ID, X_SPREAD, -Y_SPREAD)); // move it up and to the right a bit
     }
     
     private void setupRoutingTreeGraph(Context ctx) {        

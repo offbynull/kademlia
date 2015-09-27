@@ -11,12 +11,9 @@ import com.offbynull.peernetic.visualizer.gateways.graph.GraphGateway;
 import com.offbynull.voip.kademlia.internalmessages.SearchRequest;
 import com.offbynull.voip.kademlia.internalmessages.SearchResponse;
 import com.offbynull.voip.kademlia.internalmessages.Start;
-import com.offbynull.voip.kademlia.model.BitString;
+import com.offbynull.voip.kademlia.internalmessages.Start.KademliaParameters;
 import com.offbynull.voip.kademlia.model.Id;
 import com.offbynull.voip.kademlia.model.Node;
-import com.offbynull.voip.kademlia.model.RouteTreeBranchSpecificationSupplier;
-import com.offbynull.voip.kademlia.model.RouteTreeBucketSpecificationSupplier;
-import com.offbynull.voip.kademlia.model.RouteTreeBucketSpecificationSupplier.BucketParameters;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -61,23 +58,37 @@ public final class ManualTest {
         // Seed node
         addNode("1111", null, actorRunner);
 
-        // Connecting nodes
-        addNode("0000", "1111", actorRunner);
-        addNode("0001", "1111", actorRunner);
-        addNode("0010", "1111", actorRunner);
-        addNode("0011", "1111", actorRunner);
-        addNode("0100", "1111", actorRunner);
-        addNode("0101", "1111", actorRunner);
-        addNode("0110", "1111", actorRunner);
-        addNode("0111", "1111", actorRunner);
-        addNode("1000", "1111", actorRunner);
-        addNode("1001", "1111", actorRunner);
-        addNode("1010", "1111", actorRunner);
-        addNode("1011", "1111", actorRunner);
-        addNode("1100", "1111", actorRunner);
-        addNode("1101", "1111", actorRunner);
+        // Connecting nodes (need the sleeps because there's a chance a node may get a FindRequest msg before a Start msg
         addNode("1110", "1111", actorRunner);
-//        addNode("1111", "1111", actorRunner);
+        Thread.sleep(200L);
+        addNode("1101", "1110", actorRunner);
+        Thread.sleep(200L);
+        addNode("1100", "1101", actorRunner);
+        Thread.sleep(200L);
+        addNode("1011", "1100", actorRunner);
+        Thread.sleep(200L);
+        addNode("1010", "1011", actorRunner);
+        Thread.sleep(200L);
+        addNode("1001", "1010", actorRunner);
+        Thread.sleep(200L);
+        addNode("1000", "1001", actorRunner);
+        Thread.sleep(200L);
+        addNode("0111", "1000", actorRunner);
+        Thread.sleep(200L);
+        addNode("0110", "0111", actorRunner);
+        Thread.sleep(200L);
+        addNode("0101", "0110", actorRunner);
+        Thread.sleep(200L);
+        addNode("0100", "0101", actorRunner);
+        Thread.sleep(200L);
+        addNode("0011", "0100", actorRunner);
+        Thread.sleep(200L);
+        addNode("0010", "0011", actorRunner);
+        Thread.sleep(200L);
+        addNode("0001", "0010", actorRunner);
+        Thread.sleep(200L);
+        addNode("0000", "0001", actorRunner);
+        Thread.sleep(200L);
 
         
 
@@ -117,33 +128,7 @@ public final class ManualTest {
                         new SimpleAddressTransformer(BASE_ACTOR_ADDRESS),
                         id,
                         bootstrapNode,
-//                        new KademliaParameters(id, 2, 20, 20, 20, 3),
-                        new Start.KademliaParameters(
-                                // only 2 branches in routing tree 1xx and 0xx
-                                () -> new RouteTreeBranchSpecificationSupplier() {
-
-                                    @Override
-                                    public int getBranchCount(BitString prefix) {
-                                        if (prefix.getBitLength() == 0) {
-                                            return 2;
-                                        } else {
-                                            return 0;
-                                        }
-                                    }
-                                },
-                                // only 1 node per bucket, 0 cache per bucket
-                                () -> new RouteTreeBucketSpecificationSupplier() {
-                                    @Override
-                                    public RouteTreeBucketSpecificationSupplier.BucketParameters getBucketParameters(BitString prefix) {
-                                        if (prefix.getBitLength() == 1) {
-                                            return new BucketParameters(1, 0);
-                                        } else {
-                                            throw new IllegalArgumentException();
-                                        }
-                                    }
-                                },
-                                1, // 1 node in near bucket
-                                1), // 1 find concurrency request
+                        new KademliaParameters(id, 2, 1, 1, 3),
                         seed1,
                         seed2,
                         BASE_TIMER_ADDRESS,

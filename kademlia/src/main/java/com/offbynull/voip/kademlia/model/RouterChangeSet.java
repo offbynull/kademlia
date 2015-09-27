@@ -21,28 +21,20 @@ import org.apache.commons.lang3.Validate;
 
 public final class RouterChangeSet {
     private final RouteTreeChangeSet routeTreeChangeSet;
-    private final NearBucketChangeSet nearBucketChangeSet;
 
-    public RouterChangeSet(RouteTreeChangeSet routeTreeChangeSet, NearBucketChangeSet nearBucketChangeSet) {
+    public RouterChangeSet(RouteTreeChangeSet routeTreeChangeSet) {
         Validate.notNull(routeTreeChangeSet);
-        Validate.notNull(nearBucketChangeSet);
         this.routeTreeChangeSet = routeTreeChangeSet;
-        this.nearBucketChangeSet = nearBucketChangeSet;
     }
 
     public RouteTreeChangeSet getRouteTreeChangeSet() {
         return routeTreeChangeSet;
     }
 
-    public NearBucketChangeSet getNearBucketChangeSet() {
-        return nearBucketChangeSet;
-    }
-
     @Override
     public int hashCode() {
         int hash = 3;
         hash = 79 * hash + Objects.hashCode(this.routeTreeChangeSet);
-        hash = 79 * hash + Objects.hashCode(this.nearBucketChangeSet);
         return hash;
     }
 
@@ -56,9 +48,6 @@ public final class RouterChangeSet {
         }
         final RouterChangeSet other = (RouterChangeSet) obj;
         if (!Objects.equals(this.routeTreeChangeSet, other.routeTreeChangeSet)) {
-            return false;
-        }
-        if (!Objects.equals(this.nearBucketChangeSet, other.nearBucketChangeSet)) {
             return false;
         }
         return true;

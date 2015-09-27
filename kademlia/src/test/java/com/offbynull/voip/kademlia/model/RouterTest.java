@@ -31,7 +31,7 @@ public class RouterTest {
 
     private static final Instant BASE_TIME = Instant.ofEpochMilli(0L);
     
-    private Router fixture = new Router(NODE_0000.getId(), 2, 2, 2, 2);
+    private Router fixture = new Router(NODE_0000.getId(), 2, 2, 2);
     
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
