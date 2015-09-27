@@ -1,7 +1,7 @@
 package com.offbynull.voip.kademlia.model;
 
 import com.offbynull.voip.kademlia.model.BitString;
-import com.offbynull.voip.kademlia.model.IdClosenessComparator;
+import com.offbynull.voip.kademlia.model.IdXorMetricComparator;
 import com.offbynull.voip.kademlia.model.Id;
 import com.offbynull.voip.kademlia.model.Node;
 import java.util.ArrayList;
@@ -10,7 +10,7 @@ import java.util.List;
 import static org.junit.Assert.assertEquals;
 import org.junit.Test;
 
-public class IdClosenessComparatorTest {
+public class IdXorMetricComparatorTest {
 
     private static final Node NODE_0000 = new Node(Id.createFromLong(0x00L, 4), "0"); // 0000
     private static final Node NODE_0001 = new Node(Id.createFromLong(0x01L, 4), "1");
@@ -29,7 +29,7 @@ public class IdClosenessComparatorTest {
     private static final Node NODE_1110 = new Node(Id.createFromLong(0x0EL, 4), "E");
     private static final Node NODE_1111 = new Node(Id.createFromLong(0x0FL, 4), "F");
     
-    private IdClosenessComparator fixture = new IdClosenessComparator(NODE_0000.getId()); // 0000
+    private IdXorMetricComparator fixture = new IdXorMetricComparator(NODE_0000.getId()); // 0000
     
     @Test
     public void mustIdentifyWhenEqual() {
@@ -69,7 +69,7 @@ public class IdClosenessComparatorTest {
                 + "11001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100110011001100"
                 + "1100110011001100110011001100"));
         
-        fixture = new IdClosenessComparator(baseId);
+        fixture = new IdXorMetricComparator(baseId);
         
         list.add(baseId.setBitsAsLong(0x00L, 0, 4));// first 4 bits turned to 0000
         list.add(baseId.setBitsAsLong(0x04L, 0, 4));// first 4 bits turned to 0100

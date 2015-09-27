@@ -38,7 +38,7 @@ public final class NodeNearSet {
         this.baseId = baseId;
         this.maxSize = maxSize;
         
-        this.nodes = new TreeMap<>(new IdClosenessComparator(baseId));
+        this.nodes = new TreeMap<>(new IdXorMetricComparator(baseId));
     }
 
     public NodeChangeSet touch(Node node) {

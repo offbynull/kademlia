@@ -16,7 +16,7 @@ import static com.offbynull.voip.kademlia.AddressConstants.ROUTER_EXT_HANDLER_RE
 import com.offbynull.voip.kademlia.externalmessages.FindRequest;
 import com.offbynull.voip.kademlia.externalmessages.FindResponse;
 import com.offbynull.voip.kademlia.model.Id;
-import com.offbynull.voip.kademlia.model.IdClosenessComparator;
+import com.offbynull.voip.kademlia.model.IdXorMetricComparator;
 import com.offbynull.voip.kademlia.model.Node;
 import com.offbynull.voip.kademlia.model.NodeNotFoundException;
 import com.offbynull.voip.kademlia.model.Router;
@@ -92,7 +92,7 @@ final class FindSubcoroutine implements Subcoroutine<List<Node>> {
         ctx.addOutgoingMessage(subAddress, logAddress, info("Route table entries closest to {}: {}", findId, startNodes));
         
         // Create sorted set of nodes to contact
-        IdClosenessComparator idClosenessComparator = new IdClosenessComparator(findId);
+        IdXorMetricComparator idClosenessComparator = new IdXorMetricComparator(findId);
         TreeSet<Node> contactSet = new TreeSet<>((x, y) -> idClosenessComparator.compare(x.getId(), y.getId()));
         contactSet.addAll(startNodes);
 

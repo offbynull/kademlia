@@ -225,7 +225,7 @@ final class RouteTreeNode {
         // This is a hacky way to compare bitstrings using the XOR metric intended for IDs
         private final int prefixLen;
         private final int suffixLen;
-        private final IdClosenessComparator partialIdClosenessComparator;
+        private final IdXorMetricComparator partialIdClosenessComparator;
 
         public PrefixClosenessComparator(Id id, int prefixLen, int suffixLen) {
             Validate.notNull(id);
@@ -237,7 +237,7 @@ final class RouteTreeNode {
             this.suffixLen = suffixLen;
             
             Id partialId = Id.create(id.getBitString().getBits(prefixLen, suffixLen));
-            this.partialIdClosenessComparator = new IdClosenessComparator(partialId);
+            this.partialIdClosenessComparator = new IdXorMetricComparator(partialId);
         }
 
         @Override

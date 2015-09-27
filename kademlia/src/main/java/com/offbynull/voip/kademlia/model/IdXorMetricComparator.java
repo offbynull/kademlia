@@ -20,12 +20,12 @@ import java.io.Serializable;
 import java.util.Comparator;
 import org.apache.commons.lang3.Validate;
 
-public final class IdClosenessComparator implements Comparator<Id>, Serializable {
+public final class IdXorMetricComparator implements Comparator<Id>, Serializable {
     private static final long serialVersionUID = 1L;
     
     private final Id baseId;
 
-    public IdClosenessComparator(Id baseId) {
+    public IdXorMetricComparator(Id baseId) {
         Validate.notNull(baseId);
         this.baseId = baseId;
     }

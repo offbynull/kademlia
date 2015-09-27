@@ -62,7 +62,7 @@ public final class RouteTree {
 //        InternalValidate.notMatchesBase(baseId, id); // you should be able to search for closest nodes to yourself
         Validate.isTrue(max >= 0); // why would anyone want 0? let thru anyways
 
-        IdClosenessComparator comparator = new IdClosenessComparator(id);
+        IdXorMetricComparator comparator = new IdXorMetricComparator(id);
         TreeSet<Activity> output = new TreeSet<>((x, y) -> comparator.compare(x.getNode().getId(), y.getNode().getId()));
         
         root.findNodesWithLargestPossiblePrefix(id, output, max);

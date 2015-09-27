@@ -99,7 +99,7 @@ public final class Router {
         
         ArrayList<Node> res = new ArrayList<>(closestNodesInRoutingTree.size() + closestNodesInNearSet.size());
         
-        Comparator<Id> idComp = new IdClosenessComparator(id);
+        Comparator<Id> idComp = new IdXorMetricComparator(id);
         Stream.concat(closestNodesInNearSet.stream(), closestNodesInRoutingTree.stream().map(x -> x.getNode()))
                 .sorted((x, y) -> idComp.compare(x.getId(), y.getId()))
                 .distinct()

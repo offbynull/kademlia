@@ -78,7 +78,7 @@ final class RefreshSubcoroutine implements Subcoroutine<Void> {
             
             
             // Ping them
-            Address sourceAddress = subAddress.appendSuffix("maint" + idGenerator.generate());
+            Address sourceAddress = subAddress.appendSuffix("refresh" + idGenerator.generate());
             MultiRequestSubcoroutine.Builder<PingResponse> multiReqBuilder = new MultiRequestSubcoroutine.Builder<PingResponse>()
                     .sourceAddress(sourceAddress)
                     .timerAddress(timerAddress)

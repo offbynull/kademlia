@@ -10,7 +10,7 @@ import com.offbynull.peernetic.visualizer.gateways.graph.StyleNode;
 import com.offbynull.voip.kademlia.model.Activity;
 import com.offbynull.voip.kademlia.model.BitString;
 import com.offbynull.voip.kademlia.model.Id;
-import com.offbynull.voip.kademlia.model.IdClosenessComparator;
+import com.offbynull.voip.kademlia.model.IdXorMetricComparator;
 import com.offbynull.voip.kademlia.model.NearBucketChangeSet;
 import com.offbynull.voip.kademlia.model.Node;
 import com.offbynull.voip.kademlia.model.RouteTreeChangeSet;
@@ -67,7 +67,7 @@ final class GraphHelper {
         
         this.routeTreePrefixToIds = new LinkedHashMap<>(); // order matters, smallest prefixes first
         
-        IdClosenessComparator idComparator = new IdClosenessComparator(baseId);
+        IdXorMetricComparator idComparator = new IdXorMetricComparator(baseId);
         this.nearBucketIds = new TreeSet<>(idComparator); // order matters, based on closeness of ids
     }
 
@@ -162,7 +162,7 @@ final class GraphHelper {
     }
     
     private void setupRoutingTreeGraph(Context ctx) {        
-        IdClosenessComparator idComparator = new IdClosenessComparator(baseId);
+        IdXorMetricComparator idComparator = new IdXorMetricComparator(baseId);
         
         Map<BitString, Point> processedPrefixes = new HashMap<>(); // prefix -> position on graph
         addRootToGraph(ctx, processedPrefixes);
