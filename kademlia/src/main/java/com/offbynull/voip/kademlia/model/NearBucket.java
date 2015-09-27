@@ -16,26 +16,31 @@
  */
 package com.offbynull.voip.kademlia.model;
 
-import java.util.ArrayList;
-import static java.util.Collections.emptyList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.TreeMap;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.Validate;
 
 public final class NearBucket {
 
     private final Id baseId;
 
-    private final NodeNearSet bucket; // nearest nodes to you by id
-    private final NodeNearSet peers; // should contain all nodes that aren't stale in the routetree... used to add nodes to bucket if it
-                                     // gets less than its max size
+    private final NodeBeforeSet beforeBucket; // nearest nodes to you THAT ARE LESSER THAN YOU based on euclidean dist... head = smallest
+    private final NodeAfterSet afterBucket; // nearest nodes to you THAT ARE GREATER THAN YOU based on euclidean dist... head = largest
+    
+    private final TreeMap<Id, Node> cache; // should contain all nodes that aren't stale in the routetree... 0 = smallest
 
     public NearBucket(Id baseId, int maxSize) {
         Validate.notNull(baseId);
         Validate.isTrue(maxSize >= 0); // what's the point of a 0 size bucket? let it thru anyways
 
         this.baseId = baseId;
-        this.bucket = new NodeNearSet(baseId, maxSize);
-        this.peers = new NodeNearSet(baseId, Integer.MAX_VALUE);
+        
+        this.beforeBucket = new NodeBeforeSet(baseId, maxSize);
+        this.afterBucket = new NodeAfterSet(baseId, maxSize);
+        
+        cache = new TreeMap<>(new IdEuclideanMetricComparator(baseId));
     }
 
     // if cacheable == true, it means that node can be used as a replacement if number of nodes goes under bucket.maxSize
@@ -47,14 +52,23 @@ public final class NearBucket {
         InternalValidate.matchesLength(baseId.getBitLength(), nodeId);
         InternalValidate.notMatchesBase(baseId, nodeId);
 
-        
-        NodeChangeSet networkChangeSet = NodeChangeSet.NO_CHANGE;
+        NodeChangeSet cacheChangeSet = NodeChangeSet.NO_CHANGE;
         if (cacheable) {
-            networkChangeSet = peers.touch(node);
+            boolean added = cache.putIfAbsent(nodeId, node) == null;
+            
+            if (added) { // added
+                cacheChangeSet = NodeChangeSet.added(node);
+            } else { // already exists, so mark it as updated
+                cacheChangeSet = NodeChangeSet.updated(node);
+            }
         }
-        NodeChangeSet bucketChangeSet = bucket.touch(node);
         
-        return new NearBucketChangeSet(bucketChangeSet, networkChangeSet);
+        
+        NodeChangeSet beforeBucketChangeSet = beforeBucket.touch(node);
+        NodeChangeSet afterBucketChangeSet = afterBucket.touch(node);
+        
+        
+        return new NearBucketChangeSet(beforeBucketChangeSet, afterBucketChangeSet, cacheChangeSet);
     }
     
     // Node has been removed. doesn't matter if its in network or bucket
@@ -66,126 +80,77 @@ public final class NearBucket {
         InternalValidate.matchesLength(baseId.getBitLength(), nodeId);
         InternalValidate.notMatchesBase(baseId, nodeId);
         
+        NodeChangeSet cacheChangeSet = NodeChangeSet.NO_CHANGE;
+        boolean removedFromCache = cache.remove(nodeId) != null;
+        if (removedFromCache) {
+            cacheChangeSet = NodeChangeSet.removed(node);
+        }
         
-        NodeChangeSet bucketChangeSet = bucket.remove(node);
-        NodeChangeSet networkChangeSet = peers.remove(node);
         
-        NodeChangeSet applyToBucketRes = applyPeerNodesToBucket();
-        Validate.isTrue(applyToBucketRes.viewRemoved().isEmpty()); // sanity check
+        // Do for before
+        NodeChangeSet beforeBucketChangeSet = beforeBucket.remove(node);
         
-        return new NearBucketChangeSet(
-                new NodeChangeSet(applyToBucketRes.viewAdded(), bucketChangeSet.viewRemoved(), emptyList()),
-                networkChangeSet);
+        int beforeBucketFreeSpace = beforeBucket.getMaxSize() - beforeBucket.size();
+        Iterator<Node> headIt = cache.headMap(baseId, true).descendingMap().values().iterator();
+        while (headIt.hasNext() && beforeBucketFreeSpace >= 0) {
+            Node replaceNode = headIt.next();
+            
+            NodeChangeSet tempChangeSet = beforeBucket.touch(replaceNode);
+            beforeBucketChangeSet = combineNodeChangeSet(beforeBucketChangeSet, tempChangeSet);
+            
+            beforeBucketFreeSpace--;
+        }
+        
+        
+        // Do for after
+        NodeChangeSet afterBucketChangeSet = afterBucket.remove(node);
+
+        int afterBucketFreeSpace = afterBucket.getMaxSize() - afterBucket.size();
+        Iterator<Node> tailIt = cache.tailMap(baseId, true).values().iterator();
+        while (tailIt.hasNext() && afterBucketFreeSpace >= 0) {
+            Node replaceNode = tailIt.next();
+            
+            NodeChangeSet tempChangeSet = afterBucket.touch(replaceNode);
+            afterBucketChangeSet = combineNodeChangeSet(afterBucketChangeSet, tempChangeSet);
+            
+            afterBucketFreeSpace--;
+        }
+        
+        
+        // Return
+        return new NearBucketChangeSet(beforeBucketChangeSet, afterBucketChangeSet, cacheChangeSet);
     }
 
-    public NearBucketChangeSet resize(int maxSize) {
-        Validate.isTrue(maxSize >= 0);
-        
-        if (maxSize <= bucket.getMaxSize()) {
-            // reducing space
-            NodeChangeSet res = bucket.resize(maxSize);
-            
-            // sanity check
-            // validate nothing was added or updated -- the only thing that can happen is elements can be removed
-            Validate.validState(res.viewAdded().isEmpty());
-            Validate.validState(res.viewUpdated().isEmpty());
-            
-            return new NearBucketChangeSet(res, NodeChangeSet.NO_CHANGE);
-        } else {
-            // increasing space, so move over stuff from the cache in to new bucket spaces
-            NodeChangeSet bucketResizeRes = bucket.resize(maxSize);
-            
-            // sanity check
-            // validate nothing changed with elements in the set -- we're only expanding the size of the bucket
-            Validate.validState(bucketResizeRes.viewAdded().isEmpty());
-            Validate.validState(bucketResizeRes.viewRemoved().isEmpty());
-            Validate.validState(bucketResizeRes.viewUpdated().isEmpty());
-            
-            
-            NodeChangeSet applyToBucketRes = applyPeerNodesToBucket();
-            Validate.isTrue(applyToBucketRes.viewRemoved().isEmpty()); // sanity check nothing was removed
-            Validate.isTrue(applyToBucketRes.viewUpdated().isEmpty()); // sanity check nothing was removed
-            
-            return new NearBucketChangeSet(applyToBucketRes, NodeChangeSet.NO_CHANGE);
-        }
+    public List<Node> dumpBeforeBucket() {
+        return beforeBucket.dump();
+    }
+
+    public List<Node> dumpAfterBucket() {
+        return afterBucket.dump();
     }
     
-    public List<Node> dumpBucket() {
-        return bucket.dump();
+    private NodeChangeSet combineNodeChangeSet(NodeChangeSet one, NodeChangeSet two) {
+        return new NodeChangeSet(
+                CollectionUtils.union(
+                        one.viewAdded(),
+                        two.viewAdded()
+                ),
+                CollectionUtils.union(
+                        one.viewRemoved(),
+                        two.viewRemoved()
+                ),
+                CollectionUtils.union(
+                        one.viewUpdated(),
+                        two.viewUpdated()
+                )
+        );
     }
-    
-    private NodeChangeSet applyPeerNodesToBucket() {
-        try {
-            // If we have no peer nodes, return immediately
-            int availablePeers = peers.size();
-            if (availablePeers == 0) {
-                return NodeChangeSet.NO_CHANGE;
-            }
-
-            // If the bucket is full, attempt to apply closest peer node to the bucket
-            int unoccupiedBucketSlots = bucket.getMaxSize() - bucket.size();
-            if (unoccupiedBucketSlots <= 0) {
-                Node closestReplacementNode = peers.dumpNearestAfter(baseId, 1).get(0); // get closest node out of replacements
-                try {
-                    return bucket.touch(closestReplacementNode);
-                } catch (LinkMismatchException lce) {
-                    // should never happen
-                    throw new IllegalStateException(lce);
-                }
-            }
-        
-            
-            int moveAmount = Math.min(availablePeers, unoccupiedBucketSlots);
-            
-            // If bucket is empty, copy over as much as we can. Copy over the peer nodes that are closest to your own id.
-            if (bucket.size() == 0) {
-                List<Node> closestPeers = peers.dumpNearestAfter(baseId, moveAmount);
-                for (Node node : closestPeers) {
-                    NodeChangeSet ret = bucket.touch(node);
-                    Validate.isTrue(ret.viewAdded().size() == 1); // sanity check
-                    Validate.isTrue(ret.viewRemoved().isEmpty()); // sanity check
-                    Validate.isTrue(ret.viewUpdated().isEmpty()); // sanity check
-                }
-                
-                return NodeChangeSet.added(closestPeers);
-            }
-
-            List<Node> bucketNodes = bucket.dump();
-            
-            List<Node> addedNodes = new ArrayList<>(moveAmount);
-            
-            // Copy over network nodes that are closer than the closest node to our own id, if we have any.
-            Node closestBucketNode = bucketNodes.get(0);
-            List<Node> closerPeers = peers.dumpNearestBefore(closestBucketNode.getId(), moveAmount);
-            for (Node node : closerPeers) {
-                NodeChangeSet ret = bucket.touch(node);
-                Validate.isTrue(ret.viewAdded().size() == 1); // sanity check
-                Validate.isTrue(ret.viewRemoved().isEmpty()); // sanity check
-                Validate.isTrue(ret.viewUpdated().isEmpty()); // sanity check
-                addedNodes.add(node);
-                moveAmount--;
-            }
-
-            // There may be room left, so copy over network nodes that are farther than the farthest node to our own id, if we have any.
-            Node farthestBucketNode = bucketNodes.get(bucketNodes.size() - 1);
-            List<Node> fartherPeers = peers.dumpNearestAfter(farthestBucketNode.getId(), moveAmount);
-            for (Node node : fartherPeers) {
-                NodeChangeSet ret = bucket.touch(node);
-                Validate.isTrue(ret.viewAdded().size() == 1); // sanity check
-                Validate.isTrue(ret.viewRemoved().isEmpty()); // sanity check
-                Validate.isTrue(ret.viewUpdated().isEmpty()); // sanity check
-                addedNodes.add(node);
-            }
-            
-            return NodeChangeSet.added(addedNodes);
-        } catch (LinkMismatchException lce) {
-            // should never happen
-            throw new IllegalStateException(lce);
-        }
-    }    
 
     @Override
     public String toString() {
-        return "NearBucket{" + "baseId=" + baseId + ", bucket=" + bucket + ", network=" + peers + '}';
+        return "NearBucket{" + "baseId=" + baseId + ", beforeBucket=" + beforeBucket + ", afterBucket=" + afterBucket + ", cache="
+                + cache + '}';
     }
+
+
 }

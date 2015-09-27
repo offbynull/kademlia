@@ -20,29 +20,37 @@ import java.util.Objects;
 import org.apache.commons.lang3.Validate;
 
 public final class NearBucketChangeSet {
-    private final NodeChangeSet bucketChangeSet;
-    private final NodeChangeSet peerChangeSet;
+    private final NodeChangeSet beforeBucketChangeSet;
+    private final NodeChangeSet afterBucketChangeSet;
+    private final NodeChangeSet cacheChangeSet;
 
-    public NearBucketChangeSet(NodeChangeSet bucketChangeSet, NodeChangeSet peerChangeSet) {
-        Validate.notNull(bucketChangeSet);
-        Validate.notNull(peerChangeSet);
-        this.bucketChangeSet = bucketChangeSet;
-        this.peerChangeSet = peerChangeSet;
+    public NearBucketChangeSet(NodeChangeSet beforeBucketChangeSet, NodeChangeSet afterBucketChangeSet, NodeChangeSet cacheChangeSet) {
+        Validate.notNull(beforeBucketChangeSet);
+        Validate.notNull(afterBucketChangeSet);
+        Validate.notNull(cacheChangeSet);
+        this.beforeBucketChangeSet = beforeBucketChangeSet;
+        this.afterBucketChangeSet = afterBucketChangeSet;
+        this.cacheChangeSet = cacheChangeSet;
     }
 
-    public NodeChangeSet getBucketChangeSet() {
-        return bucketChangeSet;
+    public NodeChangeSet getBeforeBucketChangeSet() {
+        return beforeBucketChangeSet;
+    }
+
+    public NodeChangeSet getAfterBucketChangeSet() {
+        return afterBucketChangeSet;
     }
 
     public NodeChangeSet getCacheChangeSet() {
-        return peerChangeSet;
+        return cacheChangeSet;
     }
 
     @Override
     public int hashCode() {
-        int hash = 3;
-        hash = 83 * hash + Objects.hashCode(this.bucketChangeSet);
-        hash = 83 * hash + Objects.hashCode(this.peerChangeSet);
+        int hash = 5;
+        hash = 13 * hash + Objects.hashCode(this.beforeBucketChangeSet);
+        hash = 13 * hash + Objects.hashCode(this.afterBucketChangeSet);
+        hash = 13 * hash + Objects.hashCode(this.cacheChangeSet);
         return hash;
     }
 
@@ -55,10 +63,13 @@ public final class NearBucketChangeSet {
             return false;
         }
         final NearBucketChangeSet other = (NearBucketChangeSet) obj;
-        if (!Objects.equals(this.bucketChangeSet, other.bucketChangeSet)) {
+        if (!Objects.equals(this.beforeBucketChangeSet, other.beforeBucketChangeSet)) {
             return false;
         }
-        if (!Objects.equals(this.peerChangeSet, other.peerChangeSet)) {
+        if (!Objects.equals(this.afterBucketChangeSet, other.afterBucketChangeSet)) {
+            return false;
+        }
+        if (!Objects.equals(this.cacheChangeSet, other.cacheChangeSet)) {
             return false;
         }
         return true;
@@ -66,6 +77,8 @@ public final class NearBucketChangeSet {
 
     @Override
     public String toString() {
-        return "NearBucketChangeSet{" + "nearChangeSet=" + bucketChangeSet + ", networkChangeSet=" + peerChangeSet + '}';
+        return "NearBucketChangeSet{" + "beforeBucketChangeSet=" + beforeBucketChangeSet + ", afterBucketChangeSet="
+                + afterBucketChangeSet + ", cacheChangeSet=" + cacheChangeSet + '}';
     }
+
 }

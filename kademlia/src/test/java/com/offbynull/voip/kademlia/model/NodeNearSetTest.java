@@ -1,16 +1,11 @@
 package com.offbynull.voip.kademlia.model;
 
-import com.offbynull.voip.kademlia.model.LinkMismatchException;
-import com.offbynull.voip.kademlia.model.NodeChangeSet;
-import com.offbynull.voip.kademlia.model.NodeNearSet;
-import com.offbynull.voip.kademlia.model.Id;
-import com.offbynull.voip.kademlia.model.Node;
+import com.offbynull.voip.kademlia.model.NodeNearSet.Mode;
 import static com.offbynull.voip.kademlia.model.TestUtils.verifyNodeChangeSetAdded;
 import static com.offbynull.voip.kademlia.model.TestUtils.verifyNodeChangeSetCounts;
 import static com.offbynull.voip.kademlia.model.TestUtils.verifyNodeChangeSetRemoved;
 import static com.offbynull.voip.kademlia.model.TestUtils.verifyNodeChangeSetUpdated;
 import static com.offbynull.voip.kademlia.model.TestUtils.verifyNodes;
-import java.util.List;
 import static org.junit.Assert.assertEquals;
 import org.junit.Rule;
 import org.junit.Test;
@@ -27,7 +22,7 @@ public final class NodeNearSetTest {
     private static final Node NODE_110 = new Node(Id.createFromLong(0x06L, 3), "6");
     private static final Node NODE_111 = new Node(Id.createFromLong(0x07L, 3), "7");
     
-    private final NodeNearSet fixture = new NodeNearSet(NODE_000.getId(), 2);
+    private final NodeNearSet fixture = new NodeNearSet(NODE_000.getId(), 2, Mode.BEFORE);
     
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
@@ -153,78 +148,6 @@ public final class NodeNearSetTest {
         verifyNodes(fixture.dump(), NODE_011);
     }
 
-    @Test
-    public void mustDumpNearestUpTo() throws Throwable {
-        fixture.resize(10);
-        
-        fixture.touch(NODE_001);
-        fixture.touch(NODE_010);
-        fixture.touch(NODE_011);
-        fixture.touch(NODE_100);
-        fixture.touch(NODE_101);
-        fixture.touch(NODE_110);
-        fixture.touch(NODE_111);
-
-        List<Node> res;
-        res = fixture.dumpNearestBefore(NODE_011.getId(), 10);
-
-        verifyNodes(res, NODE_001, NODE_010);
-    }
-
-    @Test
-    public void mustDumpNearestUpToLimited() throws Throwable {
-        fixture.resize(10);
-        
-        fixture.touch(NODE_001);
-        fixture.touch(NODE_010);
-        fixture.touch(NODE_011);
-        fixture.touch(NODE_100);
-        fixture.touch(NODE_101);
-        fixture.touch(NODE_110);
-        fixture.touch(NODE_111);
-
-        List<Node> res;
-        res = fixture.dumpNearestBefore(NODE_011.getId(), 1);
-
-        verifyNodes(res, NODE_001);
-    }
-
-    @Test
-    public void mustDumpNearestFrom() throws Throwable {
-        fixture.resize(10);
-        
-        fixture.touch(NODE_001);
-        fixture.touch(NODE_010);
-        fixture.touch(NODE_011);
-        fixture.touch(NODE_100);
-        fixture.touch(NODE_101);
-        fixture.touch(NODE_110);
-        fixture.touch(NODE_111);
-
-        List<Node> res;
-        res = fixture.dumpNearestAfter(NODE_011.getId(), 10);
-
-        verifyNodes(res, NODE_100, NODE_101, NODE_110, NODE_111);
-    }
-
-    @Test
-    public void mustDumpNearestFromLimited() throws Throwable {
-        fixture.resize(10);
-        
-        fixture.touch(NODE_001);
-        fixture.touch(NODE_010);
-        fixture.touch(NODE_011);
-        fixture.touch(NODE_100);
-        fixture.touch(NODE_101);
-        fixture.touch(NODE_110);
-        fixture.touch(NODE_111);
-
-        List<Node> res;
-        res = fixture.dumpNearestAfter(NODE_011.getId(), 2);
-
-        verifyNodes(res, NODE_100, NODE_101);
-    }
-    
     @Test
     public void mustRemoveNodes() throws Throwable {
         fixture.touch(NODE_111);

@@ -17,44 +17,28 @@
 package com.offbynull.voip.kademlia.model;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import static java.util.Collections.emptyList;
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.TreeMap;
 import org.apache.commons.lang3.Validate;
 
-public final class NodeNearSet {
+public final class NodeAfterSet {
     private final Id baseId;
     private final Comparator<Id> comparator;
     private final TreeMap<Id, Node> nodes;
     
     private int maxSize;
 
-    // if mode == BEFORE, it means it only accepts nodes <= baseId
-    // if mode == AFTER, it means it only accepts nodes >= baseId
-    //
-    // BASED ON EUCLIDEAN DISTANCE, NOT XOR METRIC
-    public NodeNearSet(Id baseId, int maxSize, Mode mode) {
+    public NodeAfterSet(Id baseId, int maxSize) {
         Validate.notNull(baseId);
-        Validate.notNull(mode);
         Validate.isTrue(maxSize >= 0);
         
         this.baseId = baseId;
         this.maxSize = maxSize;
         
-        switch (mode) {
-            case BEFORE:
-                comparator = new IdEuclideanMetricComparator(baseId);
-                break;
-            case AFTER:
-                comparator = Collections.reverseOrder(new IdEuclideanMetricComparator(baseId));
-                break;
-            default:
-                throw new IllegalStateException(); // should never happen
-        }
+        this.comparator = new IdEuclideanMetricComparator(baseId);
         this.nodes = new TreeMap<>(comparator);
     }
 
@@ -66,9 +50,7 @@ public final class NodeNearSet {
         InternalValidate.matchesLength(baseId.getBitLength(), nodeId);
 //        InternalValidate.notMatchesBase(baseId, nodeId); // don't do this, this check provides no value for this class
         
-        // only attempt to touch if it doesn't exceed past extents... for example, if mode was set to lessthan, this checks to see if id is
-        // <= baseId... if  mode was set to greaterthan, thsi checks to see id is >= baseId
-        if (comparator.compare(baseId, nodeId) < 0) {
+        if (comparator.compare(nodeId, baseId) < 0) {
             return NodeChangeSet.NO_CHANGE;
         }
         
@@ -89,7 +71,7 @@ public final class NodeNearSet {
         added.add(node);
         nodes.put(nodeId, node);
         if (nodes.size() > maxSize) {
-            Node oldNode = nodes.pollFirstEntry().getValue(); // remove first node (farthest) so we don't exceed maxSize
+            Node oldNode = nodes.pollLastEntry().getValue(); // remove first node (farthest) so we don't exceed maxSize
             removed.add(oldNode);
             
             // if the node we evicted it the one that we added, that means no change has occured
@@ -131,7 +113,7 @@ public final class NodeNearSet {
         
         LinkedList<Node> removed = new LinkedList<>();
         for (int i = 0; i < discardCount; i++) {
-            Node removedEntry = nodes.pollFirstEntry().getValue(); // remove farthest
+            Node removedEntry = nodes.pollLastEntry().getValue(); // remove farthest
             removed.addFirst(removedEntry);
         }
         
@@ -142,40 +124,6 @@ public final class NodeNearSet {
     
     public List<Node> dump() {
         return new ArrayList<>(nodes.values());
-    }
-    
-    public List<Node> dumpFromStart(int max) { // dump top nodes (start nodes)
-        Validate.isTrue(max >= 0);
-        
-        int remaining = Math.min(max, nodes.size());
-        List<Node> ret = new ArrayList<>(remaining);
-        
-        for (Map.Entry<Id, Node> entry : nodes.entrySet()) {
-            if (remaining == 0) {
-                break;
-            }
-            ret.add(entry.getValue());
-            remaining--;
-        }
-        
-        return ret;
-    }
-
-    public List<Node> dumpFromEnd(Id id, int max) { // dump bototm nodes (end nodes)
-        Validate.isTrue(max >= 0);
-        
-        int remaining = Math.min(max, nodes.size());
-        List<Node> ret = new ArrayList<>(remaining);
-        
-        for (Map.Entry<Id, Node> entry : nodes.entrySet()) {
-            if (remaining == 0) {
-                break;
-            }
-            ret.add(entry.getValue());
-            remaining--;
-        }
-        
-        return ret;
     }
     
     public int size() {
@@ -189,10 +137,5 @@ public final class NodeNearSet {
     @Override
     public String toString() {
         return "NodeNearSet{" + "baseId=" + baseId + ", nodes=" + nodes + ", maxSize=" + maxSize + '}';
-    }
-
-    public enum Mode {
-        AFTER,
-        BEFORE
     }
 }
