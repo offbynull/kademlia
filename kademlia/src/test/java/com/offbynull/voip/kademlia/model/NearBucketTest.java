@@ -146,123 +146,70 @@ public final class NearBucketTest {
         verifyNodes(fixture.dumpAfterBucket(), NODE_101, NODE_110);
         verifyNodes(fixture.dumpBeforeBucket(), NODE_010, NODE_011);
     }
-//
-//    @Test
-//    public void mustUsePeerNodesForBucketWhenInsertedBackwards() throws Throwable {
-//        NearBucketChangeSet res;
-//
-//        res = fixture.touch(NODE_111, true);
-//        verifyNodeChangeSetCounts(res.getBucketChangeSet(), 1, 0, 0);
-//        verifyNodeChangeSetAdded(res.getBucketChangeSet(), NODE_111);
-//        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 1, 0, 0);
-//        verifyNodeChangeSetAdded(res.getCacheChangeSet(), NODE_111);
-//        
-//        verifyNodes(fixture.dumpBucket(), NODE_111);
-//        
-//        res = fixture.touch(NODE_110, true);
-//        verifyNodeChangeSetCounts(res.getBucketChangeSet(), 1, 0, 0);
-//        verifyNodeChangeSetAdded(res.getBucketChangeSet(), NODE_110);
-//        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 1, 0, 0);
-//        verifyNodeChangeSetAdded(res.getCacheChangeSet(), NODE_110);
-//        
-//        verifyNodes(fixture.dumpBucket(), NODE_110, NODE_111);
-//        
-//        res = fixture.touch(NODE_101, true);
-//        verifyNodeChangeSetCounts(res.getBucketChangeSet(), 1, 1, 0);
-//        verifyNodeChangeSetAdded(res.getBucketChangeSet(), NODE_101);
-//        verifyNodeChangeSetRemoved(res.getBucketChangeSet(), NODE_111);
-//        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 1, 0, 0);
-//        verifyNodeChangeSetAdded(res.getCacheChangeSet(), NODE_101);
-//        
-//        verifyNodes(fixture.dumpBucket(), NODE_101, NODE_110);
-//        
-//        res = fixture.touch(NODE_100, true);
-//        verifyNodeChangeSetCounts(res.getBucketChangeSet(), 1, 1, 0);
-//        verifyNodeChangeSetAdded(res.getBucketChangeSet(), NODE_100);
-//        verifyNodeChangeSetRemoved(res.getBucketChangeSet(), NODE_110);
-//        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 1, 0, 0);
-//        verifyNodeChangeSetAdded(res.getCacheChangeSet(), NODE_100);
-//        
-//        verifyNodes(fixture.dumpBucket(), NODE_100, NODE_101);
-//        
-//        res = fixture.touch(NODE_011, true);
-//        verifyNodeChangeSetCounts(res.getBucketChangeSet(), 1, 1, 0);
-//        verifyNodeChangeSetAdded(res.getBucketChangeSet(), NODE_011);
-//        verifyNodeChangeSetRemoved(res.getBucketChangeSet(), NODE_101);
-//        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 1, 0, 0);
-//        verifyNodeChangeSetAdded(res.getCacheChangeSet(), NODE_011);
-//        
-//        verifyNodes(fixture.dumpBucket(), NODE_011, NODE_100);
-//        
-//        res = fixture.touch(NODE_010, true);
-//        verifyNodeChangeSetCounts(res.getBucketChangeSet(), 1, 1, 0);
-//        verifyNodeChangeSetAdded(res.getBucketChangeSet(), NODE_010);
-//        verifyNodeChangeSetRemoved(res.getBucketChangeSet(), NODE_100);
-//        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 1, 0, 0);
-//        verifyNodeChangeSetAdded(res.getCacheChangeSet(), NODE_010);
-//        
-//        verifyNodes(fixture.dumpBucket(), NODE_010, NODE_011);
-//        
-//        res = fixture.touch(NODE_001, true);
-//        verifyNodeChangeSetCounts(res.getBucketChangeSet(), 1, 1, 0);
-//        verifyNodeChangeSetAdded(res.getBucketChangeSet(), NODE_001);
-//        verifyNodeChangeSetRemoved(res.getBucketChangeSet(), NODE_011);
-//        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 1, 0, 0);
-//        verifyNodeChangeSetAdded(res.getCacheChangeSet(), NODE_001);
-//        
-//        verifyNodes(fixture.dumpBucket(), NODE_001, NODE_010);
-//    }
-//
-//    @Test
-//    public void mustUsePeerNodesForBucketAndOverrideWhenTouchingWithNodeCloser() throws Throwable {
-//        NearBucketChangeSet res;
-//
-//        fixture.touch(NODE_011, true);
-//        fixture.touch(NODE_010, true);
-//
-//        res = fixture.touch(NODE_001, false);
-//        verifyNodeChangeSetCounts(res.getBucketChangeSet(), 1, 1, 0);
-//        verifyNodeChangeSetRemoved(res.getBucketChangeSet(), NODE_011);
-//        verifyNodeChangeSetAdded(res.getBucketChangeSet(), NODE_001);
-//        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
-//        
-//        verifyNodes(fixture.dumpBucket(), NODE_001, NODE_010);
-//    }
-//
-//    @Test
-//    public void mustUsePeerNodesForBucketAndNotOverrideWhenTouchingWithNodeFartherAway() throws Throwable {
-//        NearBucketChangeSet res;
-//
-//        fixture.touch(NODE_011, true);
-//        fixture.touch(NODE_010, true);
-//
-//        res = fixture.touch(NODE_100, false);
-//        verifyNodeChangeSetCounts(res.getBucketChangeSet(), 0, 0, 0);
-//        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
-//        
-//        verifyNodes(fixture.dumpBucket(), NODE_010, NODE_011);
-//    }
-//
-//    @Test
-//    public void mustRemoveNodeOutOfBucket() throws Throwable {
-//        NearBucketChangeSet res;
-//
-//        fixture.touch(NODE_011, true);
-//        fixture.touch(NODE_010, true);
-//
-//        fixture.touch(NODE_001, false);
-//        
-//        verifyNodes(fixture.dumpBucket(), NODE_001, NODE_010);
-//        
-//        
-//        res = fixture.remove(NODE_001);
-//        verifyNodeChangeSetCounts(res.getBucketChangeSet(), 1, 1, 0);
-//        verifyNodeChangeSetRemoved(res.getBucketChangeSet(), NODE_001);
-//        verifyNodeChangeSetAdded(res.getBucketChangeSet(), NODE_011);
-//        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
-//        
-//        verifyNodes(fixture.dumpBucket(), NODE_010, NODE_011);
-//    }
+
+    @Test
+    public void mustUseCacheNodesForBeforeBucketAndOverrideWhenTouchingWithNodeCloser() throws Throwable {
+        NearBucketChangeSet res;
+
+        fixture.touch(NODE_001, true);
+        fixture.touch(NODE_010, true);
+
+        res = fixture.touch(NODE_011, false);
+        verifyNodeChangeSetCounts(res.getAfterBucketChangeSet(), 0, 0, 0);
+        verifyNodeChangeSetCounts(res.getBeforeBucketChangeSet(), 1, 1, 0);
+        verifyNodeChangeSetRemoved(res.getBeforeBucketChangeSet(), NODE_001);
+        verifyNodeChangeSetAdded(res.getBeforeBucketChangeSet(), NODE_011);
+        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
+        
+        verifyNodes(fixture.dumpBeforeBucket(), NODE_010, NODE_011);
+    }
+
+    @Test
+    public void mustUseCacheNodesForAfterBucketAndOverrideWhenTouchingWithNodeCloser() throws Throwable {
+        NearBucketChangeSet res;
+
+        fixture.touch(NODE_111, true);
+        fixture.touch(NODE_110, true);
+
+        res = fixture.touch(NODE_101, false);
+        verifyNodeChangeSetCounts(res.getBeforeBucketChangeSet(), 0, 0, 0);
+        verifyNodeChangeSetCounts(res.getAfterBucketChangeSet(), 1, 1, 0);
+        verifyNodeChangeSetRemoved(res.getAfterBucketChangeSet(), NODE_111);
+        verifyNodeChangeSetAdded(res.getAfterBucketChangeSet(), NODE_101);
+        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
+        
+        verifyNodes(fixture.dumpAfterBucket(), NODE_101, NODE_110);
+    }
+
+    @Test
+    public void mustUseCacheNodesForBeforeBucketAndNotOverrideWhenTouchingWithNodeFartherAway() throws Throwable {
+        NearBucketChangeSet res;
+
+        fixture.touch(NODE_010, true);
+        fixture.touch(NODE_011, true);
+
+        res = fixture.touch(NODE_001, false);
+        verifyNodeChangeSetCounts(res.getBeforeBucketChangeSet(), 0, 0, 0);
+        verifyNodeChangeSetCounts(res.getAfterBucketChangeSet(), 0, 0, 0);
+        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
+        
+        verifyNodes(fixture.dumpBeforeBucket(), NODE_010, NODE_011);
+    }
+
+    @Test
+    public void mustUseCacheNodesForAfterBucketAndNotOverrideWhenTouchingWithNodeFartherAway() throws Throwable {
+        NearBucketChangeSet res;
+
+        fixture.touch(NODE_101, true);
+        fixture.touch(NODE_110, true);
+
+        res = fixture.touch(NODE_111, false);
+        verifyNodeChangeSetCounts(res.getBeforeBucketChangeSet(), 0, 0, 0);
+        verifyNodeChangeSetCounts(res.getAfterBucketChangeSet(), 0, 0, 0);
+        verifyNodeChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
+        
+        verifyNodes(fixture.dumpAfterBucket(), NODE_101, NODE_110);
+    }
 //
 //    @Test
 //    public void mustRemoveNodeOutOfPeers() throws Throwable {

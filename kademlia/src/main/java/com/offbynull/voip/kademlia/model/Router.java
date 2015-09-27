@@ -18,6 +18,7 @@ package com.offbynull.voip.kademlia.model;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Stream;
@@ -95,7 +96,7 @@ public final class Router {
         // do not stop from finding self (base) -- you may want to update closest
         
         List<Activity> closestNodesInRoutingTree = routeTree.find(id, max);
-        List<Node> closestNodesInNearSet = nearBucket.dumpBucket();
+        Collection<Node> closestNodesInNearSet = CollectionUtils.union(nearBucket.dumpBeforeBucket(), nearBucket.dumpAfterBucket());
         
         ArrayList<Node> res = new ArrayList<>(closestNodesInRoutingTree.size() + closestNodesInNearSet.size());
         
@@ -174,7 +175,8 @@ public final class Router {
     
     private NearBucketChangeSet synchronizeChangesFromRouteTreeToNearBucket(RouteTreeChangeSet routeTreeChangeSet) {
         KBucketChangeSet kBucketChangeSet = routeTreeChangeSet.getKBucketChangeSet();
-        NearBucketChangeSet nearBucketChangeSet = new NearBucketChangeSet(NodeChangeSet.NO_CHANGE, NodeChangeSet.NO_CHANGE);
+        NearBucketChangeSet nearBucketChangeSet = new NearBucketChangeSet(NodeChangeSet.NO_CHANGE, NodeChangeSet.NO_CHANGE,
+                NodeChangeSet.NO_CHANGE);
         
         for (Activity addedNode : kBucketChangeSet.getBucketChangeSet().viewAdded()) {
             // this is a new peer, so let the near bucket know
@@ -201,16 +203,30 @@ public final class Router {
         return new NearBucketChangeSet(
                 new NodeChangeSet(
                         CollectionUtils.union(
-                                one.getBucketChangeSet().viewAdded(),
-                                two.getBucketChangeSet().viewAdded()
+                                one.getBeforeBucketChangeSet().viewAdded(),
+                                two.getBeforeBucketChangeSet().viewAdded()
                         ),
                         CollectionUtils.union(
-                                one.getBucketChangeSet().viewRemoved(),
-                                two.getBucketChangeSet().viewRemoved()
+                                one.getBeforeBucketChangeSet().viewRemoved(),
+                                two.getBeforeBucketChangeSet().viewRemoved()
                         ),
                         CollectionUtils.union(
-                                one.getBucketChangeSet().viewUpdated(),
-                                two.getBucketChangeSet().viewUpdated()
+                                one.getBeforeBucketChangeSet().viewUpdated(),
+                                two.getBeforeBucketChangeSet().viewUpdated()
+                        )
+                ),
+                new NodeChangeSet(
+                        CollectionUtils.union(
+                                one.getAfterBucketChangeSet().viewAdded(),
+                                two.getAfterBucketChangeSet().viewAdded()
+                        ),
+                        CollectionUtils.union(
+                                one.getAfterBucketChangeSet().viewRemoved(),
+                                two.getAfterBucketChangeSet().viewRemoved()
+                        ),
+                        CollectionUtils.union(
+                                one.getAfterBucketChangeSet().viewUpdated(),
+                                two.getAfterBucketChangeSet().viewUpdated()
                         )
                 ),
                 new NodeChangeSet(
