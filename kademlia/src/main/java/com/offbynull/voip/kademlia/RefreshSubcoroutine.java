@@ -74,7 +74,9 @@ final class RefreshSubcoroutine implements Subcoroutine<Void> {
             // Get closest nodes (from the router) to some random id
             secureRandom.nextBytes(idBytes);
             Id randomId = Id.create(idBytes, idBitLength);
-            List<Node> nodesToPing = router.find(randomId, 5);
+            List<Node> nodesToPing = router.find(randomId, 5, true); // include stale nodes, because it may have come back up again / we may
+                                                                     // have come back up again and we want to unstale it if we can contact
+                                                                     // it
             
             
             // Ping them

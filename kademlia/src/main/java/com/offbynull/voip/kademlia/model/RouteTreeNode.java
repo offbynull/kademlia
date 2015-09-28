@@ -29,7 +29,7 @@ final class RouteTreeNode {
 
     // id is the id we're trying to find
     // treeset compares against id
-    public void findNodesWithLargestPossiblePrefix(Id id, TreeSet<Activity> output, int max) {
+    public void findNodesWithLargestPossiblePrefix(Id id, TreeSet<Activity> output, int max, boolean includeStale) {
         // Other validation checks on args done by caller, no point in repeating this for an unchanging argument in recursive method
         Validate.isTrue(id.getBitString().getBits(0, prefix.getBitLength()).equals(prefix)); // ensure prefix matches
 
@@ -43,11 +43,11 @@ final class RouteTreeNode {
 
         if (traverseBranch instanceof RouteTreeNodeBranch) {
             RouteTreeNode treeNode = traverseBranch.getItem();
-            treeNode.findNodesWithLargestPossiblePrefix(id, output, max);
+            treeNode.findNodesWithLargestPossiblePrefix(id, output, max, includeStale);
 
-            dumpAllNodesUnderTreeNode(id, output, max, singleton(traversePrefix));
+            dumpAllNodesUnderTreeNode(id, output, max, includeStale, singleton(traversePrefix));
         } else if (traverseBranch instanceof RouteTreeBucketBranch) {
-            dumpAllNodesUnderTreeNode(id, output, max, emptySet());
+            dumpAllNodesUnderTreeNode(id, output, max, includeStale, emptySet());
         } else {
             throw new IllegalStateException(); // should never happen
         }
@@ -55,7 +55,7 @@ final class RouteTreeNode {
 
     // id is the id we're trying to find
     // treeset compares against id
-    public void dumpAllNodesUnderTreeNode(Id id, TreeSet<Activity> output, int max, Set<BitString> skipPrefixes) {
+    public void dumpAllNodesUnderTreeNode(Id id, TreeSet<Activity> output, int max, boolean includeStale, Set<BitString> skipPrefixes) {
         // Other validation checks on args done by caller, no point in repeating this for an unchanging argument in recursive method
 
         // No more room in bucket? just leave right away.
@@ -141,7 +141,7 @@ final class RouteTreeNode {
 
             if (sortedBranch instanceof RouteTreeNodeBranch) {
                 RouteTreeNode node = sortedBranch.getItem();
-                node.dumpAllNodesUnderTreeNode(id, output, max, emptySet()); // dont propogate skipPrefixes -- not relevent deeper
+                node.dumpAllNodesUnderTreeNode(id, output, max, includeStale, emptySet()); // dont propogate skipPrefixes (not relevant)
 
                 // Bucket's full after dumping nodes in that branch. No point in continued processing.
                 if (output.size() >= max) {
@@ -150,10 +150,8 @@ final class RouteTreeNode {
             } else if (sortedBranch instanceof RouteTreeBucketBranch) {
                 KBucket bucket = sortedBranch.getItem();
 
-                // include stale nodes but not locked nodes ... locked nodes, according to kademlia paper, are temp locked because
-                // network may be congested and will be unlocked soon ... stale nodes on the other hand are unresponsive but we have
-                // nothing to replace them with, so essentially we've entered desperation mode
-                output.addAll(bucket.dumpBucket(true, true, false));
+                // don't bother with locked nodes for now, we're not supporting them
+                output.addAll(bucket.dumpBucket(true, includeStale, false));
 
                 // Bucket's full after that add. No point in continued processing.
                 if (output.size() >= max) {

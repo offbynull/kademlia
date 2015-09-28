@@ -56,7 +56,7 @@ public final class RouteTree {
     }
 
     // this will always give you the closest nodes in your routetable, based on the xor metric
-    public List<Activity> find(Id id, int max) {
+    public List<Activity> find(Id id, int max, boolean includeStale) {
         Validate.notNull(id);
         InternalValidate.matchesLength(baseId.getBitLength(), id);
 //        InternalValidate.notMatchesBase(baseId, id); // you should be able to search for closest nodes to yourself
@@ -65,7 +65,7 @@ public final class RouteTree {
         IdXorMetricComparator comparator = new IdXorMetricComparator(id);
         TreeSet<Activity> output = new TreeSet<>((x, y) -> comparator.compare(x.getNode().getId(), y.getNode().getId()));
         
-        root.findNodesWithLargestPossiblePrefix(id, output, max);
+        root.findNodesWithLargestPossiblePrefix(id, output, max, includeStale);
   
         // DONT DO THIS. DO NOT INCLUDE SELF. ADD IT AT LAYERS ABOVE.
 //        // We don't keep ourself in the buckets in the routing tree, but we may be one of the closest nodes to id. As such, add ourself to
@@ -146,25 +146,26 @@ public final class RouteTree {
         return new RouteTreeChangeSet(kBucketPrefix, kBucketChangeSet);
     }
 
-    public void lock(Node node) {
-        Validate.notNull(node);
-
-        Id id = node.getId();
-        InternalValidate.matchesLength(baseId.getBitLength(), id);
-        InternalValidate.notMatchesBase(baseId, id);
-            
-        root.getBucketFor(node.getId()).lock(node);
-    }
-
-    public void unlock(Node node) {
-        Validate.notNull(node);
-
-        Id id = node.getId();
-        InternalValidate.matchesLength(baseId.getBitLength(), id);
-        InternalValidate.notMatchesBase(baseId, id);
-            
-        root.getBucketFor(node.getId()).unlock(node);
-    }
+    // Disable for now
+//    public void lock(Node node) {
+//        Validate.notNull(node);
+//
+//        Id id = node.getId();
+//        InternalValidate.matchesLength(baseId.getBitLength(), id);
+//        InternalValidate.notMatchesBase(baseId, id);
+//            
+//        root.getBucketFor(node.getId()).lock(node);
+//    }
+//
+//    public void unlock(Node node) {
+//        Validate.notNull(node);
+//
+//        Id id = node.getId();
+//        InternalValidate.matchesLength(baseId.getBitLength(), id);
+//        InternalValidate.notMatchesBase(baseId, id);
+//            
+//        root.getBucketFor(node.getId()).unlock(node);
+//    }
 
     public List<BitString> getStagnantBuckets(Instant time) { // is inclusive
         Validate.notNull(time);

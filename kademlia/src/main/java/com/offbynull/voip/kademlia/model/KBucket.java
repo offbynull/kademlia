@@ -44,8 +44,8 @@ public final class KBucket {
     // through the buckets, query the predicates for each node, and move around nodes...
     //
     // the way things are done, these 2 sets should only ever contain nodes from bucket
-    private final Set<Node> staleSet; // stale nodes are returned by dumpBucket?
-    private final Set<Node> lockSet; // locked nodes aren't returned by dumpBucket?
+    private final Set<Id> staleSet; // stale nodes are returned by dumpBucket?
+    private final Set<Id> lockSet; // locked nodes aren't returned by dumpBucket?
 
     private Instant lastTouchAttemptTime;
 
@@ -84,17 +84,26 @@ public final class KBucket {
         lastTouchAttemptTime = time;
         
         // Touch the bucket
-        ActivityChangeSet bucketTouchRes = bucket.touch(time, node);
+        //
+        // SPECIAL CASE: If the touch is from a ID that's in the stale set but has a different link, let it through (DO NOT THROW A
+        // LINKMISMATCHEXCEPTION). Since the ID is marked as being stale, it means it needs to be replaced but there were no other items in
+        // the cache to replace it with. As such, just treat it as if we're replacing an item with a new cache item.
+        ActivityChangeSet bucketTouchRes = bucket.touch(time, node, staleSet.contains(nodeId));
         Validate.validState(bucketTouchRes.viewRemoved().isEmpty()); // sanity check, should never remove anything when touching bucket
         if (!bucketTouchRes.viewAdded().isEmpty() || !bucketTouchRes.viewUpdated().isEmpty()) {
             // node was added to bucket, or node was already in bucket and was updated
-            staleSet.remove(node); // if being updated, node may have been stale... unstale it here because it's being touched
+            staleSet.remove(nodeId); // if being updated, node may have been stale... unstale it here because it's being touched
             // DO NOT UNLOCK ON TOUCH, when need to explicitly unlock elsewhere
             return new KBucketChangeSet(bucketTouchRes, ActivityChangeSet.NO_CHANGE);
         }
         
+        
+        
         // Touch the cache
-        ActivityChangeSet cacheTouchRes = cache.touch(time, node);
+        //
+        // Do not throw a LinkMismatchException if the node touching the cache is already in the cache (ID is the same) but has a different
+        // link, because these are just cache nodes. We don't need to maintain their integrity until they get promoted to the bucket.
+        ActivityChangeSet cacheTouchRes = cache.touch(time, node, true);
         
         // There may be something in the cache now, so if we have any stale nodes, replace them with this new cache item. We should never
         // ever be in a state where !cache.isEmpty() && !staleSet.isEmpty(). If we are then something's gone wrong.
@@ -106,6 +115,8 @@ public final class KBucket {
                     new ActivityChangeSet(singletonList(res.right), singletonList(res.left), emptyList()),
                     ActivityChangeSet.NO_CHANGE); // nochange because technically nothing moved in to cache, even though it temporarily did
         }
+        
+        
         
         // No stale nodes encountered, so nothing was replaced. Return standard results.
         return new KBucketChangeSet(bucketTouchRes, cacheTouchRes);
@@ -122,10 +133,10 @@ public final class KBucket {
         InternalValidate.notMatchesBase(baseId, nodeId);
         InternalValidate.matchesPrefix(prefix, nodeId);
         
-        InternalValidate.exists(node, bucket::contains); // node being marked as stale must be in bucket
-        InternalValidate.correctState(node, !lockSet.contains(node)); // node locked, cannot enter stale state (stale / locked are mutex)
+        InternalValidate.exists(node, bucket); // node being marked as stale must be in bucket
+        InternalValidate.correctState(node, !lockSet.contains(nodeId)); // node locked, cannot enter stale state (stale / locked are mutex)
 
-        staleSet.add(node); // add to stale set, it's fine if it's already in the staleset
+        staleSet.add(nodeId); // add to stale set, it's fine if it's already in the staleset
         
         // replace, if nodes are available in cache to replace with... otherwise it'll just keep this node marked as stale
         // left = removed stale node from bucket
@@ -152,10 +163,10 @@ public final class KBucket {
         InternalValidate.notMatchesBase(baseId, nodeId);
         InternalValidate.matchesPrefix(prefix, nodeId);
         
-        InternalValidate.exists(node, bucket::contains);  // node being marked as locked must be in bucket
-        InternalValidate.correctState(node, !staleSet.contains(node)); // node stale, cannot enter locked state (stale / locked are mutex)
+        InternalValidate.exists(node, bucket);  // node being marked as locked must be in bucket
+        InternalValidate.correctState(node, !staleSet.contains(nodeId)); // node stale, cannot enter locked state (stale / locked are mutex)
 
-        lockSet.add(node); // add to lock set, it's fine if it's already in the lockset
+        lockSet.add(nodeId); // add to lock set, it's fine if it's already in the lockset
     }
 
     public void unlock(Node node) {
@@ -167,10 +178,10 @@ public final class KBucket {
         InternalValidate.notMatchesBase(baseId, nodeId);
         InternalValidate.matchesPrefix(prefix, nodeId);
         
-        InternalValidate.exists(node, bucket::contains);  // node being marked as locked must be in bucket
-        InternalValidate.correctState(node, !staleSet.contains(node)); // node stale, cannot be in locked state (stale / locked are mutex)
+        InternalValidate.exists(node, bucket);  // node being marked as locked must be in bucket
+        InternalValidate.correctState(node, !staleSet.contains(nodeId)); // node stale, cannot be in locked state (stale / locked are mutex)
 
-        lockSet.remove(node); // remove from lock set, it's fine if it's already in the lockset
+        lockSet.remove(nodeId); // remove from lock set, it's fine if it's already in the lockset
     }
 
     // return is left=removed right=added
@@ -180,8 +191,8 @@ public final class KBucket {
         }
         
         // Get stale node
-        Iterator<Node> staleIt = staleSet.iterator();
-        Node staleNode = staleIt.next();
+        Iterator<Id> staleIt = staleSet.iterator();
+        Id staleId = staleIt.next();
         
         // Check to make sure cache has items to replace with
         if (cache.size() == 0) {
@@ -190,6 +201,7 @@ public final class KBucket {
         
         // Remove from bucket and staleset
         staleIt.remove(); // remove from staleset
+        Node staleNode = bucket.get(staleId);
         ActivityChangeSet bucketRemoveRes = bucket.remove(staleNode); // throws EntryConflictException if id is equal but link isn't
         if (bucketRemoveRes.viewRemoved().isEmpty()) {
             return null;
@@ -201,7 +213,7 @@ public final class KBucket {
         Validate.validState(cacheRemoveRes.viewRemoved().size() == 1); // sanity check, should always remove 1 node
         Activity cacheEntry = cacheRemoveRes.viewRemoved().get(0);
         try {
-            bucketTouchRes = bucket.touch(cacheEntry.getTime(), cacheEntry.getNode());
+            bucketTouchRes = bucket.touch(cacheEntry.getTime(), cacheEntry.getNode(), false);
         } catch (LinkMismatchException ece) {
             // should never throw EntryConflictException
             throw new IllegalStateException(ece);
@@ -236,8 +248,8 @@ public final class KBucket {
         // ret[3] = 1010 11   note that 3 = 11
         //
         // note that bitCount = 2, 2^2 = 4, which results in 4 elements
-        int maxBucketSize = bucket.getMaxSize();
-        int maxCacheSize = cache.getMaxSize();
+        int maxBucketSize = bucket.maxSize();
+        int maxCacheSize = cache.maxSize();
         int len = 1 << bitCount;
         KBucket[] newKBuckets = new KBucket[len];
         for (int i = 0; i < len; i++) {
@@ -264,15 +276,15 @@ public final class KBucket {
             // Touch bucket and mark as stale
             ActivityChangeSet res;
             try {
-                res = newKBuckets[idx].bucket.touch(entry.getTime(), node);
+                res = newKBuckets[idx].bucket.touch(entry.getTime(), node, false);
                 // FYI: If there are stale items, it means the cache is empty. Otherwise they would have been replaced if as soon as a cache
                 // node entered the bucket.
-                if (staleSet.contains(node)) {
-                    newKBuckets[idx].staleSet.add(node);
+                if (staleSet.contains(id)) {
+                    newKBuckets[idx].staleSet.add(id);
                 }
                 // move over lock nodes as well
-                if (lockSet.contains(node)) {
-                    newKBuckets[idx].lockSet.add(node);
+                if (lockSet.contains(id)) {
+                    newKBuckets[idx].lockSet.add(id);
                 }
             } catch (LinkMismatchException ece) {
                 // should never happen
@@ -298,7 +310,7 @@ public final class KBucket {
             // Touch cache
             ActivityChangeSet res;
             try {
-                res = newKBuckets[idx].cache.touch(entry.getTime(), node);
+                res = newKBuckets[idx].cache.touch(entry.getTime(), node, false);
             } catch (LinkMismatchException ece) {
                 // should never happen
                 throw new IllegalStateException(ece);
@@ -320,7 +332,7 @@ public final class KBucket {
     public KBucketChangeSet resizeBucket(int maxSize) {
         Validate.isTrue(maxSize >= 0);
         
-        if (maxSize <= bucket.getMaxSize()) {
+        if (maxSize <= bucket.maxSize()) {
             // reducing space
             ActivityChangeSet res = bucket.resize(maxSize);
             
@@ -330,7 +342,7 @@ public final class KBucket {
             Validate.validState(res.viewUpdated().isEmpty());
             
             // all nodes that were removed from bucket need to also be removed in staleness set
-            res.viewRemoved().forEach(x -> staleSet.remove(x.getNode()));
+            res.viewRemoved().forEach(x -> staleSet.remove(x.getNode().getId()));
             
             return new KBucketChangeSet(res, ActivityChangeSet.NO_CHANGE);
         } else {
@@ -361,12 +373,12 @@ public final class KBucket {
         List<Activity> filteredDumpedNodes = new ArrayList<>(dumpedNodes.size());
         dumpedNodes.stream()
                 .filter(x -> {
-                    boolean inStaleSet = staleSet.contains(x.getNode());
+                    boolean inStaleSet = staleSet.contains(x.getNode().getId());
                     if (includeStale && inStaleSet) {
                         return true;
                     }
 
-                    boolean inLockSet = lockSet.contains(x.getNode());
+                    boolean inLockSet = lockSet.contains(x.getNode().getId());
                     if (includeLocked && inLockSet) {
                         return true;
                     }
@@ -399,7 +411,7 @@ public final class KBucket {
     }
     
     private KBucketChangeSet fillMissingBucketSlotsWithCacheItems() {
-        int unoccupiedBucketSlots = bucket.getMaxSize() - bucket.size();
+        int unoccupiedBucketSlots = bucket.maxSize() - bucket.size();
         int availableCacheItems = cache.size();
         if (unoccupiedBucketSlots <= 0 || availableCacheItems == 0) {
             return new KBucketChangeSet(ActivityChangeSet.NO_CHANGE, ActivityChangeSet.NO_CHANGE);
@@ -416,7 +428,7 @@ public final class KBucket {
             // move
             ActivityChangeSet addRes;
             try {
-                addRes = bucket.touch(entryToMove.getTime(), entryToMove.getNode());
+                addRes = bucket.touch(entryToMove.getTime(), entryToMove.getNode(), false);
             } catch (LinkMismatchException ece) {
                 // This should never happen. The way the logic in this class is written, you should never have an entry with the same id in
                 // the cache and the bucket at the same time. As such, it's impossible to encounter a conflict.

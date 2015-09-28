@@ -72,14 +72,14 @@ public final class Router {
     }
     
     // DOES NOT RETURN SELF
-    public List<Node> find(Id id, int max) {
+    public List<Node> find(Id id, int max, boolean includeStale) {
         Validate.notNull(id);
         Validate.isTrue(max >= 0); // why would anyone want 0 items returned? let thru anyways
         
         InternalValidate.matchesLength(baseId.getBitLength(), id);
         // do not stop from finding self (base) -- you may want to update closest
         
-        List<Activity> closestNodesInRoutingTree = routeTree.find(id, max);
+        List<Activity> closestNodesInRoutingTree = routeTree.find(id, max, includeStale);
         
         ArrayList<Node> res = new ArrayList<>(closestNodesInRoutingTree.size());
         

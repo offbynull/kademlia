@@ -41,7 +41,7 @@ public final class NodeLeastRecentSet {
         this.entries = new LinkedList<>();
     }
     
-    public ActivityChangeSet touch(Instant time, Node node) {
+    public ActivityChangeSet touch(Instant time, Node node, boolean allowLinkMismatch) {
         Validate.notNull(time);
         Validate.notNull(node);
         
@@ -61,7 +61,9 @@ public final class NodeLeastRecentSet {
             Id entryId = entry.getNode().getId();
 
             if (entryId.equals(nodeId)) {
-                InternalValidate.matchesLink(entry.getNode(), node);
+                if (!allowLinkMismatch) {
+                    InternalValidate.matchesLink(entry.getNode(), node);
+                }
 
                 // remove
                 it.remove();
@@ -120,12 +122,8 @@ public final class NodeLeastRecentSet {
         }
     }
 
-    public boolean contains(Node node) {
-        Validate.notNull(node);
-        
-        Id nodeId = node.getId();
-        
-        InternalValidate.matchesLength(baseId.getBitLength(), nodeId);
+    public Node get(Id id) {
+        InternalValidate.matchesLength(baseId.getBitLength(), id);
         
         ListIterator<Activity> it = entries.listIterator();
         while (it.hasNext()) {
@@ -133,15 +131,12 @@ public final class NodeLeastRecentSet {
 
             Id entryId = entry.getNode().getId();
 
-            if (entryId.equals(nodeId)) {
-                InternalValidate.matchesLink(entry.getNode(), node);
-
-                // remove
-                return true;
+            if (entryId.equals(id)) {
+                return entry.getNode();
             }
         }
         
-        return false;
+        return null;
     }
 
     public ActivityChangeSet remove(Node node) {
@@ -202,7 +197,7 @@ public final class NodeLeastRecentSet {
         return entries.size();
     }
 
-    public int getMaxSize() {
+    public int maxSize() {
         return maxSize;
     }
 

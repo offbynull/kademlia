@@ -41,7 +41,7 @@ public final class NodeMostRecentSet {
         this.entries = new LinkedList<>();
     }
   
-    public ActivityChangeSet touch(Instant time, Node node) {
+    public ActivityChangeSet touch(Instant time, Node node, boolean allowLinkMismatch) {
         Validate.notNull(time);
         Validate.notNull(node);
         
@@ -61,7 +61,9 @@ public final class NodeMostRecentSet {
             Id entryId = entry.getNode().getId();
 
             if (entryId.equals(nodeId)) {
-                InternalValidate.matchesLink(entry.getNode(), node);
+                if (!allowLinkMismatch) {
+                    InternalValidate.matchesLink(entry.getNode(), node);
+                }
 
                 // remove
                 it.remove();
@@ -189,7 +191,7 @@ public final class NodeMostRecentSet {
         return entries.size();
     }
 
-    public int getMaxSize() {
+    public int maxSize() {
         return maxSize;
     }
 

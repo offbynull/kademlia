@@ -83,7 +83,7 @@ final class ExternalRequestHandlerSubcoroutine implements Subcoroutine<Void> {
 
                 FindRequest req = (FindRequest) msg;
                 Id findId = req.getFindId();
-                List<Node> foundNodes = router.find(findId, 20);
+                List<Node> foundNodes = router.find(findId, 20, false); // do not include stale nodes, we only want to send back alive nodes
 
                 FindResponse resp = new FindResponse(foundNodes.toArray(new Node[foundNodes.size()]));
                 ctx.addOutgoingMessage(subAddress, ctx.getSource(), resp);

@@ -181,7 +181,23 @@ public class KBucketTest {
     }
 
     @Test
-    public void mustPreventConflictingCacheNodeOnTouch() throws Throwable {
+    public void mustAllowConflictingBucketNodeOnTouchIfStale() throws Throwable {
+        fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
+        fixture.touch(BASE_TIME.plusMillis(2L), NODE_1000);
+        
+        fixture.stale(NODE_0010);
+        
+        Node node0010WithDifferentLink = new Node(NODE_0010.getId(), "fakelink");
+        
+        KBucketChangeSet res = fixture.touch(BASE_TIME.plusMillis(8L), node0010WithDifferentLink);
+        verifyActivityChangeSetCounts(res.getBucketChangeSet(), 0, 0, 1);
+        verifyActivityChangeSetCounts(res.getCacheChangeSet(), 0, 0, 0);
+        verifyActivityChangeSetUpdated(res.getBucketChangeSet(), node0010WithDifferentLink);
+        verifyNodesInActivities(fixture.dumpBucket(true, false, false), NODE_1000, node0010WithDifferentLink);
+    }
+
+    @Test
+    public void mustAllowConflictingCacheNodeOnTouch() throws Throwable {
         fixture.touch(BASE_TIME.plusMillis(1L), NODE_0010);
         fixture.touch(BASE_TIME.plusMillis(2L), NODE_1000);
         fixture.touch(BASE_TIME.plusMillis(3L), NODE_0100);
@@ -190,8 +206,13 @@ public class KBucketTest {
         fixture.touch(BASE_TIME.plusMillis(6L), NODE_1110);
         fixture.touch(BASE_TIME.plusMillis(7L), NODE_1101);
         
-        expectedException.expect(LinkMismatchException.class);
-        fixture.touch(BASE_TIME.plusMillis(8L), new Node(NODE_1111.getId(), "fakelink"));
+        Node node1111WithDifferentLink = new Node(NODE_1111.getId(), "fakelink");
+        
+        KBucketChangeSet res = fixture.touch(BASE_TIME.plusMillis(8L), node1111WithDifferentLink);
+        verifyActivityChangeSetCounts(res.getBucketChangeSet(), 0, 0, 0);
+        verifyActivityChangeSetCounts(res.getCacheChangeSet(), 0, 0, 1);
+        verifyActivityChangeSetUpdated(res.getCacheChangeSet(), node1111WithDifferentLink);
+        verifyNodesInActivities(fixture.dumpCache(), NODE_1110, NODE_1101, node1111WithDifferentLink);
     }
 
     @Test

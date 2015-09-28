@@ -1,7 +1,6 @@
 package com.offbynull.voip.kademlia.model;
 
 import java.time.Instant;
-import java.util.function.Predicate;
 import org.apache.commons.lang3.Validate;
 
 final class InternalValidate {
@@ -19,13 +18,17 @@ final class InternalValidate {
         }
     }
 
-    static void exists(Node expectedNode, Predicate<Node> conditionChecker) {
+    static void exists(Node expectedNode, NodeLeastRecentSet nodeSet) {
         // throws illegalstateexception, because if you made it to this point you should never encounter these conditions
         Validate.validState(expectedNode != null);
-        Validate.validState(conditionChecker != null);
+        Validate.validState(nodeSet != null);
 
-        if (!conditionChecker.test(expectedNode)) {
+        Node node = nodeSet.get(expectedNode.getId());
+        if (node == null) {
             throw new NodeNotFoundException(expectedNode);
+        } else if (!node.getLink().equals(expectedNode.getLink())) {
+            Validate.validState(node.getId().equals(expectedNode.getId())); // sanity check
+            throw new LinkMismatchException(node, expectedNode.getLink());
         }
     }
 

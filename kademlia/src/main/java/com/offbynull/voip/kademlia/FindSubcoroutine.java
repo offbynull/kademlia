@@ -88,7 +88,7 @@ final class FindSubcoroutine implements Subcoroutine<List<Node>> {
         Controller msgRouterController = msgRouter.getController();
         
         // Get initial set of nodes to query from routing table
-        List<Node> startNodes = router.find(findId, maxResults);
+        List<Node> startNodes = router.find(findId, maxResults, false); // do not include stale nodes, we only want to contact alive nodes
         ctx.addOutgoingMessage(subAddress, logAddress, info("Route table entries closest to {}: {}", findId, startNodes));
         
         // Create sorted set of nodes to contact
