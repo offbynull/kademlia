@@ -16,6 +16,7 @@
  */
 package com.offbynull.voip.kademlia.model;
 
+import java.util.Objects;
 import org.apache.commons.lang3.Validate;
 
 public final class RouteTreeChangeSet {
@@ -36,6 +37,37 @@ public final class RouteTreeChangeSet {
 
     public KBucketChangeSet getKBucketChangeSet() {
         return kBucketChangeSet;
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 5;
+        hash = 43 * hash + Objects.hashCode(this.kBucketPrefix);
+        hash = 43 * hash + Objects.hashCode(this.kBucketChangeSet);
+        return hash;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final RouteTreeChangeSet other = (RouteTreeChangeSet) obj;
+        if (!Objects.equals(this.kBucketPrefix, other.kBucketPrefix)) {
+            return false;
+        }
+        if (!Objects.equals(this.kBucketChangeSet, other.kBucketChangeSet)) {
+            return false;
+        }
+        return true;
+    }
+
+    @Override
+    public String toString() {
+        return "RouteTreeChangeSet{" + "kBucketPrefix=" + kBucketPrefix + ", kBucketChangeSet=" + kBucketChangeSet + '}';
     }
     
 }

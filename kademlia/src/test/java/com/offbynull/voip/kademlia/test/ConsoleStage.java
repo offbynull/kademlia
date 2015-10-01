@@ -1,4 +1,4 @@
-package com.offbynull.voip.kademlia;
+package com.offbynull.voip.kademlia.test;
 
 // Created this to avoid mixing commands to run the example with log output to the console
 import java.util.concurrent.ArrayBlockingQueue;
@@ -14,7 +14,7 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 
-public final class ConsoleStage extends Stage {
+final class ConsoleStage extends Stage {
 
     private static final ArrayBlockingQueue<ConsoleStage> SINGLETON_QUEUE = new ArrayBlockingQueue<>(1);
 

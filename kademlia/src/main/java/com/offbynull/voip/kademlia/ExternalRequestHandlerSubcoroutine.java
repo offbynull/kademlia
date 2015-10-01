@@ -70,12 +70,14 @@ final class ExternalRequestHandlerSubcoroutine implements Subcoroutine<Void> {
 
                 RouterChangeSet routerChangeSet = router.touch(ctx.getTime(), srcNode);
                 graphHelper.applyRouterChanges(ctx, routerChangeSet);
+                
+//                ctx.addOutgoingMessage(subAddress, logAddress, info("Router changes after touch {}", routerChangeSet));
             }
             
             if (msg instanceof PingRequest) {
                 ctx.addOutgoingMessage(subAddress, logAddress, info("Incoming ping request from {}", ctx.getSource()));
                 
-                PingResponse resp = new PingResponse();
+                PingResponse resp = new PingResponse(baseId);
                 ctx.addOutgoingMessage(subAddress, ctx.getSource(), resp);
                 ctx.addOutgoingMessage(subAddress, logAddress, info("Responding with: {}", resp));
             } else if (msg instanceof FindRequest) {

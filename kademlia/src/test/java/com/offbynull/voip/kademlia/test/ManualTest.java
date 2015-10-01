@@ -1,4 +1,4 @@
-package com.offbynull.voip.kademlia;
+package com.offbynull.voip.kademlia.test;
 
 import com.offbynull.peernetic.core.actor.ActorRunner;
 import static com.offbynull.peernetic.core.actor.helpers.IdGenerator.MIN_SEED_SIZE;
@@ -7,7 +7,10 @@ import com.offbynull.peernetic.core.gateways.timer.TimerGateway;
 import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.actor.helpers.SimpleAddressTransformer;
 import com.offbynull.peernetic.core.gateways.direct.DirectGateway;
+import com.offbynull.peernetic.core.shuttle.Message;
 import com.offbynull.peernetic.visualizer.gateways.graph.GraphGateway;
+import com.offbynull.voip.kademlia.KademliaCoroutine;
+import com.offbynull.voip.kademlia.internalmessages.Kill;
 import com.offbynull.voip.kademlia.internalmessages.SearchRequest;
 import com.offbynull.voip.kademlia.internalmessages.SearchResponse;
 import com.offbynull.voip.kademlia.internalmessages.Start;
@@ -15,6 +18,7 @@ import com.offbynull.voip.kademlia.internalmessages.Start.KademliaParameters;
 import com.offbynull.voip.kademlia.model.Id;
 import com.offbynull.voip.kademlia.model.Node;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import org.apache.commons.io.Charsets;
@@ -89,9 +93,20 @@ public final class ManualTest {
         Thread.sleep(200L);
         addNode("0000", "0001", actorRunner);
         Thread.sleep(200L);
-
         
-
+//        addNode("0000", "1111", actorRunner);
+//        Thread.sleep(1000L);
+//        
+//        
+//        // Kill node 0000 and wait for 1111 to mark it as stale
+//        removeNode("0000", actorRunner);
+//        Thread.sleep(15000L);
+//        
+//        
+//        // Re-add 0000 with a different link
+//        addNode("0000", "fakelink", "1111", actorRunner);
+        
+        
         // Search for nodes based on input
         consoleStage.outputLine("Wait until 1111 has loaded before querying...");
         while (true) {
@@ -114,26 +129,42 @@ public final class ManualTest {
         }
     }
 
-    private static void addNode(String idStr, String bootstrapIdStr, ActorRunner actorRunner) {
-        Id id = Id.create(idStr);
-        Node bootstrapNode = bootstrapIdStr == null ? null : new Node(Id.create(bootstrapIdStr), bootstrapIdStr);
+    private static void addNode(String id, String bootstrapLink, ActorRunner actorRunner) {
+        addNode(id, id, bootstrapLink, actorRunner);
+    }
+    
+    private static void addNode(String id, String link, String bootstrapLink, ActorRunner actorRunner) {
+        byte[] seed1 = Arrays.copyOf(id.getBytes(Charsets.US_ASCII), MIN_SEED_SIZE);
+        byte[] seed2 = Arrays.copyOf(id.getBytes(Charsets.US_ASCII), MIN_SEED_SIZE);
 
-        byte[] seed1 = Arrays.copyOf(idStr.getBytes(Charsets.US_ASCII), MIN_SEED_SIZE);
-        byte[] seed2 = Arrays.copyOf(idStr.getBytes(Charsets.US_ASCII), MIN_SEED_SIZE);
-
+        Id idObj = Id.create(id);
+        
         actorRunner.addActor(
-                idStr,
+                link,
                 new KademliaCoroutine(),
                 new Start(
                         new SimpleAddressTransformer(BASE_ACTOR_ADDRESS),
-                        id,
-                        bootstrapNode,
-                        new KademliaParameters(id, 2, 1, 1, 3),
+                        idObj,
+                        bootstrapLink,
+                        new KademliaParameters(idObj, 2, 1, 1, 3),
                         seed1,
                         seed2,
                         BASE_TIMER_ADDRESS,
                         BASE_GRAPH_ADDRESS,
                         BASE_LOG_ADDRESS
+                )
+        );
+    }
+    
+
+    private static void removeNode(String link, ActorRunner actorRunner) {
+        actorRunner.getIncomingShuttle().send(
+                Collections.singleton(
+                        new Message(
+                                BASE_ACTOR_ADDRESS.appendSuffix(link),
+                                BASE_ACTOR_ADDRESS.appendSuffix(link),
+                                new Kill()
+                        )
                 )
         );
     }

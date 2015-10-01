@@ -2,16 +2,22 @@ package com.offbynull.voip.kademlia;
 
 import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.peernetic.core.actor.Context;
+import com.offbynull.peernetic.core.actor.helpers.AddressTransformer;
+import com.offbynull.peernetic.core.actor.helpers.IdGenerator;
+import com.offbynull.peernetic.core.actor.helpers.RequestSubcoroutine;
 import com.offbynull.peernetic.core.actor.helpers.Subcoroutine;
 import static com.offbynull.peernetic.core.gateways.log.LogMessage.info;
 import com.offbynull.peernetic.core.shuttle.Address;
+import static com.offbynull.voip.kademlia.AddressConstants.ROUTER_EXT_HANDLER_RELATIVE_ADDRESS;
+import com.offbynull.voip.kademlia.externalmessages.PingRequest;
+import com.offbynull.voip.kademlia.externalmessages.PingResponse;
 import com.offbynull.voip.kademlia.model.BitString;
 import com.offbynull.voip.kademlia.model.Id;
 import com.offbynull.voip.kademlia.model.Node;
 import com.offbynull.voip.kademlia.model.Router;
 import com.offbynull.voip.kademlia.model.RouterChangeSet;
 import java.security.SecureRandom;
-import java.time.Instant;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import org.apache.commons.lang3.Validate;
@@ -19,36 +25,40 @@ import org.apache.commons.lang3.Validate;
 final class JoinSubcoroutine implements Subcoroutine<Void> {
 
     private final Address subAddress;
-    private final State state;
-    
     private final Address logAddress;
+    private final Address timerAddress;
+    
+    private final AddressTransformer addressTransformer;
+    private final IdGenerator idGenerator;
     private final SecureRandom secureRandom;
     
-    private final Node bootstrapNode;
+    private final State state;
+    
+    private final String bootstrapLink;
     private final Router router;
     private final Id baseId;
     
     private final GraphHelper graphHelper;
     
-    public JoinSubcoroutine(Address subAddress, State state, Node bootstrapNode) {
+    public JoinSubcoroutine(Address subAddress, State state, String bootstrapLink) {
         Validate.notNull(subAddress);
         Validate.notNull(state);
         
         this.subAddress = subAddress;
-        this.state = state;
-        
         this.logAddress = state.getLogAddress();
+        this.timerAddress = state.getTimerAddress();
+        
+        this.addressTransformer = state.getAddressTransformer();
+        this.idGenerator = state.getIdGenerator();
         this.secureRandom = state.getSecureRandom();
         
-        this.bootstrapNode = bootstrapNode;
+        this.state = state;
+        
+        this.bootstrapLink = bootstrapLink;
         this.baseId = state.getBaseId();
         this.router = state.getRouter();
         
         this.graphHelper = state.getGraphHelper();
-        
-        if (bootstrapNode != null) {
-            Validate.isTrue(!bootstrapNode.getId().equals(baseId)); // bootstrap must not be self
-        }
     }
     
     @Override
@@ -60,19 +70,40 @@ final class JoinSubcoroutine implements Subcoroutine<Void> {
     public Void run(Continuation cnt) throws Exception {
         Context ctx = (Context) cnt.getContext();
         
-        if (bootstrapNode == null) {
+        if (bootstrapLink == null) {
             ctx.addOutgoingMessage(subAddress, logAddress, info("Initial node in the network. No bootstrap to join."));
             return null;
         }
         
-        List<Node> closestNodes;
+        // 0. Get ID of bootstarp node
+        ctx.addOutgoingMessage(subAddress, logAddress, info("Getting ID for bootstrap link {}", bootstrapLink));
+        Address destinationAddress = addressTransformer.toAddress(bootstrapLink)
+                .appendSuffix(ROUTER_EXT_HANDLER_RELATIVE_ADDRESS);
+        PingResponse pingResponse = new RequestSubcoroutine.Builder<PingResponse>()
+                .sourceAddress(subAddress, idGenerator)
+                .destinationAddress(destinationAddress)
+                .timerAddress(timerAddress)
+                .request(new PingRequest(null))
+                .addExpectedResponseType(PingResponse.class)
+                .attemptInterval(Duration.ofSeconds(2L))
+                .maxAttempts(5)
+                .throwExceptionIfNoResponse(false)
+                .build()
+                .run(cnt);
+
+        Validate.isTrue(pingResponse != null, "Bootstrap link {} did not respond to ping", bootstrapLink);
+        Id bootstrapId = pingResponse.getId();
+        Validate.isTrue(!bootstrapId.equals(baseId), "Bootstrap ID {} conflicts with self", bootstrapId); // bootstrap must not be self
         
+        Node bootstrapNode = new Node(pingResponse.getId(), bootstrapLink);
         
         // 1. Add bootstrap node to routing tree
         ctx.addOutgoingMessage(subAddress, logAddress, info("Attempting to join the network via {}...", bootstrapNode));
         applyNodesToRouter(ctx, Collections.singletonList(bootstrapNode));
         
         // 2. Find yourself
+        List<Node> closestNodes;
+        
         ctx.addOutgoingMessage(subAddress, logAddress, info("Attempting to find self...", bootstrapNode));
         closestNodes = new FindSubcoroutine(subAddress.appendSuffix("selffind"), state, baseId, 20, false, false).run(cnt);
         Validate.validState(!closestNodes.isEmpty(), "No results from bootstrap");

@@ -53,4 +53,9 @@ public final class RouterChangeSet {
         return true;
     }
 
+    @Override
+    public String toString() {
+        return "RouterChangeSet{" + "routeTreeChangeSet=" + routeTreeChangeSet + '}';
+    }
+
 }

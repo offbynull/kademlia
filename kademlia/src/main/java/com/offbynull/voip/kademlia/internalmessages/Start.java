@@ -16,7 +16,7 @@ public final class Start {
 
     private final AddressTransformer addressTransformer;
     private final Id baseId;
-    private final Node bootstrapNode;
+    private final String bootstrapLink;
     private final byte[] seed1;
     private final byte[] seed2;
     private final Address timerAddress;
@@ -27,7 +27,7 @@ public final class Start {
     public Start(
             AddressTransformer addressTransformer,
             Id baseId,
-            Node bootstrapNode,
+            String bootstrapLink,
             KademliaParameters kademliaParameters,
             byte[] seed1,
             byte[] seed2,
@@ -46,7 +46,7 @@ public final class Start {
         Validate.isTrue(seed2.length >= IdGenerator.MIN_SEED_SIZE);
         this.addressTransformer = addressTransformer;
         this.baseId = baseId;
-        this.bootstrapNode = bootstrapNode;
+        this.bootstrapLink = bootstrapLink;
         this.kademliaParameters = kademliaParameters;
         this.seed1 = Arrays.copyOf(seed1, seed1.length);
         this.seed2 = Arrays.copyOf(seed2, seed2.length);
@@ -63,8 +63,8 @@ public final class Start {
         return baseId;
     }
 
-    public Node getBootstrapNode() {
-        return bootstrapNode;
+    public String getBootstrapLink() {
+        return bootstrapLink;
     }
 
     public KademliaParameters getKademliaParameters() {

@@ -15,10 +15,10 @@ import static com.offbynull.voip.kademlia.AddressConstants.ROUTER_EXT_HANDLER_RE
 import static com.offbynull.voip.kademlia.AddressConstants.ROUTER_INT_HANDLER_RELATIVE_ADDRESS;
 import static com.offbynull.voip.kademlia.AddressConstants.ROUTER_REFRESH_RELATIVE_ADDRESS;
 import static com.offbynull.voip.kademlia.AddressConstants.ROUTER_RELATIVE_ADDRESS;
+import com.offbynull.voip.kademlia.internalmessages.Kill;
 import com.offbynull.voip.kademlia.internalmessages.Start;
 import com.offbynull.voip.kademlia.internalmessages.Start.KademliaParameters;
 import com.offbynull.voip.kademlia.model.Id;
-import com.offbynull.voip.kademlia.model.Node;
 import org.apache.commons.lang3.Validate;
 
 public final class KademliaSubcoroutine implements Subcoroutine<Void> {
@@ -44,7 +44,7 @@ public final class KademliaSubcoroutine implements Subcoroutine<Void> {
         Address graphAddress = start.getGraphAddress();
         Address logAddress = start.getLogAddress();
         Id baseId = start.getBaseId();
-        Node bootstrapNode = start.getBootstrapNode();
+        String bootstrapLink = start.getBootstrapLink();
         KademliaParameters kademliaParameters = start.getKademliaParameters();
         byte[] seed1 = start.getSeed1();
         byte[] seed2 = start.getSeed2();
@@ -67,7 +67,7 @@ public final class KademliaSubcoroutine implements Subcoroutine<Void> {
             JoinSubcoroutine joinTask = new JoinSubcoroutine(
                     subAddress.appendSuffix(JOIN_RELATIVE_ADDRESS),
                     state,
-                    bootstrapNode);
+                    bootstrapLink);
             joinTask.run(cnt);
 
             // Create maintanence tasks that are supposed to run in parallel
@@ -98,7 +98,15 @@ public final class KademliaSubcoroutine implements Subcoroutine<Void> {
             // Process messages
             while (true) {
                 cnt.suspend();
-                router.forward();
+                
+                boolean forwardedToRouter = router.forward().isForwarded();
+                if (!forwardedToRouter) {
+                    Object msg = ctx.getIncomingMessage();
+                    boolean isFromSelf = ctx.getSource().equals(ctx.getSelf());
+                    if (isFromSelf && msg instanceof Kill) {
+                        throw new RuntimeException("Kill message encountered");
+                    }
+                }
             }
         } catch (Exception e) {
             ctx.addOutgoingMessage(logAddress, error("Shutting down client {} -- {}", ctx.getSelf(), e));
