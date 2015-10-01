@@ -20,16 +20,31 @@ import com.offbynull.voip.kademlia.model.Id;
 import java.io.Serializable;
 import org.apache.commons.lang3.Validate;
 
+/**
+ * A response to a {@link PingRequest} message.
+ * <p>
+ * This class is immutable.
+ * @author Kasra Faghihi
+ */
 public final class PingResponse implements Serializable {
     private static final long serialVersionUID = 1L;
     
     private final Id id;
 
+    /**
+     * Constructs a {@link PingResponse} message.
+     * @param id id of the Kademlia actor that's responding
+     * @throws NullPointerException
+     */
     public PingResponse(Id id) {
         Validate.notNull(id);
         this.id = id;
     }
 
+    /**
+     * Get the ID of the Kademlia node that generated/sent this response.
+     * @return ID of the responder
+     */
     public Id getId() {
         return id;
     }

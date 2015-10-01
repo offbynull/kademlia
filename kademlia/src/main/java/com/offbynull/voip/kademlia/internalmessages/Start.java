@@ -27,6 +27,12 @@ import java.util.Arrays;
 import java.util.function.Supplier;
 import org.apache.commons.lang3.Validate;
 
+/**
+ * Starts a Kademlia actor (priming message).
+ * <p>
+ * This class is immutable.
+ * @author Kasra Faghihi
+ */
 public final class Start {
 
     private final AddressTransformer addressTransformer;

@@ -19,7 +19,6 @@ package com.offbynull.voip.kademlia.model;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import static java.util.Collections.emptyList;
 import java.util.HashSet;
 import java.util.Objects;
@@ -28,7 +27,7 @@ import org.apache.commons.collections4.list.UnmodifiableList;
 import org.apache.commons.lang3.Validate;
 
 public final class ActivityChangeSet {
-    static final ActivityChangeSet NO_CHANGE = new ActivityChangeSet(Collections.emptyList(), Collections.emptyList(), Collections.emptyList());
+    static final ActivityChangeSet NO_CHANGE = new ActivityChangeSet(emptyList(), emptyList(), emptyList());
     
     private final UnmodifiableList<Activity> removed;
     private final UnmodifiableList<Activity> added;

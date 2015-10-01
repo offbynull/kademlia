@@ -19,9 +19,19 @@ package com.offbynull.voip.kademlia.externalmessages;
 import com.offbynull.voip.kademlia.model.Id;
 import java.io.Serializable;
 
+/**
+ * A ping request.
+ * <p>
+ * This class is immutable.
+ * @author Kasra Faghihi
+ */
 public final class PingRequest extends KademliaRequest implements Serializable {
     private static final long serialVersionUID = 1L;  
 
+    /**
+     * Constructs a {@link PingRequest} object.
+     * @param fromId ID this message is from (can be {@code null})
+     */
     public PingRequest(Id fromId) {
         super(fromId);
     }

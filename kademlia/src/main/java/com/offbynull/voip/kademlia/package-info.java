@@ -14,14 +14,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.voip.kademlia.internalmessages;
 
 /**
- * Stops a Kademlia actor.
- * <p>
- * This class is immutable.
+ * Kademlia actor.
+ * 
  * @author Kasra Faghihi
  */
-public final class Kill {
-    
-}
+package com.offbynull.voip.kademlia;
