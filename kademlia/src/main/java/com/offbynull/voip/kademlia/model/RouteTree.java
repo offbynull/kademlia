@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.TreeSet;
 import org.apache.commons.lang3.Validate;
 
-public final class RouteTree {
+final class RouteTree {
     private final Id baseId;
     private final RouteTreeNode root;
     private final TimeSet<BitString> bucketUpdateTimes; // prefix to when the prefix's bucket was last updated (not cache)
