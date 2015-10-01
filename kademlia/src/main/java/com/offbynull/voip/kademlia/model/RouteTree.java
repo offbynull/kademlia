@@ -19,7 +19,6 @@ package com.offbynull.voip.kademlia.model;
 import com.offbynull.voip.kademlia.model.RouteTreeBucketSpecificationSupplier.BucketParameters;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.TreeSet;
@@ -212,11 +211,7 @@ final class RouteTree {
         }
 
         // Create root
-        List<RouteTreeBranch> newBranches = new ArrayList<>(newBuckets.length);
-        Arrays.stream(newBuckets)
-                .map(x -> new RouteTreeBucketBranch(x))
-                .forEachOrdered(newBranches::add);
-        return new RouteTreeNode(EMPTY, suffixBitCount, newBranches);
+        return new RouteTreeNode(EMPTY, suffixBitCount, newBuckets);
     }
 
     private RouteTreeNode growParent(RouteTreeNode parent,
@@ -228,9 +223,9 @@ final class RouteTree {
 
         
         // Calculate which bucket from parent to split
-        int parentNumOfBuckets = parent.branches.size();
+        int parentNumOfBuckets = parent.getBranchCount();
         Validate.validState(Integer.bitCount(parentNumOfBuckets) == 1); // sanity check numofbuckets is pow of 2
-        int parentPrefixBitLen = parent.prefix.getBitLength(); // num of bits in parent's prefix
+        int parentPrefixBitLen = parent.getPrefix().getBitLength(); // num of bits in parent's prefix
         int parentSuffixBitCount = Integer.bitCount(parentNumOfBuckets - 1); // num of bits in parent's suffix
                                                                              // e.g. 8 --> 1000 - 1 = 0111, bitcount(0111) = 3
         
@@ -241,7 +236,7 @@ final class RouteTree {
         }
         
         int splitBucketIdx = (int) baseId.getBitString().getBitsAsLong(parentPrefixBitLen, parentSuffixBitCount);
-        KBucket splitBucket = parent.branches.get(splitBucketIdx).getItem();
+        KBucket splitBucket = parent.getBranch(splitBucketIdx).getItem();
         BitString splitBucketPrefix = splitBucket.getPrefix();
         
         
@@ -277,13 +272,9 @@ final class RouteTree {
         bucketUpdateTimes.remove(splitBucketPrefix);
 
         // Create new level and set as child
-        List<RouteTreeBranch> newBranches = new ArrayList<>(newBuckets.length);
-        Arrays.stream(newBuckets)
-                .map(x -> new RouteTreeBucketBranch(x))
-                .forEachOrdered(newBranches::add);
-        RouteTreeNode newNode = new RouteTreeNode(newPrefix, suffixBitCount, newBranches);
+        RouteTreeNode newNode = new RouteTreeNode(newPrefix, suffixBitCount, newBuckets);
         
-        parent.branches.set(splitBucketIdx, new RouteTreeNodeBranch(newNode));
+        parent.setBranch(splitBucketIdx, new RouteTreeNodeBranch(newNode));
         
         return newNode;
     }

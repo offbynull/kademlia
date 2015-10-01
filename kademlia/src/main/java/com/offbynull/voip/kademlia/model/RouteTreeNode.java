@@ -18,6 +18,7 @@ package com.offbynull.voip.kademlia.model;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import static java.util.Collections.emptySet;
 import static java.util.Collections.singleton;
@@ -29,16 +30,43 @@ import org.apache.commons.lang3.Validate;
 
 final class RouteTreeNode {
     
-    final BitString prefix;
-    final int suffixLen;
-    final List<RouteTreeBranch> branches; // branches can contain KBuckets or RouteTreeLevels that are further down
+    private final BitString prefix;
+    private final int suffixLen;
+    private final List<RouteTreeBranch> branches; // branches can contain KBuckets or RouteTreeLevels that are further down
 
-    RouteTreeNode(BitString prefix, int suffixLen, List<RouteTreeBranch> branches) {
+    public RouteTreeNode(BitString prefix, int suffixLen, KBucket[] buckets) {
+        Validate.notNull(prefix);
+        Validate.notNull(buckets);
+        Validate.noNullElements(buckets);
+        Validate.isTrue(suffixLen > 0);
+        
         this.prefix = prefix;
         this.suffixLen = suffixLen;
-        this.branches = branches;
+        this.branches = new ArrayList<>(buckets.length);
+        Arrays.stream(buckets)
+                .map(x -> new RouteTreeBucketBranch(x))
+                .forEachOrdered(branches::add);
     }
 
+    public RouteTreeBranch getBranch(int idx) {
+        Validate.isTrue(idx >= 0);
+        Validate.isTrue(idx < branches.size());
+        
+        return branches.get(idx);
+    }
+
+    public void setBranch(int idx, RouteTreeBranch branch) {
+        Validate.notNull(branch);
+        Validate.isTrue(idx >= 0);
+        Validate.isTrue(idx < branches.size());
+        
+        branches.set(idx, branch);
+    }
+
+    public int getBranchCount() {
+        return branches.size();
+    }
+    
     public BitString getPrefix() {
         return prefix;
     }
@@ -46,7 +74,9 @@ final class RouteTreeNode {
     // id is the id we're trying to find
     // treeset compares against id
     public void findNodesWithLargestPossiblePrefix(Id id, TreeSet<Activity> output, int max, boolean includeStale) {
-        // Other validation checks on args done by caller, no point in repeating this for an unchanging argument in recursive method
+        Validate.notNull(id);
+        Validate.notNull(output);  // technically shouldn't contain any null elements, but we don't care since we're just adding to this
+        Validate.isTrue(max >= 0); // why would anyone want 0? let thru anyways
         Validate.isTrue(id.getBitString().getBits(0, prefix.getBitLength()).equals(prefix)); // ensure prefix matches
 
         // Recursively go down the until you find the branch with the largest matching prefix to ID. Once you find it, call
@@ -72,7 +102,11 @@ final class RouteTreeNode {
     // id is the id we're trying to find
     // treeset compares against id
     public void dumpAllNodesUnderTreeNode(Id id, TreeSet<Activity> output, int max, boolean includeStale, Set<BitString> skipPrefixes) {
-        // Other validation checks on args done by caller, no point in repeating this for an unchanging argument in recursive method
+        Validate.notNull(id);
+        Validate.notNull(output);  // technically shouldn't contain any null elements, but we don't care since we're just adding to this
+        Validate.notNull(skipPrefixes);
+        Validate.noNullElements(skipPrefixes);
+        Validate.isTrue(max >= 0); // why would anyone want 0 here? let thru anwyways
 
         // No more room in bucket? just leave right away.
         if (output.size() >= max) {
@@ -184,7 +218,7 @@ final class RouteTreeNode {
     }
 
     public KBucket getBucketForPrefix(BitString searchPrefix) {
-        // Other validation checks on args done by caller, no point in repeating this for an unchanging argument in recursive method
+        Validate.notNull(searchPrefix);
         Validate.isTrue(searchPrefix.getBits(0, prefix.getBitLength()).equals(prefix)); // ensure prefix of searchPrefix matches
 
         int bucketIdx = (int) searchPrefix.getBitsAsLong(prefix.getBitLength(), suffixLen);
@@ -202,7 +236,7 @@ final class RouteTreeNode {
     }
 
     public KBucket getBucketFor(Id id) {
-        // Other validate checks done by caller, no point in repeating this for an unchanging argument in recursive method
+        Validate.notNull(id);
         Validate.isTrue(id.getBitString().getBits(0, prefix.getBitLength()).equals(prefix)); // ensure prefix matches
 
         int bucketIdx = (int) id.getBitsAsLong(prefix.getBitLength(), suffixLen);
@@ -220,6 +254,8 @@ final class RouteTreeNode {
     }    
     
     public void dumpAllBucketPrefixes(List<BitString> output) {
+        Validate.notNull(output); // technically shouldn't contain any null elements, but we don't care since we're just adding to this
+        
         for (RouteTreeBranch branch : branches) {
             if (branch instanceof RouteTreeNodeBranch) {
                 RouteTreeNode treeNode = branch.getItem();
