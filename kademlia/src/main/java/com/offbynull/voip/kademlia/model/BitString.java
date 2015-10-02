@@ -435,7 +435,8 @@ public final class BitString implements Serializable {
      * @param offset offset of bit within this bitstring to read from
      * @param len number of bits to get
      * @return bits starting from {@code offset} to {@code offset + len} from this bitstring
-     * @throws IllegalArgumentException if {@code offset < 0} or if {@code offset > bitLength} or {@code offset + other.bitLength > bitLength}
+     * @throws IllegalArgumentException if {@code offset < 0} or if {@code offset > bitLength} or
+     * {@code offset + other.bitLength > bitLength}
      */
     public BitString getBits(int offset, int len) {
         Validate.isTrue(offset >= 0);
@@ -479,7 +480,7 @@ public final class BitString implements Serializable {
      * @param offset offset of bit within this bitstring to read from
      * @param len number of bits to get
      * @return bits starting from {@code offset} to {@code offset + len} from this bitstring, inside of a long
-     * @throws IllegalArgumentException if {@code offset < 0} or if {@code offset > bitLength} or if * {@code offset + len > bitLength} or if
+     * @throws IllegalArgumentException if {@code offset < 0} or if {@code offset > bitLength} or if {@code offset + len > bitLength} or if
      * {@code len > 64}
      */
     public long getBitsAsLong(int offset, int len) {
@@ -520,7 +521,8 @@ public final class BitString implements Serializable {
      * @param other bits to set
      * @return new bitstring that has bit set
      * @throws NullPointerException if any argument is {@code null}
-     * @throws IllegalArgumentException if {@code offset < 0} or if {@code offset > bitLength} or {@code offset + other.bitLength > bitLength}
+     * @throws IllegalArgumentException if {@code offset < 0} or if {@code offset > bitLength} or
+     * {@code offset + other.bitLength > bitLength}
      */
     public BitString setBits(int offset, BitString other) {
         Validate.notNull(other);
@@ -623,7 +625,7 @@ public final class BitString implements Serializable {
 //            if (i % 4 == 0 && i != 0) {
 //                sb.append(' ');
 //            }
-            sb.append(getBit(i) == true ? 1 : 0);
+            sb.append(getBit(i) /*== true*/ ? 1 : 0);
         }
         return sb.toString();
     }

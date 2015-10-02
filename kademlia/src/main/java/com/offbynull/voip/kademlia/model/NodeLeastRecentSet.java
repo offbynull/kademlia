@@ -19,7 +19,8 @@ package com.offbynull.voip.kademlia.model;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
@@ -115,9 +116,9 @@ final class NodeLeastRecentSet {
             // Validate.validState(oldEntry == null); // sanity check, node being touched must not have already existed
             
             // added new node
-            Collection<Activity> addedEntries = Collections.singletonList(newEntry);
-            Collection<Activity> removedEntries = discardedEntry == null ? Collections.emptyList() : Collections.singletonList(discardedEntry);
-            Collection<Activity> updatedEntries = Collections.emptyList();
+            Collection<Activity> addedEntries = singletonList(newEntry);
+            Collection<Activity> removedEntries = discardedEntry == null ? emptyList() : singletonList(discardedEntry);
+            Collection<Activity> updatedEntries = emptyList();
             return new ActivityChangeSet(addedEntries, removedEntries, updatedEntries);
         }
     }

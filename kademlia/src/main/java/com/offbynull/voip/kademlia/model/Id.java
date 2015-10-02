@@ -165,7 +165,8 @@ public final class Id implements Serializable {
      * @param offset offset of bit within this bitstring to read from
      * @param len number of bits to get
      * @return bits starting from {@code offset} to {@code offset + len} from this bitstring
-     * @throws IllegalArgumentException if {@code offset < 0} or if {@code offset > bitLength} or {@code offset + other.bitLength > bitLength}
+     * @throws IllegalArgumentException if {@code offset < 0} or if {@code offset > bitLength} or
+     * {@code offset + other.bitLength > bitLength}
      */
     public long getBitsAsLong(int offset, int len) {
         return bitString.getBitsAsLong(offset, len);
@@ -177,7 +178,8 @@ public final class Id implements Serializable {
      * @param other bits to set
      * @param len number of bits to set
      * @return new id that has bit set
-     * @throws IllegalArgumentException if {@code offset < 0} or if {@code offset > bitLength} or {@code offset + other.bitLength > bitLength}
+     * @throws IllegalArgumentException if {@code offset < 0} or if {@code offset > bitLength} or
+     * {@code offset + other.bitLength > bitLength}
      */
     public Id setBitsAsLong(long other, int offset, int len) {
         BitString modifiedBitString = bitString.setBits(offset, Id.createFromLong(other, len).bitString);
@@ -189,7 +191,8 @@ public final class Id implements Serializable {
      * @param offset offset of bit within this bitstring to write to
      * @param bitString bits to set
      * @return new id that has bit set
-     * @throws IllegalArgumentException if {@code offset < 0} or if {@code offset > bitLength} or {@code offset + other.bitLength > bitLength}
+     * @throws IllegalArgumentException if {@code offset < 0} or if {@code offset > bitLength} or
+     * {@code offset + other.bitLength > bitLength}
      */
     public Id setBits(int offset, BitString bitString) {
         BitString modifiedBitString = this.bitString.setBits(offset, bitString);

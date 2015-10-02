@@ -20,11 +20,43 @@ import java.io.Serializable;
 import java.util.Comparator;
 import org.apache.commons.lang3.Validate;
 
+/**
+ * Compares IDs by calculating the distance (Kademlia's notion of distance -- the XOR metric) between the input IDs and a pre-defined ID.
+ * <p>
+ * Imagine that IDs A and B are being compared by this comparator to see which is closer to ID C (the pre-defined ID). According to the XOR
+ * metric...
+ * <pre>
+ * resAC = XOR(A,C);
+ * resBC = XOR(B,C);
+ * 
+ * if resAC &lt; resAC then A is closer to C
+ * if resBC &lt; resAB then B is closer to C
+ * if resAB == resBC then A and B are of the same distance from C
+ * </pre>
+ * So for example...
+ * <pre>
+ * C=0111
+ * A=0001
+ * B=0000
+ * 
+ * resAC = XOR(0001,0111) = 0110
+ * resBC = XOR(0000,0111) = 0111
+ * </pre>
+ * In this case, resAC is closer than resBC because it is less.
+ * <p>
+ * Class is immutable.
+ * @author Kasra Faghihi
+ */
 public final class IdXorMetricComparator implements Comparator<Id>, Serializable {
     private static final long serialVersionUID = 1L;
     
     private final Id baseId;
 
+    /**
+     * Constructs a {@link IdXorMetricComparator} object.
+     * @param baseId ID to calculate distance against
+     * @throws NullPointerException if any argument is {@code null}
+     */
     public IdXorMetricComparator(Id baseId) {
         Validate.notNull(baseId);
         this.baseId = baseId;
