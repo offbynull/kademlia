@@ -18,6 +18,12 @@ package com.offbynull.voip.kademlia.model;
 
 import org.apache.commons.lang3.Validate;
 
+/**
+ * Supplies simplistic route tree branching and k-bucket generation strategy.
+ * <p>
+ * This class is immutable.
+ * @author Kasra Faghihi
+ */
 public final class SimpleRouteTreeSpecificationSupplier implements RouteTreeBranchSpecificationSupplier,
         RouteTreeBucketSpecificationSupplier {
     private final Id baseId;
@@ -25,15 +31,28 @@ public final class SimpleRouteTreeSpecificationSupplier implements RouteTreeBran
     private final int nodesPerBucket;
     private final int cacheNodesPerBucket;
 
+    /**
+     * Constructs a {@link SimpleRouteTreeSpecificationSupplier} object.
+     * @param baseId ID of Kademlia node this supplier is generating a route tree for
+     * @param branchesPerLevel number of branches to generate whenever a k-bucket splits
+     * @param nodesPerBucket maximum number of nodes allowed in each k-bucket
+     * @param cacheNodesPerBucket maximum number of cache nodes allowed in each k-bucket
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if any numeric argument is {@code 0} or less, or if
+     * {@code branchesPerLevel < 2 || !isPowerOfTwo(branchesPerLevel)}, or if {@code baseId.getBitLength() % branchesPerLevel != 0} (if the
+     * number of branches per level doesn't divide evenly in to bit length, the routing tree will have too many branches at the last level)
+     */
     public SimpleRouteTreeSpecificationSupplier(Id baseId, int branchesPerLevel, int nodesPerBucket, int cacheNodesPerBucket) {
         Validate.notNull(baseId);
-        Validate.isTrue(branchesPerLevel > 0);
+        Validate.isTrue(branchesPerLevel >= 2);
         Validate.isTrue(nodesPerBucket > 0);
         Validate.isTrue(cacheNodesPerBucket > 0);
         
         // check to make sure power of 2
         // other ways: http://javarevisited.blogspot.ca/2013/05/how-to-check-if-integer-number-is-power-of-two-example.html
         Validate.isTrue(Integer.bitCount(branchesPerLevel) == 1);
+        
+        Validate.isTrue(baseId.getBitLength() % branchesPerLevel == 0);
         
         this.baseId = baseId;
         this.branchesPerLevel = branchesPerLevel;
