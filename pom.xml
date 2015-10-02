@@ -76,7 +76,7 @@
                     </executions>
                     <dependencies>
                         <dependency>
-                            <groupId>com.offbynull.peernetic</groupId>
+                            <groupId>com.offbynull.voip</groupId>
                             <artifactId>build-tools</artifactId>
                             <version>${project.version}</version>
                         </dependency>

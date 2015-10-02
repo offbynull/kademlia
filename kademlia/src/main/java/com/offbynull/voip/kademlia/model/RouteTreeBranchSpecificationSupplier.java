@@ -17,6 +17,27 @@
 package com.offbynull.voip.kademlia.model;
 
 
+/**
+ * Branching strategy for a Kademlia routing tree.
+ * @author Kasra Faghihi
+ */
 public interface RouteTreeBranchSpecificationSupplier {
+    /**
+     * Get the number of child branches to create at some branch in the routing tree. This method is called when a k-bucket within a routing
+     * tree is to be split. It identifies the number of k-buckets to split the original k-bucket in to. For example, imagine the following
+     * routing tree...
+     * <pre>
+     *       0/\1
+     * </pre>
+     * If this method were to return returned 2 for the prefix {@code 0}, the tree would look like this...
+     * <pre>
+     *       0/\1
+     *      /  
+     *    0/\1
+     * </pre>
+     * @param prefix prefix of the branch in the routing tree with the k-bucket being split
+     * @return number of child branches to create -- MUST BE &gt;= 2 AND MUST BE A POWER OF 2 (e.g. 2, 4, 8, etc..)
+     * @throws NullPointerException if any argument is {@code null}
+     */
     int getBranchCount(BitString prefix);
 }

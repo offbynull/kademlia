@@ -166,7 +166,8 @@
         <module name="ArrayTypeStyle"/>
         <!-- Little value. Params will be declared final as-needed. -->
         <!--<module name="FinalParameters"/>-->
-        <module name="TodoComment"/>
+        <!-- Little value. Allow ToDo comments. -->
+        <!--<module name="TodoComment"/>-->
         <module name="UpperEll"/>
 
     </module>
