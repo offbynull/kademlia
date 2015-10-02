@@ -19,13 +19,20 @@ package com.offbynull.voip.kademlia.model;
 import java.time.Instant;
 import org.apache.commons.lang3.Validate;
 
+/**
+ * Thrown to indicate that the time value passed in to is less than the last time value passed (meaning that an attempt was made to move
+ * backward in time).
+ * <p>
+ * Class is immutable.
+ * @author Kasra Faghihi
+ */
 public final class BackwardTimeException extends IllegalArgumentException {
     private static final long serialVersionUID = 1L;
 
     private final Instant previousTime;
     private final Instant inputTime;
 
-    public BackwardTimeException(Instant previousTime, Instant inputTime) {
+    BackwardTimeException(Instant previousTime, Instant inputTime) {
         super("Time is (" + inputTime + ") is before " + previousTime);
         Validate.notNull(previousTime);
         Validate.notNull(inputTime);
@@ -35,10 +42,18 @@ public final class BackwardTimeException extends IllegalArgumentException {
         this.inputTime = inputTime;
     }
 
+    /**
+     * Get the previous time value.
+     * @return previous time value
+     */
     public Instant getPreviousTime() {
         return previousTime;
     }
 
+    /**
+     * Get the input time value.
+     * @return input time value
+     */
     public Instant getInputTime() {
         return inputTime;
     }

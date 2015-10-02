@@ -18,17 +18,27 @@ package com.offbynull.voip.kademlia.model;
 
 import org.apache.commons.lang3.Validate;
 
-public class NodeNotFoundException extends IllegalArgumentException {
+/**
+ * Thrown to indicate that the input node wasn't found.
+ * <p>
+ * Class is immutable.
+ * @author Kasra Faghihi
+ */
+public final class NodeNotFoundException extends IllegalArgumentException {
     private static final long serialVersionUID = 1L;
 
     private final Node node;
 
-    public NodeNotFoundException(Node node) {
+    NodeNotFoundException(Node node) {
         super("Node not found: " + node + ")");
         Validate.notNull(node);
         this.node = node;
     }
 
+    /**
+     * Get the input node.
+     * @return input node
+     */
     public Node getNode() {
         return node;
     }

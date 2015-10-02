@@ -18,13 +18,19 @@ package com.offbynull.voip.kademlia.model;
 
 import org.apache.commons.lang3.Validate;
 
+/**
+ * Thrown to indicate that the prefix of the input ID doesn't match.
+ * <p>
+ * Class is immutable.
+ * @author Kasra Faghihi
+ */
 public final class IdPrefixMismatchException extends IllegalArgumentException {
     private static final long serialVersionUID = 1L;
 
     private final Id id;
     private final BitString expectedPrefix;
 
-    public IdPrefixMismatchException(Id id, BitString expectedPrefix) {
+    IdPrefixMismatchException(Id id, BitString expectedPrefix) {
         super("ID prefix mismatch (required " + expectedPrefix +  "): " + id + ")");
         Validate.notNull(id);
         Validate.notNull(expectedPrefix);
@@ -35,10 +41,18 @@ public final class IdPrefixMismatchException extends IllegalArgumentException {
         this.expectedPrefix = expectedPrefix;
     }
 
+    /**
+     * Get the input ID.
+     * @return input ID
+     */
     public Id getId() {
         return id;
     }
 
+    /**
+     * Get the expected prefix.
+     * @return expected prefix
+     */
     public BitString getExpectedPrefix() {
         return expectedPrefix;
     }

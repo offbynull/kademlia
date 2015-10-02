@@ -18,17 +18,27 @@ package com.offbynull.voip.kademlia.model;
 
 import org.apache.commons.lang3.Validate;
 
-public class BaseIdMatchException extends IllegalArgumentException {
+/**
+ * Thrown to indicate that the input ID matches the ID of the Kademlia node being operated on.
+ * <p>
+ * Class is immutable.
+ * @author Kasra Faghihi
+ */
+public final class BaseIdMatchException extends IllegalArgumentException {
     private static final long serialVersionUID = 1L;
 
     private final Id baseId;
 
-    public BaseIdMatchException(Id baseId) {
+    BaseIdMatchException(Id baseId) {
         super("ID must not match base ID (" + baseId + ")");
         Validate.notNull(baseId);
         this.baseId = baseId;
     }
 
+    /**
+     * ID of node being operated on / input node's ID.
+     * @return ID of node being operated on / input node's ID
+     */
     public Id getBaseId() {
         return baseId;
     }

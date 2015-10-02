@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.ListIterator;
 import org.apache.commons.lang3.Validate;
 
-public final class NodeMostRecentSet {
+final class NodeMostRecentSet {
     private final Id baseId;
     private final LinkedList<Activity> entries;
 

@@ -26,6 +26,14 @@ import java.util.Set;
 import org.apache.commons.collections4.list.UnmodifiableList;
 import org.apache.commons.lang3.Validate;
 
+/**
+ * Changes resulting from some operation performed on a collection that stores {@link Nodes}s (nodes that were added, removed, and updated).
+ * <p>
+ * Note that a single node can only be added, removed, or updated. It can never be a combination.
+ * <p>
+ * Class is immutable.
+ * @author Kasra Faghihi
+ */
 public final class NodeChangeSet {
     static final NodeChangeSet NO_CHANGE = new NodeChangeSet(emptyList(), emptyList(), emptyList());
     
@@ -33,43 +41,43 @@ public final class NodeChangeSet {
     private final UnmodifiableList<Node> added;
     private final UnmodifiableList<Node> updated;
     
-    public static NodeChangeSet added(Node ... nodes) {
+    static NodeChangeSet added(Node ... nodes) {
         Validate.notNull(nodes);
         Validate.noNullElements(nodes);
         return added(Arrays.asList(nodes));
     }
 
-    public static NodeChangeSet added(Collection<Node> nodes) {
+    static NodeChangeSet added(Collection<Node> nodes) {
         Validate.notNull(nodes);
         Validate.noNullElements(nodes);
         return new NodeChangeSet(nodes, emptyList(), emptyList());
     }
 
-    public static NodeChangeSet removed(Node ... nodes) {
+    static NodeChangeSet removed(Node ... nodes) {
         Validate.notNull(nodes);
         Validate.noNullElements(nodes);
         return removed(Arrays.asList(nodes));
     }
 
-    public static NodeChangeSet removed(Collection<Node> nodes) {
+    static NodeChangeSet removed(Collection<Node> nodes) {
         Validate.notNull(nodes);
         Validate.noNullElements(nodes);
         return new NodeChangeSet(emptyList(), nodes, emptyList());
     }
 
-    public static NodeChangeSet updated(Node ... nodes) {
+    static NodeChangeSet updated(Node ... nodes) {
         Validate.notNull(nodes);
         Validate.noNullElements(nodes);
         return updated(Arrays.asList(nodes));
     }
 
-    public static NodeChangeSet updated(Collection<Node> nodes) {
+    static NodeChangeSet updated(Collection<Node> nodes) {
         Validate.notNull(nodes);
         Validate.noNullElements(nodes);
         return new NodeChangeSet(emptyList(), emptyList(), nodes);
     }
     
-    public NodeChangeSet(Collection<Node> added, Collection<Node> removed, Collection<Node> updated) {
+    NodeChangeSet(Collection<Node> added, Collection<Node> removed, Collection<Node> updated) {
         Validate.notNull(removed);
         Validate.notNull(added);
         Validate.notNull(updated);
@@ -89,14 +97,26 @@ public final class NodeChangeSet {
         this.updated = (UnmodifiableList<Node>) UnmodifiableList.unmodifiableList(new ArrayList<>(updated));
     }
 
+    /**
+     * Get the list of nodes removed.
+     * @return list (unmodifiable) of nodes removed
+     */
     public UnmodifiableList<Node> viewRemoved() {
         return removed;
     }
 
+    /**
+     * Get the list of nodes added.
+     * @return list (unmodifiable) of nodes added
+     */
     public UnmodifiableList<Node> viewAdded() {
         return added;
     }
 
+    /**
+     * Get the list of nodes updated.
+     * @return list (unmodifiable) of nodes updated
+     */
     public UnmodifiableList<Node> viewUpdated() {
         return updated;
     }

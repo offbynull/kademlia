@@ -18,17 +18,27 @@ package com.offbynull.voip.kademlia.model;
 
 import org.apache.commons.lang3.Validate;
 
-public class BadNodeStateException extends IllegalArgumentException {
+/**
+ * Thrown to indicate that the input node was in an incorrect state for the operation to be performed on it.
+ * <p>
+ * Class is immutable.
+ * @author Kasra Faghihi
+ */
+public final class BadNodeStateException extends IllegalArgumentException {
     private static final long serialVersionUID = 1L;
 
     private final Node node;
 
-    public BadNodeStateException(Node node) {
+    BadNodeStateException(Node node) {
         super("Node in incorrect state:" + node);
         Validate.notNull(node);
         this.node = node;
     }
 
+    /**
+     * Node operation was performed on.
+     * @return node
+     */
     public Node getNode() {
         return node;
     }

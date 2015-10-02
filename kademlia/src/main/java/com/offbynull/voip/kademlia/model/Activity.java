@@ -20,22 +20,41 @@ import java.time.Instant;
 import java.util.Objects;
 import org.apache.commons.lang3.Validate;
 
-
+/**
+ * Represents the moment in which some action took place on a node (time + node).
+ * <p>
+ * Class is immutable.
+ * @author Kasra Faghihi
+ */
 public final class Activity {
     private final Node node;
     private final Instant time;
 
-    public Activity(Node node, Instant time) {
+    /**
+     * Constructs a {@link Activity} object.
+     * @param node node
+     * @param time time
+     * @throws NullPointerException if any argument is {@code null}
+     */
+    Activity(Node node, Instant time) {
         Validate.notNull(node);
         Validate.notNull(time);
         this.node = node;
         this.time = time;
     }
 
+    /**
+     * Get the node action was performed on.
+     * @return node
+     */
     public Node getNode() {
         return node;
     }
 
+    /**
+     * Get the time action was performed.
+     * @return time
+     */
     public Instant getTime() {
         return time;
     }

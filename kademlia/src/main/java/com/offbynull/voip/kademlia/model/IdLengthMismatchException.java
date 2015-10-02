@@ -18,13 +18,19 @@ package com.offbynull.voip.kademlia.model;
 
 import org.apache.commons.lang3.Validate;
 
+/**
+ * Thrown to indicate that the bit length of input ID doesn't match (is too large or too small).
+ * <p>
+ * Class is immutable.
+ * @author Kasra Faghihi
+ */
 public final class IdLengthMismatchException extends IllegalArgumentException {
     private static final long serialVersionUID = 1L;
 
     private final Id id;
     private final int expectedLength;
 
-    public IdLengthMismatchException(Id id, int expectedBitLength) {
+    IdLengthMismatchException(Id id, int expectedBitLength) {
         super("ID bitlength size mismatch (required " + expectedBitLength +  "): " + id + ")");
         Validate.notNull(id);
         Validate.isTrue(expectedBitLength > 0); // ids will always be 1 bit or greater
@@ -34,10 +40,18 @@ public final class IdLengthMismatchException extends IllegalArgumentException {
         this.expectedLength = expectedBitLength;
     }
 
+    /**
+     * Get ID of the input node.
+     * @return ID of input node
+     */
     public Id getId() {
         return id;
     }
 
+    /**
+     * Get the length of the ID of the Kademlia node being operated on.
+     * @return length of the ID of the Kademlia node being operated on
+     */
     public int getExpectedLength() {
         return expectedLength;
     }

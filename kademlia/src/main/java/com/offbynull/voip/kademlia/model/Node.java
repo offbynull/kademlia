@@ -32,6 +32,12 @@ public final class Node implements Serializable {
     private final Id id;
     private final String link;
 
+    /**
+     * Constructs a {@link Node} object.
+     * @param id ID of node
+     * @param link link of node
+     * @throws NullPointerException if any argument is {@code null}
+     */
     public Node(Id id, String link) {
         Validate.notNull(id);
         Validate.notNull(link);
@@ -39,10 +45,18 @@ public final class Node implements Serializable {
         this.link = link;
     }
 
+    /**
+     * Get this node's ID.
+     * @return ID
+     */
     public Id getId() {
         return id;
     }
 
+    /**
+     * Get this node's link.
+     * @return link
+     */
     public String getLink() {
         return link;
     }

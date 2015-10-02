@@ -19,21 +19,33 @@ package com.offbynull.voip.kademlia.model;
 import java.util.Objects;
 import org.apache.commons.lang3.Validate;
 
+/**
+ * Changes resulting from some operation performed on a {@link KBucket}.
+ * @author Kasra Faghihi
+ */
 public final class KBucketChangeSet {
     private final ActivityChangeSet bucketChangeSet;
     private final ActivityChangeSet cacheChangeSet;
 
-    public KBucketChangeSet(ActivityChangeSet bucketChangeSet, ActivityChangeSet cacheChangeSet) {
+    KBucketChangeSet(ActivityChangeSet bucketChangeSet, ActivityChangeSet cacheChangeSet) {
         Validate.notNull(bucketChangeSet);
         Validate.notNull(cacheChangeSet);
         this.bucketChangeSet = bucketChangeSet;
         this.cacheChangeSet = cacheChangeSet;
     }
 
+    /**
+     * Get changes performed on this k-bucket's collection of nodes.
+     * @return  changes performed on this k-bucket's collection of nodes
+     */
     public ActivityChangeSet getBucketChangeSet() {
         return bucketChangeSet;
     }
 
+    /**
+     * Get changes performed on this k-bucket's collection of nodes.
+     * @return  changes performed on this k-bucket's collection of nodes
+     */
     public ActivityChangeSet getCacheChangeSet() {
         return cacheChangeSet;
     }

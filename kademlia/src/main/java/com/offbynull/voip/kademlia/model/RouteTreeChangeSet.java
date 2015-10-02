@@ -19,11 +19,15 @@ package com.offbynull.voip.kademlia.model;
 import java.util.Objects;
 import org.apache.commons.lang3.Validate;
 
+/**
+ * Changes resulting from some operation performed on a {@link RouteTree}.
+ * @author Kasra Faghihi
+ */
 public final class RouteTreeChangeSet {
     private final BitString kBucketPrefix;
     private final KBucketChangeSet kBucketChangeSet;
 
-    public RouteTreeChangeSet(BitString kBucketPrefix, KBucketChangeSet kBucketChangeSet) {
+    RouteTreeChangeSet(BitString kBucketPrefix, KBucketChangeSet kBucketChangeSet) {
         Validate.notNull(kBucketPrefix);
         Validate.notNull(kBucketChangeSet);
 
@@ -31,10 +35,18 @@ public final class RouteTreeChangeSet {
         this.kBucketChangeSet = kBucketChangeSet;
     }
 
+    /**
+     * Get prefix of the k-bucket changed within this routing tree.
+     * @return prefix of the k-bucket changed within this routing tree
+     */
     public BitString getKBucketPrefix() {
         return kBucketPrefix;
     }
 
+    /**
+     * Get changes performed on the k-bucket within this routing tree.
+     * @return changes performed on the k-bucket within this routing tree
+     */
     public KBucketChangeSet getKBucketChangeSet() {
         return kBucketChangeSet;
     }

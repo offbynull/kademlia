@@ -18,13 +18,19 @@ package com.offbynull.voip.kademlia.model;
 
 import org.apache.commons.lang3.Validate;
 
-public class LinkMismatchException extends IllegalArgumentException {
+/**
+ * Thrown to indicate that the link of input node didn't match with the link of an existing node with the same ID.
+ * <p>
+ * Class is immutable.
+ * @author Kasra Faghihi
+ */
+public final class LinkMismatchException extends IllegalArgumentException {
     private static final long serialVersionUID = 1L;
 
     private final Node conflictingNode;
     private final String expectedLink;
 
-    public LinkMismatchException(Node conflictingNode, String expectedLink) {
+    LinkMismatchException(Node conflictingNode, String expectedLink) {
         super("Node link mismatch (required " + expectedLink +  "): " + conflictingNode + ")");
         Validate.notNull(conflictingNode);
         Validate.notNull(expectedLink);
@@ -32,10 +38,18 @@ public class LinkMismatchException extends IllegalArgumentException {
         this.expectedLink = expectedLink;
     }
 
+    /**
+     * Get the input node.
+     * @return input node
+     */
     public Node getConflictingNode() {
         return conflictingNode;
     }
 
+    /**
+     * Get the link that should have been in the input node.
+     * @return expected link
+     */
     public String getExpectedLink() {
         return expectedLink;
     }

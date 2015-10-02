@@ -26,6 +26,16 @@ import java.util.Set;
 import org.apache.commons.collections4.list.UnmodifiableList;
 import org.apache.commons.lang3.Validate;
 
+/**
+ * Changes resulting from some operation performed on a collection that stores {@link Activity}s (includes nodes that were added, removed,
+ * and updated). Essentially the same thing as a {@link NodeChangeSet} but also includes the times in which nodes were added, removed, or
+ * updated.
+ * <p>
+ * Note that a single node can only be added, removed, or updated. It can never be a combination.
+ * <p>
+ * Class is immutable.
+ * @author Kasra Faghihi
+ */
 public final class ActivityChangeSet {
     static final ActivityChangeSet NO_CHANGE = new ActivityChangeSet(emptyList(), emptyList(), emptyList());
     
@@ -33,43 +43,43 @@ public final class ActivityChangeSet {
     private final UnmodifiableList<Activity> added;
     private final UnmodifiableList<Activity> updated;
     
-    public static ActivityChangeSet added(Activity ... entries) {
+    static ActivityChangeSet added(Activity ... entries) {
         Validate.notNull(entries);
         Validate.noNullElements(entries);
         return added(Arrays.asList(entries));
     }
 
-    public static ActivityChangeSet added(Collection<Activity> entries) {
+    static ActivityChangeSet added(Collection<Activity> entries) {
         Validate.notNull(entries);
         Validate.noNullElements(entries);
         return new ActivityChangeSet(entries, emptyList(), emptyList());
     }
 
-    public static ActivityChangeSet removed(Activity ... entries) {
+    static ActivityChangeSet removed(Activity ... entries) {
         Validate.notNull(entries);
         Validate.noNullElements(entries);
         return removed(Arrays.asList(entries));
     }
 
-    public static ActivityChangeSet removed(Collection<Activity> entries) {
+    static ActivityChangeSet removed(Collection<Activity> entries) {
         Validate.notNull(entries);
         Validate.noNullElements(entries);
         return new ActivityChangeSet(emptyList(), entries, emptyList());
     }
 
-    public static ActivityChangeSet updated(Activity ... entries) {
+    static ActivityChangeSet updated(Activity ... entries) {
         Validate.notNull(entries);
         Validate.noNullElements(entries);
         return updated(Arrays.asList(entries));
     }
 
-    public static ActivityChangeSet updated(Collection<Activity> entries) {
+    static ActivityChangeSet updated(Collection<Activity> entries) {
         Validate.notNull(entries);
         Validate.noNullElements(entries);
         return new ActivityChangeSet(emptyList(), emptyList(), entries);
     }
     
-    public ActivityChangeSet(Collection<Activity> added, Collection<Activity> removed, Collection<Activity> updated) {
+    ActivityChangeSet(Collection<Activity> added, Collection<Activity> removed, Collection<Activity> updated) {
         Validate.notNull(removed);
         Validate.notNull(added);
         Validate.notNull(updated);
@@ -89,14 +99,26 @@ public final class ActivityChangeSet {
         this.updated = (UnmodifiableList<Activity>) UnmodifiableList.unmodifiableList(new ArrayList<>(updated));
     }
 
+    /**
+     * Get the list of nodes removed.
+     * @return list (unmodifiable) of nodes removed
+     */
     public UnmodifiableList<Activity> viewRemoved() {
         return removed;
     }
 
+    /**
+     * Get the list of nodes added.
+     * @return list (unmodifiable) of nodes added
+     */
     public UnmodifiableList<Activity> viewAdded() {
         return added;
     }
 
+    /**
+     * Get the list of nodes updated.
+     * @return list (unmodifiable) of nodes updated
+     */
     public UnmodifiableList<Activity> viewUpdated() {
         return updated;
     }

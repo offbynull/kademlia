@@ -19,14 +19,22 @@ package com.offbynull.voip.kademlia.model;
 import java.util.Objects;
 import org.apache.commons.lang3.Validate;
 
+/**
+ * Changes resulting from some operation performed on a {@link Router}.
+ * @author Kasra Faghihi
+ */
 public final class RouterChangeSet {
     private final RouteTreeChangeSet routeTreeChangeSet;
 
-    public RouterChangeSet(RouteTreeChangeSet routeTreeChangeSet) {
+    RouterChangeSet(RouteTreeChangeSet routeTreeChangeSet) {
         Validate.notNull(routeTreeChangeSet);
         this.routeTreeChangeSet = routeTreeChangeSet;
     }
 
+    /**
+     * Get the changes resulting from the operation performed on the internal {@link RouteTree}.
+     * @return changes resulting from the operation performed on the internal route tree
+     */
     public RouteTreeChangeSet getRouteTreeChangeSet() {
         return routeTreeChangeSet;
     }
