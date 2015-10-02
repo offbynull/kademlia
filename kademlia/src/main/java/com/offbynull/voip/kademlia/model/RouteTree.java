@@ -25,13 +25,13 @@ import java.util.TreeSet;
 import org.apache.commons.lang3.Validate;
 
 /**
- * An implementation of Kademlia's routing tree. This is an implementation of a <b>strict</b> routing tree, meaning that it doesn't perform
+ * An implementation of Kademlia's route tree. This is an implementation of a <b>strict</b> route tree, meaning that it doesn't perform
  * the irregularly bucket splitting mentioned in the original Kademlia paper. The portion of the paper that deals with irregular bucket
  * splitting was never fully understood (discussion on topic can be found here: http://stackoverflow.com/q/32129978/1196226).
  * <p>
- * A strict routing tree is a routing tree that is static (doesn't split k-buckets after creation) and extends all the way done to the ID of
- * the Kademlia node that owns. For example, the routing tree of node 000 would look something like this (assuming that the routing tree
- * branches only 1 bit at a time)...
+ * A strict route tree is a route tree that is static (doesn't split k-buckets after creation) and extends all the way done to your own
+ * ID. For example, the route tree of node 000 would look something like this (assuming that the route tree branches only 1 bit at a
+ * time)...
  * <pre>
  *                0/\1
  *                /  [1xx BUCKET]
@@ -49,34 +49,54 @@ public final class RouteTree {
     
     private Instant lastTouchTime;
     
+    /**
+     * Construct a {@link RouteTree} object.
+     * @param baseId ID of the node that this route tree is for
+     * @param branchStrategy branching strategy (dictates how many branches to create at each depth)
+     * @param bucketStrategy bucket strategy (dictates k-bucket parameters for each k-bucket)
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalStateException if either {@code branchStrategy} or {@code bucketStrategy} generates invalid data (see interfaces for
+     * restrictions)
+     */
     public RouteTree(Id baseId, // because id's are always > 0 in size -- it isn't possible for tree creation to mess up
-            RouteTreeBranchStrategy branchSpecStrategy,
-            RouteTreeBucketStrategy bucketSpecStrategy) {
+            RouteTreeBranchStrategy branchStrategy,
+            RouteTreeBucketStrategy bucketStrategy) {
         Validate.notNull(baseId);
-        Validate.notNull(branchSpecStrategy);
-        Validate.notNull(bucketSpecStrategy);
+        Validate.notNull(branchStrategy);
+        Validate.notNull(bucketStrategy);
         
         this.baseId = baseId; // must be set before creating RouteTreeLevels
         this.bucketUpdateTimes = new TimeSet<>();
 
-        root = createRoot(branchSpecStrategy, bucketSpecStrategy);
+        root = createRoot(branchStrategy, bucketStrategy);
         RouteTreeNode child = root;
         while (child != null) {
-            child = growParent(child, branchSpecStrategy, bucketSpecStrategy);
+            child = growParent(child, branchStrategy, bucketStrategy);
         }
         
-        // Special case: the routing tree, if large enough, may have a bucket for baseId. Nothing can ever access that bucket (calls to
+        // Special case: the routing tree has a bucket for baseId. Nothing can ever access that bucket (calls to
         // touch/stale/find with your own ID will result an exception) and it'll always be empty, so remove it from bucketUpdateTimes.
         bucketUpdateTimes.remove(baseId.getBitString());
         
         this.lastTouchTime = Instant.MIN;
     }
 
-    // this will always give you the closest nodes in your routetable, based on the xor metric
+    /**
+     * Searches this route tree for the closest nodes to some ID. Node closeness is determined by the XOR metric -- Kademlia's notion of
+     * distance.
+     * @param id ID to search for
+     * @param max maximum number of results to give back
+     * @param includeStale if {@code true}, includes stale nodes in the results
+     * @return up to {@code max} closest nodes to {@code id} (less are returned if this route table contains less than {@code max} nodes)
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if any numeric argument is negative
+     * @throws IdLengthMismatchException if the bitlength of {@code id} doesn't match the bitlength of the ID that this route tree is for
+     * (the ID of the node this route tree belongs to)
+     */
     public List<Activity> find(Id id, int max, boolean includeStale) {
         Validate.notNull(id);
         InternalValidate.matchesLength(baseId.getBitLength(), id);
-//        InternalValidate.notMatchesBase(baseId, id); // you should be able to search for closest nodes to yourself
+//        InternalValidate.notMatchesBase(baseId, id); // commented out because you should be able to search for closest nodes to yourself
         Validate.isTrue(max >= 0); // why would anyone want 0? let thru anyways
 
         IdXorMetricComparator comparator = new IdXorMetricComparator(id);
@@ -104,6 +124,10 @@ public final class RouteTree {
         return bucket.dumpBucket(true, true, false);
     }
     
+    /**
+     * Get all k-bucket prefixes in this route tree.
+     * @return all k-bucket prefixes in this route tree
+     */
     public List<BitString> dumpBucketPrefixes() {
         List<BitString> output = new LinkedList<>();
         root.dumpAllBucketPrefixes(output);
@@ -184,6 +208,13 @@ public final class RouteTree {
 //        root.getBucketFor(node.getId()).unlock(node);
 //    }
 
+    /**
+     * Get prefixes for k-buckets that haven't been updated
+     * (from {@link #touch(java.time.Instant, com.offbynull.voip.kademlia.model.Node) }) since the time specified.
+     * @param time last update time threshold (k-buckets with their last update time before this get returned by this method)
+     * @return prefixes for stagnant k-buckets
+     * @throws NullPointerException if any argument is {@code null}
+     */
     public List<BitString> getStagnantBuckets(Instant time) { // is inclusive
         Validate.notNull(time);
         
@@ -194,14 +225,14 @@ public final class RouteTree {
     private static final BitString EMPTY = BitString.createFromString("");
 
     private RouteTreeNode createRoot(
-            RouteTreeBranchStrategy branchSpecStrategy,
-            RouteTreeBucketStrategy bucketSpecStrategy) {
-        Validate.notNull(branchSpecStrategy);
-        Validate.notNull(bucketSpecStrategy);
+            RouteTreeBranchStrategy branchStrategy,
+            RouteTreeBucketStrategy bucketStrategy) {
+        Validate.notNull(branchStrategy);
+        Validate.notNull(bucketStrategy);
 
 
         // Get number of branches/buckets to create for root
-        int numOfBuckets = branchSpecStrategy.getBranchCount(EMPTY);
+        int numOfBuckets = branchStrategy.getBranchCount(EMPTY);
         Validate.isTrue(numOfBuckets >= 0, "Branch cannot be negative, was %d", numOfBuckets);
         Validate.isTrue(numOfBuckets != 0, "Root of tree must contain at least 1 branch, was %d", numOfBuckets);
         Validate.isTrue(Integer.bitCount(numOfBuckets) == 1, "Branch count must be power of 2");
@@ -213,7 +244,7 @@ public final class RouteTree {
         // Create buckets by creating a 0-sized top bucket and splitting it + resizing each split
         KBucket[] newBuckets = new KBucket(baseId, EMPTY, 0, 0).split(suffixBitCount);
         for (int i = 0; i < newBuckets.length; i++) {
-            BucketParameters bucketParams = bucketSpecStrategy.getBucketParameters(newBuckets[i].getPrefix());
+            BucketParameters bucketParams = bucketStrategy.getBucketParameters(newBuckets[i].getPrefix());
             int bucketSize = bucketParams.getBucketSize();
             int cacheSize = bucketParams.getCacheSize();
             newBuckets[i].resizeBucket(bucketSize);
@@ -233,11 +264,11 @@ public final class RouteTree {
     }
 
     private RouteTreeNode growParent(RouteTreeNode parent,
-            RouteTreeBranchStrategy branchSpecStrategy,
-            RouteTreeBucketStrategy bucketSpecStrategy) {
+            RouteTreeBranchStrategy branchStrategy,
+            RouteTreeBucketStrategy bucketStrategy) {
         Validate.notNull(parent);
-        Validate.notNull(branchSpecStrategy);
-        Validate.notNull(bucketSpecStrategy);
+        Validate.notNull(branchStrategy);
+        Validate.notNull(bucketStrategy);
 
         
         // Calculate which bucket from parent to split
@@ -259,7 +290,7 @@ public final class RouteTree {
         
         
         // Get number of buckets to create for new level
-        int numOfBuckets = branchSpecStrategy.getBranchCount(splitBucketPrefix);
+        int numOfBuckets = branchStrategy.getBranchCount(splitBucketPrefix);
         Validate.isTrue(numOfBuckets >= 2, "Branch count must be atleast 2, was %d", numOfBuckets);
         Validate.isTrue(Integer.bitCount(numOfBuckets) == 1, "Branch count must be power of 2");
         int suffixBitCount = Integer.bitCount(numOfBuckets - 1); // num of bits   e.g. 8 (1000) -- 1000 - 1 = 0111, bitcount(0111) = 3
@@ -272,7 +303,7 @@ public final class RouteTree {
         BitString newPrefix = baseId.getBitString().getBits(0, parentPrefixBitLen + suffixBitCount);
         KBucket[] newBuckets = splitBucket.split(suffixBitCount);
         for (int i = 0; i < newBuckets.length; i++) {
-            BucketParameters bucketParams = bucketSpecStrategy.getBucketParameters(newBuckets[i].getPrefix());
+            BucketParameters bucketParams = bucketStrategy.getBucketParameters(newBuckets[i].getPrefix());
             int bucketSize = bucketParams.getBucketSize();
             int cacheSize = bucketParams.getCacheSize();
             newBuckets[i].resizeBucket(bucketSize);
