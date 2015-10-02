@@ -20,8 +20,8 @@ import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.actor.helpers.AddressTransformer;
 import com.offbynull.peernetic.core.actor.helpers.IdGenerator;
 import com.offbynull.voip.kademlia.model.Id;
-import com.offbynull.voip.kademlia.model.RouteTreeBranchSpecificationSupplier;
-import com.offbynull.voip.kademlia.model.RouteTreeBucketSpecificationSupplier;
+import com.offbynull.voip.kademlia.model.RouteTreeBranchStrategy;
+import com.offbynull.voip.kademlia.model.RouteTreeBucketStrategy;
 import com.offbynull.voip.kademlia.model.SimpleRouteTreeSpecificationSupplier;
 import java.util.Arrays;
 import java.util.function.Supplier;
@@ -166,8 +166,8 @@ public final class Start {
      * Kademlia parameters.
      */
     public static final class KademliaParameters {
-        private final Supplier<RouteTreeBranchSpecificationSupplier> branchSpecSupplier;
-        private final Supplier<RouteTreeBucketSpecificationSupplier> bucketSpecSupplier;
+        private final Supplier<RouteTreeBranchStrategy> branchStrategySupplier;
+        private final Supplier<RouteTreeBucketStrategy> bucketStrategySupplier;
         private final int maxConcurrentRequestsPerFind;
 
 
@@ -191,40 +191,40 @@ public final class Start {
 
         /**
          * Constructs a {@link KademliaParameters} object.
-         * @param branchSpecSupplier branch specification supplier to use when building routing tree (make sure the {@link Supplier} passed
-         * in here generates a new {@link RouteTreeBranchSpecificationSupplier} every time {@link Supplier#get() } is invoked)
-         * @param bucketSpecSupplier bucket specification supplier to use when building k-bucket within routing tree (make sure the
-         * {@link Supplier} passed in here generates a new {@link RouteTreeBucketSpecificationSupplier} every time {@link Supplier#get() }
+         * @param branchStrategySupplier branching strategy to use when building routing tree (make sure the {@link Supplier} passed
+         * in here generates a new {@link RouteTreeBranchStrategy} every time {@link Supplier#get() } is invoked)
+         * @param bucketStrategySupplier bucket creation strategy to use when building k-bucket within routing tree (make sure the
+         * {@link Supplier} passed in here generates a new {@link RouteTreeBucketStrategy} every time {@link Supplier#get() }
          * is invoked)
          * @param maxConcurrentRequestsPerFind maximum number of requests to run concurrently for each search
          * @throws NullPointerException if any argument is {@code null}
          * @throws IllegalArgumentException if {@code maxConcurrentRequestsPerFind <= 0}
          */
-        public KademliaParameters(Supplier<RouteTreeBranchSpecificationSupplier> branchSpecSupplier,
-                Supplier<RouteTreeBucketSpecificationSupplier> bucketSpecSupplier,
+        public KademliaParameters(Supplier<RouteTreeBranchStrategy> branchStrategySupplier,
+                Supplier<RouteTreeBucketStrategy> bucketStrategySupplier,
                 int maxConcurrentRequestsPerFind) {
-            Validate.notNull(branchSpecSupplier);
-            Validate.notNull(bucketSpecSupplier);
+            Validate.notNull(branchStrategySupplier);
+            Validate.notNull(bucketStrategySupplier);
             Validate.notNull(maxConcurrentRequestsPerFind > 0);
-            this.branchSpecSupplier = branchSpecSupplier;
-            this.bucketSpecSupplier = bucketSpecSupplier;
+            this.branchStrategySupplier = branchStrategySupplier;
+            this.bucketStrategySupplier = bucketStrategySupplier;
             this.maxConcurrentRequestsPerFind = maxConcurrentRequestsPerFind;
         }
 
         /**
-         * Get the supplier that generates a new branch specification supplier.
-         * @return supplier that generates a new branch specification supplier
+         * Get the supplier that generates a new branching strategy.
+         * @return supplier that generates a new branching strategy
          */
-        public Supplier<RouteTreeBranchSpecificationSupplier> getBranchSpecSupplier() {
-            return branchSpecSupplier;
+        public Supplier<RouteTreeBranchStrategy> getBranchStrategy() {
+            return branchStrategySupplier;
         }
 
         /**
-         * Get the supplier that generates a new bucket specification supplier.
-         * @return supplier that generates a new bucket specification supplier
+         * Get the supplier that generates a new bucket strategy.
+         * @return supplier that generates a new bucket strategy
          */
-        public Supplier<RouteTreeBucketSpecificationSupplier> getBucketSpecSupplier() {
-            return bucketSpecSupplier;
+        public Supplier<RouteTreeBucketStrategy> getBucketStrategy() {
+            return bucketStrategySupplier;
         }
 
         /**

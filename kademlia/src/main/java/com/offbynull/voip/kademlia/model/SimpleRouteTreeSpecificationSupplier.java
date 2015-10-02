@@ -24,8 +24,8 @@ import org.apache.commons.lang3.Validate;
  * This class is immutable.
  * @author Kasra Faghihi
  */
-public final class SimpleRouteTreeSpecificationSupplier implements RouteTreeBranchSpecificationSupplier,
-        RouteTreeBucketSpecificationSupplier {
+public final class SimpleRouteTreeSpecificationSupplier implements RouteTreeBranchStrategy,
+        RouteTreeBucketStrategy {
     private final Id baseId;
     private final int branchesPerLevel;
     private final int nodesPerBucket;

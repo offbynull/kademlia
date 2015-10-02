@@ -27,7 +27,7 @@ import org.apache.commons.collections4.list.UnmodifiableList;
 import org.apache.commons.lang3.Validate;
 
 /**
- * Changes resulting from some operation performed on a collection that stores {@link Nodes}s (nodes that were added, removed, and updated).
+ * Changes resulting from some operation performed on a collection that stores {@link Node}s (nodes that were added, removed, and updated).
  * <p>
  * Note that a single node can only be added, removed, or updated. It can never be a combination.
  * <p>

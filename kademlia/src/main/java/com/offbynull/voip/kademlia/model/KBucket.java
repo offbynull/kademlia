@@ -173,8 +173,8 @@ public final class KBucket {
     
     /**
      * Marks a node within this k-bucket as stale (meaning that you're no longer able to communicate with it), evicting it and replacing it
-     * with a node in the replacement cache. If the replacement cache is empty, the node is marked as stale and will be replaced once a node
-     * becomes available in the replacement cache.
+     * with the most recent node in the replacement cache. If the replacement cache is empty, the node is marked as stale and will be
+     * replaced once a node becomes available in the replacement cache.
      * <p>
      * If the node is marked as stale, but is touched ({@link #touch(java.time.Instant, com.offbynull.voip.kademlia.model.Node) } before it
      * could be evicted, it reverts back to normal state (is unmarked as stale -- effectively meaning it came back online).
@@ -445,6 +445,17 @@ public final class KBucket {
         return newKBuckets;
     }
     
+    /**
+     * Resizes the k-bucket.
+     * <p>
+     * If the new size is less than the old size, nodes need to be evicted. The nodes that haven't been touched the longest are removed
+     * first.
+     * <p>
+     * If the new size is greater than the old size, nodes are moved from the replacement cache in to the newly empty slots. The most
+     * recently touched nodes in the replacement cache are moved first.
+     * @param maxSize new size
+     * @return changes as a result of the resize
+     */
     public KBucketChangeSet resizeBucket(int maxSize) {
         Validate.isTrue(maxSize >= 0);
         
@@ -475,7 +486,13 @@ public final class KBucket {
             return fillMissingBucketSlotsWithCacheItems();
         }
     }
-    
+
+    /**
+     * Resizes the replacement cache. If the new size is less than the old size, nodes need to be evicted from the replacement cache. The
+     * nodes in the replacement cache that haven't been touched the longest are removed first.
+     * @param maxSize new replacement cache size
+     * @return changes as a result of the resize (the only changes that can happen is nodes being removed from the cache)
+     */
     public KBucketChangeSet resizeCache(int maxSize) {
         Validate.isTrue(maxSize >= 0);
         

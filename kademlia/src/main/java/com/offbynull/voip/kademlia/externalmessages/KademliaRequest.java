@@ -36,7 +36,7 @@ public abstract class KademliaRequest implements Serializable {
 
     /**
      * Get the ID of the Kademlia node that this request is from.
-     * @return ID of the Kademlia node that this request is from (can be {@code null)
+     * @return ID of the Kademlia node that this request is from (can be {@code null})
      */
     public final Id getFromId() {
         return fromId;

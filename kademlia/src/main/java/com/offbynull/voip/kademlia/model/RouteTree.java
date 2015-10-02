@@ -16,7 +16,7 @@
  */
 package com.offbynull.voip.kademlia.model;
 
-import com.offbynull.voip.kademlia.model.RouteTreeBucketSpecificationSupplier.BucketParameters;
+import com.offbynull.voip.kademlia.model.RouteTreeBucketStrategy.BucketParameters;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -24,7 +24,25 @@ import java.util.List;
 import java.util.TreeSet;
 import org.apache.commons.lang3.Validate;
 
-final class RouteTree {
+/**
+ * An implementation of Kademlia's routing tree. This is an implementation of a <b>strict</b> routing tree, meaning that it doesn't perform
+ * the irregularly bucket splitting mentioned in the original Kademlia paper. The portion of the paper that deals with irregular bucket
+ * splitting was never fully understood (discussion on topic can be found here: http://stackoverflow.com/q/32129978/1196226).
+ * <p>
+ * A strict routing tree is a routing tree that is static (doesn't split k-buckets after creation) and extends all the way done to the ID of
+ * the Kademlia node that owns. For example, the routing tree of node 000 would look something like this (assuming that the routing tree
+ * branches only 1 bit at a time)...
+ * <pre>
+ *                0/\1
+ *                /  [1xx BUCKET]
+ *              0/\1
+ *              /  [01x BUCKET]
+ *            0/\1
+ *       [SELF]  [001 BUCKET]
+ * </pre>
+ * @author Kasra Faghihi
+ */
+public final class RouteTree {
     private final Id baseId;
     private final RouteTreeNode root;
     private final TimeSet<BitString> bucketUpdateTimes; // prefix to when the prefix's bucket was last updated (not cache)
@@ -32,19 +50,19 @@ final class RouteTree {
     private Instant lastTouchTime;
     
     public RouteTree(Id baseId, // because id's are always > 0 in size -- it isn't possible for tree creation to mess up
-            RouteTreeBranchSpecificationSupplier branchSpecSupplier,
-            RouteTreeBucketSpecificationSupplier bucketSpecSupplier) {
+            RouteTreeBranchStrategy branchSpecStrategy,
+            RouteTreeBucketStrategy bucketSpecStrategy) {
         Validate.notNull(baseId);
-        Validate.notNull(branchSpecSupplier);
-        Validate.notNull(bucketSpecSupplier);
+        Validate.notNull(branchSpecStrategy);
+        Validate.notNull(bucketSpecStrategy);
         
         this.baseId = baseId; // must be set before creating RouteTreeLevels
         this.bucketUpdateTimes = new TimeSet<>();
 
-        root = createRoot(branchSpecSupplier, bucketSpecSupplier);
+        root = createRoot(branchSpecStrategy, bucketSpecStrategy);
         RouteTreeNode child = root;
         while (child != null) {
-            child = growParent(child, branchSpecSupplier, bucketSpecSupplier);
+            child = growParent(child, branchSpecStrategy, bucketSpecStrategy);
         }
         
         // Special case: the routing tree, if large enough, may have a bucket for baseId. Nothing can ever access that bucket (calls to
@@ -145,7 +163,7 @@ final class RouteTree {
         return new RouteTreeChangeSet(kBucketPrefix, kBucketChangeSet);
     }
 
-    // Disable for now
+    // Disable for now -- not being used
 //    public void lock(Node node) {
 //        Validate.notNull(node);
 //
@@ -176,14 +194,14 @@ final class RouteTree {
     private static final BitString EMPTY = BitString.createFromString("");
 
     private RouteTreeNode createRoot(
-            RouteTreeBranchSpecificationSupplier branchSpecSupplier,
-            RouteTreeBucketSpecificationSupplier bucketSpecSupplier) {
-        Validate.notNull(branchSpecSupplier);
-        Validate.notNull(bucketSpecSupplier);
+            RouteTreeBranchStrategy branchSpecStrategy,
+            RouteTreeBucketStrategy bucketSpecStrategy) {
+        Validate.notNull(branchSpecStrategy);
+        Validate.notNull(bucketSpecStrategy);
 
 
         // Get number of branches/buckets to create for root
-        int numOfBuckets = branchSpecSupplier.getBranchCount(EMPTY);
+        int numOfBuckets = branchSpecStrategy.getBranchCount(EMPTY);
         Validate.isTrue(numOfBuckets >= 0, "Branch cannot be negative, was %d", numOfBuckets);
         Validate.isTrue(numOfBuckets != 0, "Root of tree must contain at least 1 branch, was %d", numOfBuckets);
         Validate.isTrue(Integer.bitCount(numOfBuckets) == 1, "Branch count must be power of 2");
@@ -195,7 +213,7 @@ final class RouteTree {
         // Create buckets by creating a 0-sized top bucket and splitting it + resizing each split
         KBucket[] newBuckets = new KBucket(baseId, EMPTY, 0, 0).split(suffixBitCount);
         for (int i = 0; i < newBuckets.length; i++) {
-            BucketParameters bucketParams = bucketSpecSupplier.getBucketParameters(newBuckets[i].getPrefix());
+            BucketParameters bucketParams = bucketSpecStrategy.getBucketParameters(newBuckets[i].getPrefix());
             int bucketSize = bucketParams.getBucketSize();
             int cacheSize = bucketParams.getCacheSize();
             newBuckets[i].resizeBucket(bucketSize);
@@ -215,11 +233,11 @@ final class RouteTree {
     }
 
     private RouteTreeNode growParent(RouteTreeNode parent,
-            RouteTreeBranchSpecificationSupplier branchSpecSupplier,
-            RouteTreeBucketSpecificationSupplier bucketSpecSupplier) {
+            RouteTreeBranchStrategy branchSpecStrategy,
+            RouteTreeBucketStrategy bucketSpecStrategy) {
         Validate.notNull(parent);
-        Validate.notNull(branchSpecSupplier);
-        Validate.notNull(bucketSpecSupplier);
+        Validate.notNull(branchSpecStrategy);
+        Validate.notNull(bucketSpecStrategy);
 
         
         // Calculate which bucket from parent to split
@@ -241,7 +259,7 @@ final class RouteTree {
         
         
         // Get number of buckets to create for new level
-        int numOfBuckets = branchSpecSupplier.getBranchCount(splitBucketPrefix);
+        int numOfBuckets = branchSpecStrategy.getBranchCount(splitBucketPrefix);
         Validate.isTrue(numOfBuckets >= 2, "Branch count must be atleast 2, was %d", numOfBuckets);
         Validate.isTrue(Integer.bitCount(numOfBuckets) == 1, "Branch count must be power of 2");
         int suffixBitCount = Integer.bitCount(numOfBuckets - 1); // num of bits   e.g. 8 (1000) -- 1000 - 1 = 0111, bitcount(0111) = 3
@@ -254,7 +272,7 @@ final class RouteTree {
         BitString newPrefix = baseId.getBitString().getBits(0, parentPrefixBitLen + suffixBitCount);
         KBucket[] newBuckets = splitBucket.split(suffixBitCount);
         for (int i = 0; i < newBuckets.length; i++) {
-            BucketParameters bucketParams = bucketSpecSupplier.getBucketParameters(newBuckets[i].getPrefix());
+            BucketParameters bucketParams = bucketSpecStrategy.getBucketParameters(newBuckets[i].getPrefix());
             int bucketSize = bucketParams.getBucketSize();
             int cacheSize = bucketParams.getCacheSize();
             newBuckets[i].resizeBucket(bucketSize);

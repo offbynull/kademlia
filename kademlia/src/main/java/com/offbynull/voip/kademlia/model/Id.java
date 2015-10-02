@@ -123,7 +123,7 @@ public final class Id implements Serializable {
     }
 
     /**
-     * Equivalent to {@link BitString#getSharedPrefixLength(com.offbynull.voip.core.BitString) }.
+     * Equivalent to {@link BitString#getSharedPrefixLength(com.offbynull.voip.kademlia.model.BitString) }.
      * @param other other ID to test against
      * @return number of common prefix bits
      * @throws NullPointerException if any argument is {@code null}
@@ -137,7 +137,7 @@ public final class Id implements Serializable {
     }
 
     /**
-     * Equivalent to {@link BitString#getSharedSuffixLength(com.offbynull.voip.core.BitString) }.
+     * Equivalent to {@link BitString#getSharedSuffixLength(com.offbynull.voip.kademlia.model.BitString) }.
      * @param other other ID to test against
      * @return number of common suffix bits
      * @throws NullPointerException if any argument is {@code null}
@@ -173,7 +173,7 @@ public final class Id implements Serializable {
     }
 
     /**
-     * Equivalent to {@link BitString#setBits(int, com.offbynull.voip.core.BitString) }, but with a long.
+     * Equivalent to {@link BitString#setBits(int, com.offbynull.voip.kademlia.model.BitString) }, but with a long.
      * @param offset offset of bit within this bitstring to write to
      * @param other bits to set
      * @param len number of bits to set
@@ -187,7 +187,7 @@ public final class Id implements Serializable {
     }
 
     /**
-     * Equivalent to {@link BitString#setBits(int, com.offbynull.voip.core.BitString) }.
+     * Equivalent to {@link BitString#setBits(int, com.offbynull.voip.kademlia.model.BitString) }.
      * @param offset offset of bit within this bitstring to write to
      * @param bitString bits to set
      * @return new id that has bit set

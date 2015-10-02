@@ -22,7 +22,7 @@ import org.apache.commons.lang3.Validate;
  * K-bucket strategy for a Kademlia routing tree.
  * @author Kasra Faghihi
  */
-public interface RouteTreeBucketSpecificationSupplier {
+public interface RouteTreeBucketStrategy {
 
     /**
      * Get the k-bucket parameters for the k-bucket at some branch in the routing tree.

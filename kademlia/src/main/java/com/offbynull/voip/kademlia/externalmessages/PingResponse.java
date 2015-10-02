@@ -34,7 +34,7 @@ public final class PingResponse implements Serializable {
     /**
      * Constructs a {@link PingResponse} message.
      * @param id id of the Kademlia actor that's responding
-     * @throws NullPointerException
+     * @throws NullPointerException if any argument is {@code null}
      */
     public PingResponse(Id id) {
         Validate.notNull(id);

@@ -29,8 +29,8 @@ public final class Router {
     private Instant lastTouchTime;
     
     public Router(Id baseId,
-            RouteTreeBranchSpecificationSupplier branchSpecSupplier,
-            RouteTreeBucketSpecificationSupplier bucketSpecSupplier) {
+            RouteTreeBranchStrategy branchSpecSupplier,
+            RouteTreeBucketStrategy bucketSpecSupplier) {
         Validate.notNull(baseId);
         Validate.notNull(branchSpecSupplier);
         Validate.notNull(bucketSpecSupplier);
@@ -83,6 +83,8 @@ public final class Router {
         
         ArrayList<Node> res = new ArrayList<>(closestNodesInRoutingTree.size());
         
+        // is this all of this required? shouldn't routeTree.find() already be sorted and unique? may be relic from when closestnodeset was
+        // around
         Comparator<Id> idComp = new IdXorMetricComparator(id);
         closestNodesInRoutingTree.stream()
                 .map(x -> x.getNode())
@@ -96,9 +98,6 @@ public final class Router {
     
     // mark a node for eviction... if there are items available in the replacement cache for the kbucket that the node is located in, the
     // node is evicted immediately. otherwise, the node will be evicted as soon as a replacement cache item becomes available
-    //
-    // nodes marked for eviction WILL STILL GET RETURNED ON TOUCH(), because this is essentially signalling that we've entered desperation
-    // mode... according to kademlia paper...
     //
     // When a contact fails to respond to 5 RPCs in a row, it is considered stale. If a k-bucket is not full or its replacement cache is
     // empty, Kademlia merely flags stale contacts rather than remove them. This ensures, among other things, that if a node’s own network
