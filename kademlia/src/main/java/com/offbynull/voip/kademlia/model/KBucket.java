@@ -483,6 +483,13 @@ public final class KBucket {
         return new KBucketChangeSet(ActivityChangeSet.NO_CHANGE, res);
     }
 
+    /**
+     * Dump nodes in this k-buckets (not replacement cache).
+     * @param includeAlive if {@code true}, returned nodes include nodes in normal state
+     * @param includeStale if {@code true}, returned nodes include stale nodes
+     * @param includeLocked if {@code true}, returned nodes include locked nodes
+     * @return nodes in k-bucket
+     */
     public List<Activity> dumpBucket(boolean includeAlive, boolean includeStale, boolean includeLocked) {
         List<Activity> dumpedNodes = bucket.dump();
         
@@ -510,18 +517,34 @@ public final class KBucket {
         return filteredDumpedNodes;
     }
 
+    /**
+     * Dump nodes in this k-buckets replacement cache.
+     * @return nodes in replacement cache
+     */
     public List<Activity> dumpCache() {
         return cache.dump();
     }
-    
+
+    /**
+     * Get the time a node in this k-bucket was last touched (not replacement cache).
+     * @return last node touch time
+     */
     public Instant getLatestBucketActivityTime() {
         return bucket.lastestActivityTime();
     }
 
+    /**
+     * Get the time the replacement cache was last touched.
+     * @return last cache touch time
+     */
     public Instant getLatestCacheActivityTime() {
         return cache.lastestActivityTime();
     }
 
+    /**
+     * Get the prefix required for IDs in this k-bucket.
+     * @return prefix required for IDs
+     */
     public BitString getPrefix() {
         return prefix;
     }
