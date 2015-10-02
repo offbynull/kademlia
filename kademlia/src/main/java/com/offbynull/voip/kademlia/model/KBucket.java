@@ -28,6 +28,18 @@ import java.util.Set;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 
+/**
+ * An implementation of Kademlia's k-bucket. This implementation aligns to the requirements given in the original Kademlia paper, in that
+ * it ...
+ * <ul>
+ * <li>nodes stored have the same pre-defined prefix</li>
+ * <li>there's a replacement cache of nodes (most recently seen)</li>
+ * <li>allows marking a node as stale -- which will cause it to be replaced if a node becomes available in the replacement cache</li>
+ * <li>allows marking a node as locked -- which will temporarily ignore it</li>
+ * <li>allows splitting of a k-bucket</li>
+ * </ul>
+ * @author Kasra Faghihi
+ */
 public final class KBucket {
 
     private final Id baseId;
@@ -49,6 +61,16 @@ public final class KBucket {
 
     private Instant lastTouchAttemptTime;
 
+    /**
+     * Constructs a {@link KBucket} object.
+     * @param baseId ID of the node this k-bucket belongs to
+     * @param prefix prefix that nodes stored in this k-bucket must have
+     * @param maxBucketSize maximum number of nodes allowed in this k-bucket (the k value)
+     * @param maxCacheSize maximum number of nodes allowed in this k-bucket's replacement cache
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IllegalArgumentException if {@code prefix.getBitLength() > baseId.getBitLength()}, or if any numeric argument is less than
+     * {@code 0}
+     */
     public KBucket(Id baseId, BitString prefix, int maxBucketSize, int maxCacheSize) {
         Validate.notNull(baseId);
         Validate.isTrue(prefix.getBitLength() <= baseId.getBitLength());
@@ -70,6 +92,33 @@ public final class KBucket {
         lastTouchAttemptTime = Instant.MIN;
     }
 
+    /**
+     * Updates the k-bucket with a new contact (potentially). When the owning Kademlia node receives a request or response from some other
+     * node in the network which has an ID matching the prefix of this k-bucket, this method should be called.
+     * <p>
+     * When this method this called, it attempts to store the node. 
+     * <ul>
+     * <li>If this k-bucket is full, it places the node in to its replacement cache (evicting the oldest node in the replacement cache if
+     * the replacement cache is full)</li>
+     * <li>If this k-bucket is full but there are stale nodes in the bucket and the replacement cache is empty, one of the stale nodes is
+     * evicted and the new node is added in to the bucket.</li>
+     * <li>If the contacting node already exists but is stale, revert to that node to normal status (unmark it as stale).</li>
+     * </ul>
+     * @param time time which request or response came in
+     * @param node node which issued the request or response
+     * @return changes to collection of stored nodes and replacement cache
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IdLengthMismatchException if the bitlength of {@code node}'s ID doesn't match the bitlength of the owning node's ID (the ID
+     * of the node this k-bucket belongs to)
+     * @throws BaseIdMatchException if {@code node}'s ID is the same as the owning node's ID (the ID of the node this k-bucket belongs to)
+     * @throws IdPrefixMismatchException if {@code node}'s ID doesn't match the prefix required by this k-bucket
+     * @throws BackwardTimeException if {@code time} is less than the time used in the previous invocation of this method
+     * @throws LinkMismatchException if this k-bucket already contains a node with {@code node}'s ID but with a different link (SPECIAL
+     * CASE: If the contained node is marked as stale, this exception will not be thrown. Since the node is marked as stale, it means it
+     * should have been replaced but the replacement cache was empty. As such, this case is treated as if this were a new node replacing
+     * a stale node, not a stale node being reverted to normal status -- the fact that the IDs are the same but the links don't match
+     * doesn't matter)
+     */
     public KBucketChangeSet touch(Instant time, Node node) {
         Validate.notNull(time);
         Validate.notNull(node);
@@ -122,9 +171,29 @@ public final class KBucket {
         return new KBucketChangeSet(bucketTouchRes, cacheTouchRes);
     }
     
-    // there's no time param here because technically because it isn't needed. marking a node as stale doesn't mean that it recieved comm,
-    // as such it's wrong to update its time.
+    /**
+     * Marks a node within this k-bucket as stale (meaning that you're no longer able to communicate with it), evicting it and replacing it
+     * with a node in the replacement cache. If the replacement cache is empty, the node is marked as stale and will be replaced once a node
+     * becomes available in the replacement cache.
+     * <p>
+     * If the node is marked as stale, but is touched ({@link #touch(java.time.Instant, com.offbynull.voip.kademlia.model.Node) } before it
+     * could be evicted, it reverts back to normal state (is unmarked as stale -- effectively meaning it came back online).
+     * <p>
+     * If the node has already stale, this method does nothing.
+     * @param node node to mark as stale
+     * @return changes to collection of stored nodes and replacement cache (this method should have no effect on the replacement cache)
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IdLengthMismatchException if the bitlength of {@code node}'s ID doesn't match the bitlength of the owning node's ID (the ID
+     * of the node this k-bucket belongs to)
+     * @throws BaseIdMatchException if {@code node}'s ID is the same as the owning node's ID (the ID of the node this k-bucket belongs to)
+     * @throws IdPrefixMismatchException if {@code node}'s ID doesn't match the prefix required by this k-bucket
+     * @throws NodeNotFoundException if this k-bucket doesn't contain {@code node}
+     * @throws LinkMismatchException if this k-bucket contains a node with {@code node}'s ID but with a different link
+     * @throws BadNodeStateException if this k-bucket contains {@code node} but {@code node} is marked as locked
+     */
     public KBucketChangeSet stale(Node node) {
+        // there's no time param here because technically because it isn't needed. marking a node as stale doesn't mean that it recieved
+        // comm, as such it's wrong to update its time.
         Validate.notNull(node);
         
         Id nodeId = node.getId();
@@ -154,6 +223,23 @@ public final class KBucket {
                 ActivityChangeSet.removed(res.right));
     }
     
+    /**
+     * Marks a node within this k-bucket as locked (meaning that you're temporarily ignoring, possibly because of network congestion).
+     * <p>
+     * If the node is marked as locked, touching it ({@link #touch(java.time.Instant, com.offbynull.voip.kademlia.model.Node) } has
+     * no effect on it. It reverts back to normal state (unlocks) when {@link #unlock(com.offbynull.voip.kademlia.model.Node) } is invoked.
+     * <p>
+     * If the node has already locked, this method does nothing.
+     * @param node node to mark as locked
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IdLengthMismatchException if the bitlength of {@code node}'s ID doesn't match the bitlength of the owning node's ID (the ID
+     * of the node this k-bucket belongs to)
+     * @throws BaseIdMatchException if {@code node}'s ID is the same as the owning node's ID (the ID of the node this k-bucket belongs to)
+     * @throws IdPrefixMismatchException if {@code node}'s ID doesn't match the prefix required by this k-bucket
+     * @throws NodeNotFoundException if this k-bucket doesn't contain {@code node}
+     * @throws LinkMismatchException if this k-bucket contains a node with {@code node}'s ID but with a different link
+     * @throws BadNodeStateException if this k-bucket contains {@code node} but {@code node} is marked as stale
+     */
     public void lock(Node node) {
         Validate.notNull(node);
         
@@ -169,6 +255,20 @@ public final class KBucket {
         lockSet.add(nodeId); // add to lock set, it's fine if it's already in the lockset
     }
 
+    /**
+     * Reverts a node back to a normal state from a locked state.
+     * <p>
+     * If the node is not locked, this method does nothing.
+     * @param node node to revert to normal state from locked state
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IdLengthMismatchException if the bitlength of {@code node}'s ID doesn't match the bitlength of the owning node's ID (the ID
+     * of the node this k-bucket belongs to)
+     * @throws BaseIdMatchException if {@code node}'s ID is the same as the owning node's ID (the ID of the node this k-bucket belongs to)
+     * @throws IdPrefixMismatchException if {@code node}'s ID doesn't match the prefix required by this k-bucket
+     * @throws NodeNotFoundException if this k-bucket doesn't contain {@code node}
+     * @throws LinkMismatchException if this k-bucket contains a node with {@code node}'s ID but with a different link
+     * @throws BadNodeStateException if this k-bucket contains {@code node} but {@code node} is marked as stale
+     */
     public void unlock(Node node) {
         Validate.notNull(node);
         
@@ -223,10 +323,26 @@ public final class KBucket {
         return ImmutablePair.of(bucketRemoveRes.viewRemoved().get(0), bucketTouchRes.viewAdded().get(0));
     }
     
-    // bitCount = 0 is 1 buckets
-    // bitCount = 1 is 2 buckets
-    // bitCount = 2 is 4 buckets
-    // bitCount = 3 is 8 buckets
+    /**
+     * Splits this k-bucket. This method will generate k-buckets with {@code bitCount} extra bits in the prefix, and each generated k-bucket
+     * will contain the appropriate nodes (and cache nodes) from this k-bucket.
+     * <p>
+     * For example, if this bucket's prefix is {@code 1010} and {@code bitCount = 2}, the returning array would contain the following
+     * k-buckets (in order) ...
+     * <ol>
+     * <li>prefix is {@code 1010 00}   note that 0 = 00</li>
+     * <li>prefix is {@code 1010 01}   note that 1 = 01</li>
+     * <li>prefix is {@code 1010 10}   note that 2 = 10</li>
+     * <li>prefix is {@code 1010 11}   note that 3 = 11</li>
+     * </ol>
+     * Note that {@code bitCount = 2}, which means each generated k-bucket should have 2 extra bits in its prefix. {@code 2^2 = 4}, which
+     * results in total of 4 buckets being generated to span those extra 2 bits.
+     * @param bitCount number of extra bits in the prefix of the generated k-buckets -- k-buckets generated will be this {@code 2^bitCount}
+     * (e.g. bitCount = 0 is 1 buckets, bitCount = 1 is 2 buckets, bitCount = 2 is 4 buckets, bitCount = 3 is 8 buckets, ...)
+     * @return k-buckets generated from the split, in order
+     * @throws IllegalArgumentException if {@code bitCount < 0} or if {@code bitCount > 30} or if
+     * {@code prefix.getBitLength() + bitCount > baseId.getBitLength()}
+     */
     public KBucket[] split(int bitCount) {
         Validate.isTrue(bitCount >= 0); // why would anyone want to split in to 1 bucket? the result would just be a copy of this bucket...
                                         // let through anyway

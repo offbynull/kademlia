@@ -37,10 +37,22 @@ import com.offbynull.voip.kademlia.internalmessages.Start.KademliaParameters;
 import com.offbynull.voip.kademlia.model.Id;
 import org.apache.commons.lang3.Validate;
 
+/**
+ * A subcoroutine that runs Kademlia.
+ * <p>
+ * To use this subcoroutine, issue it messages from the {@link com.offbynull.voip.kademlia.internalmessages} package. This subcoroutine must
+ * be primed using a {@link Start} message.
+ * @author Kasra Faghihi
+ */
 public final class KademliaSubcoroutine implements Subcoroutine<Void> {
 
     private final Address subAddress;
 
+    /**
+     * Constructs a {@link KademliaSubcoroutine} object.
+     * @param subAddress address of this subcoroutine relative to the calling actor's self address (relative to {@link Context#getSelf()})
+     * @throws NullPointerException if any argument is {@code null}
+     */
     public KademliaSubcoroutine(Address subAddress) {
         Validate.notNull(subAddress);
         this.subAddress = subAddress;

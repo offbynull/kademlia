@@ -19,7 +19,17 @@ package com.offbynull.voip.kademlia;
 import com.offbynull.coroutines.user.Continuation;
 import com.offbynull.coroutines.user.Coroutine;
 import com.offbynull.peernetic.core.shuttle.Address;
+import com.offbynull.voip.kademlia.internalmessages.Start;
 
+/**
+ * A Kademlia coroutine actor.
+ * <p>
+ * To use this actor, issue it messages from the {@link com.offbynull.voip.kademlia.internalmessages} package. This actor must be primed
+ * using a {@link Start} message.
+ * <p>
+ * If you want to run Kademlia as part of another actor, use {@link KademliaSubcoroutine} instead.
+ * @author Kasra Faghihi
+ */
 public final class KademliaCoroutine implements Coroutine {
 
     @Override
