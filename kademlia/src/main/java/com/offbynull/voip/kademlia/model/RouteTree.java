@@ -84,6 +84,8 @@ public final class RouteTree {
     /**
      * Searches this route tree for the closest nodes to some ID. Node closeness is determined by the XOR metric -- Kademlia's notion of
      * distance.
+     * <p>
+     * Note this method will never return yourself (the node that this routing table is for).
      * @param id ID to search for
      * @param max maximum number of results to give back
      * @param includeStale if {@code true}, includes stale nodes in the results
@@ -103,14 +105,6 @@ public final class RouteTree {
         TreeSet<Activity> output = new TreeSet<>((x, y) -> comparator.compare(x.getNode().getId(), y.getNode().getId()));
         
         root.findNodesWithLargestPossiblePrefix(id, output, max, includeStale);
-  
-        // DONT DO THIS. DO NOT INCLUDE SELF. ADD IT AT LAYERS ABOVE.
-//        // We don't keep ourself in the buckets in the routing tree, but we may be one of the closest nodes to id. As such, add ourself to
-//        // the output list and evict excess (if any)
-//        output.add(new Activity(baseNode, Instant.MIN));
-//        while (output.size() > max) {
-//            output.pollLast();
-//        }
         
         return new ArrayList<>(output);
     }
@@ -134,6 +128,26 @@ public final class RouteTree {
         return new ArrayList<>(output);
     }
 
+    /**
+     * Updates the appropriate k-bucket in this route tree by touching it. When the Kademlia node that this route tree is for receives a
+     * request or response from some other node in the network, this method should be called.
+     * <p>
+     * See {@link KBucket#touch(java.time.Instant, com.offbynull.voip.kademlia.model.Node) } for more information.
+     * @param time time which request or response came in
+     * @param node node which issued the request or response
+     * @return changes to collection of stored nodes and replacement cache of the k-bucket effected
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IdLengthMismatchException if the bitlength of {@code node}'s ID doesn't match the bitlength of the owning node's ID (the ID
+     * of the node this route tree is for)
+     * @throws BaseIdMatchException if {@code node}'s ID is the same as the owning node's ID (the ID of the node this route tree is for)
+     * @throws BackwardTimeException if {@code time} is less than the time used in the previous invocation of this method
+     * @throws LinkMismatchException if this route tree already contains a node with {@code node}'s ID but with a different link (SPECIAL
+     * CASE: If the contained node is marked as stale, this exception will not be thrown. Since the node is marked as stale, it means it
+     * should have been replaced but the replacement cache was empty. As such, this case is treated as if this were a new node replacing
+     * a stale node, not a stale node being reverted to normal status -- the fact that the IDs are the same but the links don't match
+     * doesn't matter)
+     * @see KBucket#touch(java.time.Instant, com.offbynull.voip.kademlia.model.Node) 
+     */
     public RouteTreeChangeSet touch(Instant time, Node node) {
         Validate.notNull(time);
         Validate.notNull(node);
@@ -145,7 +159,8 @@ public final class RouteTree {
         InternalValidate.forwardTime(lastTouchTime, time); // time must be >= lastUpdatedTime
         lastTouchTime = time;
 
-        KBucket bucket = root.getBucketFor(node.getId());
+        KBucket bucket = root.getBucketFor(node.getId()); // because we use this method to find the appropriate kbucket,
+                                                          // IdPrefixMismatchException never occurs
         KBucketChangeSet kBucketChangeSet = bucket.touch(time, node);
         BitString kBucketPrefix = bucket.getPrefix();
 
@@ -161,6 +176,22 @@ public final class RouteTree {
         return new RouteTreeChangeSet(kBucketPrefix, kBucketChangeSet);
     }
 
+    /**
+     * Marks a node within this route tree as stale (meaning that you're no longer able to communicate with it), evicting it and replacing
+     * it with the most recent node in the effected k-bucket's replacement cache. 
+     * <p>
+     * See {@link KBucket#stale(com.offbynull.voip.kademlia.model.Node) } for more information.
+     * @param node node to mark as stale
+     * @return changes to collection of stored nodes and replacement cache of the k-bucket effected
+     * @throws NullPointerException if any argument is {@code null}
+     * @throws IdLengthMismatchException if the bitlength of {@code node}'s ID doesn't match the bitlength of the owning node's ID (the ID
+     * of the node this route tree is for)
+     * @throws BaseIdMatchException if {@code node}'s ID is the same as the owning node's ID (the ID of the node this route tree is for)
+     * @throws NodeNotFoundException if this route tree doesn't contain {@code node}
+     * @throws LinkMismatchException if this route tree contains a node with {@code node}'s ID but with a different link
+     * @throws BadNodeStateException if this route tree contains {@code node} but {@code node} is marked as locked
+     * @see KBucket#stale(com.offbynull.voip.kademlia.model.Node) 
+     */
     public RouteTreeChangeSet stale(Node node) {
         Validate.notNull(node);
 
@@ -168,7 +199,8 @@ public final class RouteTree {
         InternalValidate.matchesLength(baseId.getBitLength(), id);
         InternalValidate.notMatchesBase(baseId, id);
             
-        KBucket bucket = root.getBucketFor(node.getId());
+        KBucket bucket = root.getBucketFor(node.getId()); // because we use this method to find the appropriate kbucket,
+                                                          // IdPrefixMismatchException never occurs
         KBucketChangeSet kBucketChangeSet = bucket.stale(node);
         BitString kBucketPrefix = bucket.getPrefix();
 

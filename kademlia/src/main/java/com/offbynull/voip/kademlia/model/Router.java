@@ -18,11 +18,12 @@ package com.offbynull.voip.kademlia.model;
 
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import org.apache.commons.lang3.Validate;
 
 public final class Router {
+    // NOTE: Right now this class just encapsulates a RouteTree, but it may be refactored in the future to support more elaborate logic
+    // (e.g. keeping track of the number of times a node didn't respond in time and locking that node/marking it stale)
     private final Id baseId;
     private final RouteTree routeTree;
     
@@ -82,15 +83,8 @@ public final class Router {
         List<Activity> closestNodesInRoutingTree = routeTree.find(id, max, includeStale);
         
         ArrayList<Node> res = new ArrayList<>(closestNodesInRoutingTree.size());
-        
-        // is this all of this required? shouldn't routeTree.find() already be sorted and unique? may be relic from when closestnodeset was
-        // around
-        Comparator<Id> idComp = new IdXorMetricComparator(id);
         closestNodesInRoutingTree.stream()
                 .map(x -> x.getNode())
-                .sorted((x, y) -> idComp.compare(x.getId(), y.getId()))
-                .distinct()
-                .limit(max)
                 .forEachOrdered(res::add);
         
         return res;
