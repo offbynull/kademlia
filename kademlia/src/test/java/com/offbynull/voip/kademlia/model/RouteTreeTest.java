@@ -40,7 +40,7 @@ public final class RouteTreeTest {
     public ExpectedException expectedException = ExpectedException.none();
     
     public RouteTreeTest() {
-        SimpleRouteTreeSpecificationSupplier specSupplier = new SimpleRouteTreeSpecificationSupplier(NODE_0000.getId(), 2, 2, 2);
+        SimpleRouteTreeStrategy specSupplier = new SimpleRouteTreeStrategy(NODE_0000.getId(), 2, 2, 2);
         fixture = new RouteTree(NODE_0000.getId(), specSupplier, specSupplier);        
     }
 
@@ -429,7 +429,7 @@ public final class RouteTreeTest {
     @Test
     public void mustFindClosestNodesFirstInTreeWithLargerBranching() throws Throwable {
         // recreate fixture to have 4 branches per node instead of 2, then do the same test as mustFindClosestNodesFirst
-        SimpleRouteTreeSpecificationSupplier specSupplier = new SimpleRouteTreeSpecificationSupplier(NODE_0000.getId(), 4, 2, 2);
+        SimpleRouteTreeStrategy specSupplier = new SimpleRouteTreeStrategy(NODE_0000.getId(), 4, 2, 2);
         fixture = new RouteTree(NODE_0000.getId(), specSupplier, specSupplier);        
         
         // all of the following nodes should be inserted in to buckets of kbuckets, they won't overflow in to the caches of kbuckets

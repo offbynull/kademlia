@@ -22,7 +22,7 @@ import com.offbynull.peernetic.core.actor.helpers.IdGenerator;
 import com.offbynull.voip.kademlia.model.Id;
 import com.offbynull.voip.kademlia.model.RouteTreeBranchStrategy;
 import com.offbynull.voip.kademlia.model.RouteTreeBucketStrategy;
-import com.offbynull.voip.kademlia.model.SimpleRouteTreeSpecificationSupplier;
+import com.offbynull.voip.kademlia.model.SimpleRouteTreeStrategy;
 import java.util.Arrays;
 import java.util.function.Supplier;
 import org.apache.commons.lang3.Validate;
@@ -184,8 +184,8 @@ public final class Start {
          */
         public KademliaParameters(Id baseId, int branchesPerLevel, int nodesPerBucket, int cacheNodesPerBucket,
                 int maxConcurrentRequestsPerFind) {
-            this(() -> new SimpleRouteTreeSpecificationSupplier(baseId, branchesPerLevel, nodesPerBucket, cacheNodesPerBucket),
-                    () -> new SimpleRouteTreeSpecificationSupplier(baseId, branchesPerLevel, nodesPerBucket, cacheNodesPerBucket),
+            this(() -> new SimpleRouteTreeStrategy(baseId, branchesPerLevel, nodesPerBucket, cacheNodesPerBucket),
+                    () -> new SimpleRouteTreeStrategy(baseId, branchesPerLevel, nodesPerBucket, cacheNodesPerBucket),
                     maxConcurrentRequestsPerFind);
         }
 

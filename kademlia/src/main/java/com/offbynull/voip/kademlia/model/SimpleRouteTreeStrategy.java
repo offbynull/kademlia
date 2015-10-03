@@ -24,7 +24,7 @@ import org.apache.commons.lang3.Validate;
  * This class is immutable.
  * @author Kasra Faghihi
  */
-public final class SimpleRouteTreeSpecificationSupplier implements RouteTreeBranchStrategy,
+public final class SimpleRouteTreeStrategy implements RouteTreeBranchStrategy,
         RouteTreeBucketStrategy {
     private final Id baseId;
     private final int branchesPerLevel;
@@ -32,7 +32,7 @@ public final class SimpleRouteTreeSpecificationSupplier implements RouteTreeBran
     private final int cacheNodesPerBucket;
 
     /**
-     * Constructs a {@link SimpleRouteTreeSpecificationSupplier} object.
+     * Constructs a {@link SimpleRouteTreeStrategy} object.
      * @param baseId ID of Kademlia node this supplier is generating a route tree for
      * @param branchesPerLevel number of branches to generate whenever a k-bucket splits
      * @param nodesPerBucket maximum number of nodes allowed in each k-bucket
@@ -42,7 +42,7 @@ public final class SimpleRouteTreeSpecificationSupplier implements RouteTreeBran
      * {@code branchesPerLevel < 2 || !isPowerOfTwo(branchesPerLevel)}, or if {@code baseId.getBitLength() % branchesPerLevel != 0} (if the
      * number of branches per level doesn't divide evenly in to bit length, the routing tree will have too many branches at the last level)
      */
-    public SimpleRouteTreeSpecificationSupplier(Id baseId, int branchesPerLevel, int nodesPerBucket, int cacheNodesPerBucket) {
+    public SimpleRouteTreeStrategy(Id baseId, int branchesPerLevel, int nodesPerBucket, int cacheNodesPerBucket) {
         Validate.notNull(baseId);
         Validate.isTrue(branchesPerLevel >= 2);
         Validate.isTrue(nodesPerBucket > 0);

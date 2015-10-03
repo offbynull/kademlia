@@ -16,7 +16,7 @@
  */
 
 /**
- * Messages used to control Kademlia actors.
+ * Messages used to control a Kademlia actor.
  * 
  * @author Kasra Faghihi
  */
