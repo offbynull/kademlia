@@ -30,6 +30,7 @@ final class InputReadRunnable implements Runnable {
             
             while (true) {
                 int amountRead = openInputDevice.read(dataBytes, 0, size);
+                bus.add(new InputData(dataBytes, amountRead));
             }
         } catch (Exception e) {
             LOG.info("Input thread stopped: {}", e.toString());

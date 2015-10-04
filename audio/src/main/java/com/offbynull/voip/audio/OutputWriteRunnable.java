@@ -1,5 +1,6 @@
 package com.offbynull.voip.audio;
 
+import java.util.LinkedList;
 import java.util.concurrent.LinkedBlockingQueue;
 import javax.sound.sampled.SourceDataLine;
 import org.apache.commons.lang3.Validate;
@@ -25,13 +26,30 @@ final class OutputWriteRunnable implements Runnable {
         LOG.info("Output thread started: {}", openOutputDevice);
         try {
             while (true) {
-                OutputData data = outputQueue.take();
-                byte[] dataBytes = data.getData();
-                openOutputDevice.write(dataBytes, 0, dataBytes.length);
+                LinkedList<OutputData> buffers = dumpQueue();
+                if (buffers.size() > 1) { // more than 1 buffer, show a warning
+                    LOG.info("Excess number of output buffers read: {} -- only playing last", buffers.size());
+                }
+                
+                byte[] dataBytes = buffers.getLast().getData();
+                try {
+                    openOutputDevice.write(dataBytes, 0, dataBytes.length);
+                } catch (IllegalArgumentException iae) {
+                    LOG.warn("Output buffer potentially malformed: {}", iae.toString());
+                }
             }
         } catch (Exception e) {
             LOG.info("Output thread stopped: {}", e.toString());
         }
     }
     
+    private LinkedList<OutputData> dumpQueue() throws InterruptedException {
+        LinkedList<OutputData> ret = new LinkedList<>();
+        
+        OutputData first = outputQueue.take();
+        ret.add(first);
+        outputQueue.drainTo(ret);
+        
+        return ret;
+    }
 }

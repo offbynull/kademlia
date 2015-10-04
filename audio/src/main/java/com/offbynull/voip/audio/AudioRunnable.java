@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.LinkedBlockingQueue;
 import javax.sound.sampled.AudioFormat;
 import static javax.sound.sampled.AudioFormat.Encoding.PCM_SIGNED;
 import javax.sound.sampled.AudioSystem;
@@ -53,7 +54,11 @@ final class AudioRunnable implements Runnable {
     private Map<Integer, LineEntry> outputDevices;
     
     private TargetDataLine openInputDevice;
+    private Thread inputReadThread;
+    
     private SourceDataLine openOutputDevice;
+    private LinkedBlockingQueue<OutputData> outputQueue;
+    private Thread outputWriteThread;
 
     public AudioRunnable(Bus bus) {
         Validate.notNull(bus);
@@ -210,6 +215,8 @@ final class AudioRunnable implements Runnable {
 
 
 
+        
+        // open input device
         try {
             openInputDevice = (TargetDataLine) AudioSystem.getLine(inputLineEntry.getLineInfo());
             openInputDevice.open(EXPECTED_FORMAT);
@@ -221,6 +228,8 @@ final class AudioRunnable implements Runnable {
 
         
         
+        
+        // open output device
         try {
             openOutputDevice = (SourceDataLine) AudioSystem.getLine(inputLineEntry.getLineInfo());
             openOutputDevice.open(EXPECTED_FORMAT);
@@ -237,6 +246,30 @@ final class AudioRunnable implements Runnable {
             return new ErrorResponse("Unable to open output device");
         }
         
+        
+        
+        
+        // start input read thread
+        InputReadRunnable inputReadRunnable = new InputReadRunnable(openInputDevice, bus);
+        inputReadThread = new Thread(inputReadRunnable);
+        inputReadThread.setDaemon(true);
+        inputReadThread.setName(getClass().getSimpleName() + "-" + inputReadRunnable.getClass().getSimpleName());
+        inputReadThread.start();
+        
+        
+        
+        
+        // start input read thread
+        outputQueue = new LinkedBlockingQueue<>();
+        OutputWriteRunnable outputWriteRunnable = new OutputWriteRunnable(openOutputDevice, outputQueue);
+        outputWriteThread = new Thread(outputWriteRunnable);
+        outputWriteThread.setDaemon(true);
+        outputWriteThread.setName(getClass().getSimpleName() + "-" + outputWriteRunnable.getClass().getSimpleName());
+        outputWriteThread.start();
+
+        
+        
+        
         return new SuccessResponse();
     }
     
@@ -249,6 +282,9 @@ final class AudioRunnable implements Runnable {
             }
             
             openOutputDevice = null;
+            outputWriteThread.interrupt();
+            outputWriteThread = null;
+            outputQueue = null;
         }
         
         if (openInputDevice == null) {
@@ -259,6 +295,7 @@ final class AudioRunnable implements Runnable {
             }
             
             openInputDevice = null;
+            inputReadThread.interrupt();
         }
 
         return new SuccessResponse();
