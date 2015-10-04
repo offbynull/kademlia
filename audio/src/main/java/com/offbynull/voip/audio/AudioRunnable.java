@@ -6,11 +6,13 @@ import com.offbynull.peernetic.core.shuttle.Shuttle;
 import com.offbynull.peernetic.core.shuttles.simple.Bus;
 import com.offbynull.voip.audio.internalmessages.CloseDevicesRequest;
 import com.offbynull.voip.audio.internalmessages.ErrorResponse;
+import com.offbynull.voip.audio.internalmessages.InputPCMBlock;
 import com.offbynull.voip.audio.internalmessages.LoadDevicesRequest;
 import com.offbynull.voip.audio.internalmessages.LoadDevicesResponse;
 import com.offbynull.voip.audio.internalmessages.LoadDevicesResponse.InputDevice;
 import com.offbynull.voip.audio.internalmessages.LoadDevicesResponse.OutputDevice;
 import com.offbynull.voip.audio.internalmessages.OpenDevicesRequest;
+import com.offbynull.voip.audio.internalmessages.OutputPCMBlock;
 import com.offbynull.voip.audio.internalmessages.SuccessResponse;
 import java.util.Collections;
 import java.util.HashMap;
@@ -53,6 +55,9 @@ final class AudioRunnable implements Runnable {
     private Map<Integer, LineEntry> inputDevices;
     private Map<Integer, LineEntry> outputDevices;
     
+    private Address openedFromAddress;
+    private Address openedToAddress;
+    
     private TargetDataLine openInputDevice;
     private Thread inputReadThread;
     
@@ -90,16 +95,38 @@ final class AudioRunnable implements Runnable {
 
                         if (payload instanceof LoadDevicesRequest) {
                             Object response = loadDevices();
-                            sendMessage(dst, src, response);
+                            sendMessage(src, dst, response);
                         } else if (payload instanceof OpenDevicesRequest) {
-                            Object response = openDevices((OpenDevicesRequest) payload);
-                            sendMessage(dst, src, response);
+                            Object response = openDevices(src, dst, (OpenDevicesRequest) payload);
+                            sendMessage(src, dst, response);
                         } else if (payload instanceof CloseDevicesRequest) {
                             Object response = closeDevices();
-                            sendMessage(dst, src, response);
+                            sendMessage(src, dst, response);
+                        } else if (payload instanceof OutputPCMBlock) {
+                            if (openedToAddress == null || openedFromAddress == null) {
+                                LOG.warn("Output PCM block received but devices closed");
+                                continue;
+                            }
+                            
+                            OutputPCMBlock outputPCMBlock = (OutputPCMBlock) payload;
+                            byte[] data = outputPCMBlock.getData();
+                            OutputData outputData = new OutputData(data);
+                            
+                            outputQueue.put(outputData);
                         } else {
                             LOG.error("Unrecognized message: {}", payload);
                         }
+                    } else if (incomingObj instanceof InputData) { // message from input read thread (microphone reader thread)
+                        if (openedToAddress == null || openedFromAddress == null) {
+                            LOG.warn("Input PCM block received but devices closed");
+                            continue;
+                        }
+                        
+                        InputData inputData = (InputData) incomingObj;
+                        byte[] data = inputData.getData();
+                        InputPCMBlock inputPCMBlock = new InputPCMBlock(data);
+                        
+                        sendMessage(openedToAddress, openedFromAddress, inputPCMBlock);
                     } else if (incomingObj instanceof AddShuttle) {
                         AddShuttle addShuttle = (AddShuttle) incomingObj;
                         Shuttle shuttle = addShuttle.getShuttle();
@@ -189,7 +216,7 @@ final class AudioRunnable implements Runnable {
         return new LoadDevicesResponse(respOutputDevices, respInputDevices);
     }
     
-    private Object openDevices(OpenDevicesRequest request) {
+    private Object openDevices(Address fromAddress, Address toAddress, OpenDevicesRequest request) {
         if (outputDevices == null || inputDevices == null) {
             return new ErrorResponse("Devices not loaded");
         }
@@ -270,6 +297,13 @@ final class AudioRunnable implements Runnable {
         
         
         
+        // set address to shuttle input PCM blocks to
+        openedFromAddress = fromAddress;
+        openedToAddress = toAddress;
+        
+        
+        
+        
         return new SuccessResponse();
     }
     
@@ -298,6 +332,8 @@ final class AudioRunnable implements Runnable {
             inputReadThread.interrupt();
         }
 
+        openedToAddress = null;
+        
         return new SuccessResponse();
     }
 
@@ -317,12 +353,12 @@ final class AudioRunnable implements Runnable {
         return entries;
     }
 
-    private void sendMessage(Address dst, Address src, Object response) {
-        String dstPrefix = dst.getElement(0);
+    private void sendMessage(Address from, Address to, Object response) {
+        String dstPrefix = to.getElement(0);
         Shuttle shuttle = outgoingShuttles.get(dstPrefix);
         
         if (shuttle != null) {
-            shuttle.send(Collections.singleton(new Message(src, dst, response)));
+            shuttle.send(Collections.singleton(new Message(from, to, response)));
         } else {
             LOG.warn("Unable to find shuttle for outgoing response: {}", response);
         }
