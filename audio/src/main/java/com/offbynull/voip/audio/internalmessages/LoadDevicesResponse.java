@@ -37,6 +37,12 @@ public final class LoadDevicesResponse {
         public String getName() {
             return name;
         }
+
+        @Override
+        public String toString() {
+            return "OutputDevice{" + "id=" + id + ", name=" + name + '}';
+        }
+        
     }
 
     public static final class InputDevice {
@@ -56,5 +62,11 @@ public final class LoadDevicesResponse {
         public String getName() {
             return name;
         }
+
+        @Override
+        public String toString() {
+            return "InputDevice{" + "id=" + id + ", name=" + name + '}';
+        }
+        
     }
 }

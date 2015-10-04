@@ -11,6 +11,7 @@ import com.offbynull.voip.audio.internalmessages.LoadDevicesResponse;
 import com.offbynull.voip.audio.internalmessages.LoadDevicesResponse.InputDevice;
 import com.offbynull.voip.audio.internalmessages.LoadDevicesResponse.OutputDevice;
 import com.offbynull.voip.audio.internalmessages.OpenDevicesRequest;
+import com.offbynull.voip.audio.internalmessages.SuccessResponse;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -50,6 +51,9 @@ final class AudioRunnable implements Runnable {
     private int nextDeviceId;
     private Map<Integer, LineEntry> outputDevices;
     private Map<Integer, LineEntry> inputDevices;
+    
+    private TargetDataLine openOutputDevice;
+    private SourceDataLine openInputDevice;
 
     public AudioRunnable(Bus bus) {
         Validate.notNull(bus);
@@ -77,23 +81,17 @@ final class AudioRunnable implements Runnable {
                         Address dst = msg.getDestinationAddress();
                         Object payload = msg.getMessage();
 
-                        LOG.debug("Processing incoming message from {} to {}: {}", msg.getSourceAddress(), dst, payload);
+                        LOG.debug("Processing incoming message from {} to {}: {}", src, dst, payload);
 
                         if (payload instanceof LoadDevicesRequest) {
                             Object response = loadDevices((LoadDevicesRequest) payload);
-                            
-                            String dstPrefix = msg.getSourceAddress().getElement(0);
-                            Shuttle shuttle = outgoingShuttles.get(dstPrefix);
-                            
-                            if (shuttle != null) {
-                                shuttle.send(Collections.singleton(new Message(src, dst, response)));
-                            } else {
-                                LOG.warn("Unable to find shuttle for outgoing response: {}", response);
-                            }
+                            sendMessage(dst, src, response);
                         } else if (payload instanceof OpenDevicesRequest) {
-
+                            Object response = openDevices((OpenDevicesRequest) payload);
+                            sendMessage(dst, src, response);
                         } else if (payload instanceof CloseDevicesRequest) {
-
+                            Object response = closeDevices((CloseDevicesRequest) payload);
+                            sendMessage(dst, src, response);
                         } else {
                             LOG.error("Unrecognized message: {}", payload);
                         }
@@ -184,6 +182,82 @@ final class AudioRunnable implements Runnable {
         inputDevices = newInputDevices;
         return new LoadDevicesResponse(respOutputDevices, respInputDevices);
     }
+    
+    private Object openDevices(OpenDevicesRequest request) {
+        if (inputDevices == null || outputDevices == null) {
+            return new ErrorResponse("Devices not loaded");
+        }
+        
+        int inputId = request.getInputId();
+        int outputId = request.getOutputId();
+        
+        LineEntry inputLineEntry = inputDevices.get(inputId);
+        if (inputLineEntry == null) {
+            LOG.error("Input device not available: {}", inputId);
+            return new ErrorResponse("Input device " + inputId + " not available");
+        }
+        
+        LineEntry outputLineEntry = outputDevices.get(outputId);
+        if (outputLineEntry == null) {
+            LOG.error("Output device not available: {}", outputId);
+            return new ErrorResponse("Output device " + outputId + " not available");
+        }
+
+
+
+        try {
+            openOutputDevice = (TargetDataLine) AudioSystem.getLine(outputLineEntry.getLineInfo());
+            openOutputDevice.open(EXPECTED_FORMAT);
+        } catch (Exception e) {
+            openOutputDevice = null;
+            LOG.error("Unable to open output device", e);
+            return new ErrorResponse("Unable to open output device");
+        }
+
+        
+        
+        try {
+            openInputDevice = (SourceDataLine) AudioSystem.getLine(outputLineEntry.getLineInfo());
+            openInputDevice.open(EXPECTED_FORMAT);
+        } catch (Exception e) {
+            try {
+                openOutputDevice.close();
+            } catch (Exception innerE) {
+                LOG.error("Unable to close output device", innerE);
+            }
+            
+            openOutputDevice = null;
+            openInputDevice = null;
+            LOG.error("Unable to open input device", e);
+            return new ErrorResponse("Unable to open input device");
+        }
+        
+        return new SuccessResponse();
+    }
+    
+    private Object closeDevices(CloseDevicesRequest request) {
+        if (openInputDevice == null) {
+            try {
+                openInputDevice.close();
+            } catch (Exception innerE) {
+                LOG.error("Unable to close input device", innerE);
+            }
+            
+            openInputDevice = null;
+        }
+        
+        if (openOutputDevice == null) {
+            try {
+                openOutputDevice.close();
+            } catch (Exception innerE) {
+                LOG.error("Unable to close output device", innerE);
+            }
+            
+            openOutputDevice = null;
+        }
+
+        return new SuccessResponse();
+    }
 
     private Map<Integer, LineEntry> generateLineEntriesFromJavaSound(Mixer m, Line.Info[] lineInfos) throws LineUnavailableException {
         Map<Integer, LineEntry> entries = new HashMap<>();
@@ -201,6 +275,17 @@ final class AudioRunnable implements Runnable {
         return entries;
     }
 
+    private void sendMessage(Address dst, Address src, Object response) {
+        String dstPrefix = dst.getElement(0);
+        Shuttle shuttle = outgoingShuttles.get(dstPrefix);
+        
+        if (shuttle != null) {
+            shuttle.send(Collections.singleton(new Message(src, dst, response)));
+        } else {
+            LOG.warn("Unable to find shuttle for outgoing response: {}", response);
+        }
+    }
+    
     private static final class LineEntry {
 
         private final Mixer mixer;
