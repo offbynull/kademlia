@@ -2,6 +2,7 @@ package com.offbynull.voip.audio;
 
 import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.shuttle.Message;
+import com.offbynull.peernetic.core.shuttle.Shuttle;
 import com.offbynull.peernetic.core.shuttles.simple.Bus;
 import com.offbynull.voip.audio.internalmessages.CloseDevicesRequest;
 import com.offbynull.voip.audio.internalmessages.ErrorResponse;
@@ -10,6 +11,7 @@ import com.offbynull.voip.audio.internalmessages.LoadDevicesResponse;
 import com.offbynull.voip.audio.internalmessages.LoadDevicesResponse.InputDevice;
 import com.offbynull.voip.audio.internalmessages.LoadDevicesResponse.OutputDevice;
 import com.offbynull.voip.audio.internalmessages.OpenDevicesRequest;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -23,8 +25,6 @@ import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.Mixer;
 import javax.sound.sampled.SourceDataLine;
 import javax.sound.sampled.TargetDataLine;
-import org.apache.commons.collections4.MultiMap;
-import org.apache.commons.collections4.map.MultiValueMap;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,6 +45,7 @@ final class AudioRunnable implements Runnable {
             FRAME_RATE, true);
 
     private final Bus bus;
+    private final Map<String, Shuttle> outgoingShuttles;
 
     private int nextDeviceId;
     private Map<Integer, LineEntry> outputDevices;
@@ -53,6 +54,7 @@ final class AudioRunnable implements Runnable {
     public AudioRunnable(Bus bus) {
         Validate.notNull(bus);
         this.bus = bus;
+        outgoingShuttles = new HashMap<>();
 
         outputDevices = new HashMap<>();
         inputDevices = new HashMap<>();
@@ -69,17 +71,25 @@ final class AudioRunnable implements Runnable {
 
                 for (Object incomingObj : incomingObjects) {
                     if (incomingObj instanceof Message) {
-                        MultiMap<Address, Object> payloads = new MultiValueMap<>();
                         Message msg = (Message) incomingObj;
 
+                        Address src = msg.getSourceAddress();
                         Address dst = msg.getDestinationAddress();
                         Object payload = msg.getMessage();
-                        payloads.put(dst, payload);
 
                         LOG.debug("Processing incoming message from {} to {}: {}", msg.getSourceAddress(), dst, payload);
 
                         if (payload instanceof LoadDevicesRequest) {
+                            Object response = loadDevices((LoadDevicesRequest) payload);
                             
+                            String dstPrefix = msg.getSourceAddress().getElement(0);
+                            Shuttle shuttle = outgoingShuttles.get(dstPrefix);
+                            
+                            if (shuttle != null) {
+                                shuttle.send(Collections.singleton(new Message(src, dst, response)));
+                            } else {
+                                LOG.warn("Unable to find shuttle for outgoing response: {}", response);
+                            }
                         } else if (payload instanceof OpenDevicesRequest) {
 
                         } else if (payload instanceof CloseDevicesRequest) {
@@ -87,6 +97,16 @@ final class AudioRunnable implements Runnable {
                         } else {
                             LOG.error("Unrecognized message: {}", payload);
                         }
+                    } else if (incomingObj instanceof AddShuttle) {
+                        AddShuttle addShuttle = (AddShuttle) incomingObj;
+                        Shuttle shuttle = addShuttle.getShuttle();
+                        Shuttle existingShuttle = outgoingShuttles.putIfAbsent(shuttle.getPrefix(), shuttle);
+                        Validate.validState(existingShuttle == null);
+                    } else if (incomingObj instanceof RemoveShuttle) {
+                        RemoveShuttle removeShuttle = (RemoveShuttle) incomingObj;
+                        String prefix = removeShuttle.getPrefix();
+                        Shuttle oldShuttle = outgoingShuttles.remove(prefix);
+                        Validate.validState(oldShuttle != null);
                     } else {
                         throw new IllegalStateException("Unexpected message type: " + incomingObj);
                     }
@@ -102,7 +122,7 @@ final class AudioRunnable implements Runnable {
         }
     }
 
-    private Object loadDevices(Object request) {
+    private Object loadDevices(LoadDevicesRequest request) {
         Map<Integer, LineEntry> newOutputDevices = new HashMap<>();
         Map<Integer, LineEntry> newInputDevices = new HashMap<>();
         List<OutputDevice> respOutputDevices = new LinkedList<>();
