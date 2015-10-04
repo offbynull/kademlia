@@ -17,6 +17,7 @@
     <modules>
         <module>build-tools</module>
         <module>kademlia</module>
+        <module>audio</module>
     </modules>
     
     <dependencyManagement>
@@ -138,6 +139,25 @@
                             <goals>
                                 <goal>instrument</goal>
                                 <goal>test-instrument</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
+                    <groupId>org.jacoco</groupId>
+                    <artifactId>jacoco-maven-plugin</artifactId>
+                    <version>0.7.5.201505241946</version>
+                    <executions>
+                        <execution>
+                            <goals>
+                                <goal>prepare-agent</goal>
+                            </goals>
+                        </execution>
+                        <execution>
+                            <id>report</id>
+                            <phase>prepare-package</phase>
+                            <goals>
+                                <goal>report</goal>
                             </goals>
                         </execution>
                     </executions>
