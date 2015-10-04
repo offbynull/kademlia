@@ -1,8 +1,24 @@
 package com.offbynull.voip.audio.internalmessages;
 
+import java.util.ArrayList;
+import java.util.List;
+import org.apache.commons.collections4.list.UnmodifiableList;
 import org.apache.commons.lang3.Validate;
 
 public final class LoadDevicesResponse {
+    
+    private final UnmodifiableList<OutputDevice> outputDevices;
+    private final UnmodifiableList<InputDevice> inputDevices;
+
+    public LoadDevicesResponse(List<OutputDevice> outputDevices, List<InputDevice> inputDevices) {
+        Validate.notNull(outputDevices);
+        Validate.notNull(inputDevices);
+        Validate.noNullElements(outputDevices);
+        Validate.noNullElements(inputDevices);
+        
+        this.outputDevices = (UnmodifiableList<OutputDevice>) UnmodifiableList.unmodifiableList(new ArrayList<>(outputDevices));
+        this.inputDevices = (UnmodifiableList<InputDevice>) UnmodifiableList.unmodifiableList(new ArrayList<>(inputDevices));
+    }
     
     public static final class OutputDevice {
         private final int id;
