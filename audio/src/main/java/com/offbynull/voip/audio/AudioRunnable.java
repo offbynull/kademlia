@@ -49,19 +49,19 @@ final class AudioRunnable implements Runnable {
     private final Map<String, Shuttle> outgoingShuttles;
 
     private int nextDeviceId;
-    private Map<Integer, LineEntry> outputDevices;
     private Map<Integer, LineEntry> inputDevices;
+    private Map<Integer, LineEntry> outputDevices;
     
-    private TargetDataLine openOutputDevice;
-    private SourceDataLine openInputDevice;
+    private TargetDataLine openInputDevice;
+    private SourceDataLine openOutputDevice;
 
     public AudioRunnable(Bus bus) {
         Validate.notNull(bus);
         this.bus = bus;
         outgoingShuttles = new HashMap<>();
 
-        outputDevices = new HashMap<>();
         inputDevices = new HashMap<>();
+        outputDevices = new HashMap<>();
     }
 
     @Override
@@ -179,65 +179,52 @@ final class AudioRunnable implements Runnable {
         }
         
         
-        outputDevices = newOutputDevices;
-        inputDevices = newInputDevices;
+        inputDevices = newOutputDevices;
+        outputDevices = newInputDevices;
         return new LoadDevicesResponse(respOutputDevices, respInputDevices);
     }
     
     private Object openDevices(OpenDevicesRequest request) {
-        if (inputDevices == null || outputDevices == null) {
+        if (outputDevices == null || inputDevices == null) {
             return new ErrorResponse("Devices not loaded");
         }
         
-        int inputId = request.getInputId();
+        if (openOutputDevice == null || openInputDevice == null) {
+            return new ErrorResponse("Devices already open");
+        }
+        
         int outputId = request.getOutputId();
+        int inputId = request.getInputId();
+        
+        LineEntry outputLineEntry = outputDevices.get(outputId);
+        if (outputLineEntry == null) {
+            LOG.error("Input device not available: {}", outputId);
+            return new ErrorResponse("Input device " + outputId + " not available");
+        }
         
         LineEntry inputLineEntry = inputDevices.get(inputId);
         if (inputLineEntry == null) {
             LOG.error("Input device not available: {}", inputId);
             return new ErrorResponse("Input device " + inputId + " not available");
         }
-        
-        LineEntry outputLineEntry = outputDevices.get(outputId);
-        if (outputLineEntry == null) {
-            LOG.error("Output device not available: {}", outputId);
-            return new ErrorResponse("Output device " + outputId + " not available");
-        }
 
 
 
         try {
-            openOutputDevice = (TargetDataLine) AudioSystem.getLine(outputLineEntry.getLineInfo());
-            openOutputDevice.open(EXPECTED_FORMAT);
-        } catch (Exception e) {
-            openOutputDevice = null;
-            LOG.error("Unable to open output device", e);
-            return new ErrorResponse("Unable to open output device");
-        }
-
-        
-        
-        try {
-            openInputDevice = (SourceDataLine) AudioSystem.getLine(outputLineEntry.getLineInfo());
+            openInputDevice = (TargetDataLine) AudioSystem.getLine(inputLineEntry.getLineInfo());
             openInputDevice.open(EXPECTED_FORMAT);
         } catch (Exception e) {
-            try {
-                openOutputDevice.close();
-            } catch (Exception innerE) {
-                LOG.error("Unable to close output device", innerE);
-            }
-            
-            openOutputDevice = null;
             openInputDevice = null;
             LOG.error("Unable to open input device", e);
             return new ErrorResponse("Unable to open input device");
         }
+
         
-        return new SuccessResponse();
-    }
-    
-    private Object closeDevices() {
-        if (openInputDevice == null) {
+        
+        try {
+            openOutputDevice = (SourceDataLine) AudioSystem.getLine(inputLineEntry.getLineInfo());
+            openOutputDevice.open(EXPECTED_FORMAT);
+        } catch (Exception e) {
             try {
                 openInputDevice.close();
             } catch (Exception innerE) {
@@ -245,8 +232,15 @@ final class AudioRunnable implements Runnable {
             }
             
             openInputDevice = null;
+            openOutputDevice = null;
+            LOG.error("Unable to open output device", e);
+            return new ErrorResponse("Unable to open output device");
         }
         
+        return new SuccessResponse();
+    }
+    
+    private Object closeDevices() {
         if (openOutputDevice == null) {
             try {
                 openOutputDevice.close();
@@ -255,6 +249,16 @@ final class AudioRunnable implements Runnable {
             }
             
             openOutputDevice = null;
+        }
+        
+        if (openInputDevice == null) {
+            try {
+                openInputDevice.close();
+            } catch (Exception innerE) {
+                LOG.error("Unable to close input device", innerE);
+            }
+            
+            openInputDevice = null;
         }
 
         return new SuccessResponse();
@@ -286,6 +290,7 @@ final class AudioRunnable implements Runnable {
             LOG.warn("Unable to find shuttle for outgoing response: {}", response);
         }
     }
+    
     
     private static final class LineEntry {
 
