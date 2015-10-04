@@ -84,13 +84,13 @@ final class AudioRunnable implements Runnable {
                         LOG.debug("Processing incoming message from {} to {}: {}", src, dst, payload);
 
                         if (payload instanceof LoadDevicesRequest) {
-                            Object response = loadDevices((LoadDevicesRequest) payload);
+                            Object response = loadDevices();
                             sendMessage(dst, src, response);
                         } else if (payload instanceof OpenDevicesRequest) {
                             Object response = openDevices((OpenDevicesRequest) payload);
                             sendMessage(dst, src, response);
                         } else if (payload instanceof CloseDevicesRequest) {
-                            Object response = closeDevices((CloseDevicesRequest) payload);
+                            Object response = closeDevices();
                             sendMessage(dst, src, response);
                         } else {
                             LOG.error("Unrecognized message: {}", payload);
@@ -116,11 +116,12 @@ final class AudioRunnable implements Runnable {
         } catch (Exception e) {
             LOG.error("Internal error encountered", e);
         } finally {
+            closeDevices();
             bus.close();
         }
     }
 
-    private Object loadDevices(LoadDevicesRequest request) {
+    private Object loadDevices() {
         Map<Integer, LineEntry> newOutputDevices = new HashMap<>();
         Map<Integer, LineEntry> newInputDevices = new HashMap<>();
         List<OutputDevice> respOutputDevices = new LinkedList<>();
@@ -235,7 +236,7 @@ final class AudioRunnable implements Runnable {
         return new SuccessResponse();
     }
     
-    private Object closeDevices(CloseDevicesRequest request) {
+    private Object closeDevices() {
         if (openInputDevice == null) {
             try {
                 openInputDevice.close();
