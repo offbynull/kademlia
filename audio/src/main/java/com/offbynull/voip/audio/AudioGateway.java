@@ -16,15 +16,35 @@
  */
 package com.offbynull.voip.audio;
 
+import com.offbynull.peernetic.core.gateway.Gateway;
 import com.offbynull.peernetic.core.shuttle.Shuttle;
 import com.offbynull.peernetic.core.gateway.InputGateway;
 import com.offbynull.peernetic.core.gateway.OutputGateway;
-import com.offbynull.peernetic.core.gateways.direct.DirectGateway;
 import com.offbynull.peernetic.core.shuttles.simple.Bus;
 import com.offbynull.peernetic.core.shuttles.simple.SimpleShuttle;
-import java.security.SecureRandom;
+import com.offbynull.voip.audio.internalmessages.CloseDevicesRequest;
+import com.offbynull.voip.audio.internalmessages.InputPCMBlock;
+import com.offbynull.voip.audio.internalmessages.LoadDevicesRequest;
+import com.offbynull.voip.audio.internalmessages.OpenDevicesRequest;
+import com.offbynull.voip.audio.internalmessages.OutputPCMBlock;
 import org.apache.commons.lang3.Validate;
 
+/**
+ * {@link Gateway} that reads in from an audio input device (e.g. microphone) and writes out to an audio output device (e.g. speakers).
+ * <p>
+ * To initialize this gateway, you must load available audio devices by sending {@link LoadDevicesRequest}. Once initialized, you can open
+ * an audio input device and audio output device pair using {@link OpenDevicesRequest}.
+ * <p>
+ * Once the devices have been opened ...
+ * <ul>
+ * <li>The gateway will send you {@link InputPCMBlock}s with PCM data read in from the audio input device (sent to the address that opened
+ * the devices).</li>
+ * <li>You send {@link OutputPCMBlock} to the gateway with PCM data to write out to the audio output device.</li>
+ * </ul>
+ * <p>
+ * Use {@link CloseDevicesRequest} to close the devices you opened.
+ * @author Kasra Faghihi
+ */
 public final class AudioGateway implements InputGateway, OutputGateway {
 
     private final Thread thread;
@@ -33,10 +53,9 @@ public final class AudioGateway implements InputGateway, OutputGateway {
     private final SimpleShuttle shuttle;
 
     /**
-     * Constructs a {@link DirectGateway} instance.
+     * Constructs a {@link AudioGateway} instance.
      * @param prefix address prefix for this gateway
      * @throws NullPointerException if any argument is {@code null}
-     * @throws IllegalStateException if failed to initialize the underlying {@link SecureRandom} object used for message ids
      */
     public AudioGateway(String prefix) {
         Validate.notNull(prefix);
