@@ -8,7 +8,7 @@ public final class InputData {
 
     public InputData(byte[] data, int len) {
         Validate.notNull(data);
-        Validate.isTrue(len > 0);
+        Validate.isTrue(len >= 0);
         Validate.isTrue(len <= data.length);
         this.data = Arrays.copyOf(data, len);
     }

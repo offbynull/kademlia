@@ -69,9 +69,6 @@ final class AudioRunnable implements Runnable {
         Validate.notNull(bus);
         this.bus = bus;
         outgoingShuttles = new HashMap<>();
-
-        inputDevices = new HashMap<>();
-        outputDevices = new HashMap<>();
     }
 
     @Override
@@ -118,7 +115,7 @@ final class AudioRunnable implements Runnable {
                         }
                     } else if (incomingObj instanceof InputData) { // message from input read thread (microphone reader thread)
                         if (openedToAddress == null || openedFromAddress == null) {
-                            LOG.warn("Input PCM block received but devices closed");
+                            LOG.warn("Input PCM block received but devices not opened");
                             continue;
                         }
                         
@@ -126,7 +123,7 @@ final class AudioRunnable implements Runnable {
                         byte[] data = inputData.getData();
                         InputPCMBlock inputPCMBlock = new InputPCMBlock(data);
                         
-                        sendMessage(openedToAddress, openedFromAddress, inputPCMBlock);
+                        sendMessage(openedFromAddress, openedToAddress, inputPCMBlock);
                     } else if (incomingObj instanceof AddShuttle) {
                         AddShuttle addShuttle = (AddShuttle) incomingObj;
                         Shuttle shuttle = addShuttle.getShuttle();
@@ -212,8 +209,8 @@ final class AudioRunnable implements Runnable {
         }
         
         
-        inputDevices = newOutputDevices;
-        outputDevices = newInputDevices;
+        inputDevices = newInputDevices;
+        outputDevices = newOutputDevices;
         return new LoadDevicesResponse(respOutputDevices, respInputDevices);
     }
     
@@ -222,7 +219,7 @@ final class AudioRunnable implements Runnable {
             return new ErrorResponse("Devices not loaded");
         }
         
-        if (openOutputDevice == null || openInputDevice == null) {
+        if (openOutputDevice != null || openInputDevice != null) {
             return new ErrorResponse("Devices already open");
         }
         
@@ -231,8 +228,8 @@ final class AudioRunnable implements Runnable {
         
         LineEntry outputLineEntry = outputDevices.get(outputId);
         if (outputLineEntry == null) {
-            LOG.error("Input device not available: {}", outputId);
-            return new ErrorResponse("Input device " + outputId + " not available");
+            LOG.error("Output device not available: {}", outputId);
+            return new ErrorResponse("Output device " + outputId + " not available");
         }
         
         LineEntry inputLineEntry = inputDevices.get(inputId);
@@ -259,7 +256,7 @@ final class AudioRunnable implements Runnable {
         
         // open output device
         try {
-            openOutputDevice = (SourceDataLine) AudioSystem.getLine(inputLineEntry.getLineInfo());
+            openOutputDevice = (SourceDataLine) AudioSystem.getLine(outputLineEntry.getLineInfo());
             openOutputDevice.open(EXPECTED_FORMAT);
         } catch (Exception e) {
             try {

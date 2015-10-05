@@ -18,6 +18,7 @@
         <dependency>
             <groupId>com.offbynull.peernetic</groupId>
             <artifactId>visualizer</artifactId>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -47,10 +48,6 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>findbugs-maven-plugin</artifactId>
-            </plugin>
-            <plugin>
-                <groupId>com.offbynull.coroutines</groupId>
-                <artifactId>maven-plugin</artifactId>
             </plugin>
             <plugin>
                 <groupId>org.jacoco</groupId>

@@ -1,14 +1,18 @@
 package com.offbynull.voip.audio.test;
 
-import com.offbynull.peernetic.core.gateways.log.LogGateway;
 import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.gateways.direct.DirectGateway;
+import com.offbynull.peernetic.core.shuttle.Message;
 import com.offbynull.peernetic.visualizer.gateways.graph.GraphGateway;
 import com.offbynull.voip.audio.AudioGateway;
+import com.offbynull.voip.audio.internalmessages.CloseDevicesRequest;
+import com.offbynull.voip.audio.internalmessages.InputPCMBlock;
 import com.offbynull.voip.audio.internalmessages.LoadDevicesRequest;
 import com.offbynull.voip.audio.internalmessages.LoadDevicesResponse;
+import com.offbynull.voip.audio.internalmessages.OpenDevicesRequest;
+import com.offbynull.voip.audio.internalmessages.OutputPCMBlock;
+import java.util.List;
 import java.util.Scanner;
-import java.util.StringJoiner;
 import java.util.concurrent.ArrayBlockingQueue;
 
 public final class ManualTest {
@@ -44,6 +48,7 @@ public final class ManualTest {
         consoleStage.outputLine("close -- Close audio device");
         consoleStage.outputLine("exit -- Exit");
         
+        Thread ioPump = null;
         top:
         while (true) {
             ArrayBlockingQueue<String> outputQueue = new ArrayBlockingQueue<>(1);
@@ -57,7 +62,7 @@ public final class ManualTest {
             Scanner scanner = new Scanner(command);
             
             switch (scanner.next()) {
-                case "load":
+                case "load": {
                     directGateway.writeMessage(BASE_AUDIO_ADDRESS, new LoadDevicesRequest());
                     LoadDevicesResponse resp = (LoadDevicesResponse) directGateway.readMessages().get(0).getMessage();
                     
@@ -67,15 +72,61 @@ public final class ManualTest {
                     consoleStage.outputLine("Output Devices");
                     resp.getOutputDevices().stream().map(x -> x.toString()).forEach(consoleStage::outputLine);
                     break;
-                case "open":
-                    consoleStage.outputLine("Not implemented");
+                }
+                case "open": {
+                    int inputId = scanner.nextInt();
+                    int outputId = scanner.nextInt();
+                    directGateway.writeMessage(BASE_AUDIO_ADDRESS, new OpenDevicesRequest(outputId, inputId));
+                    Object resp = directGateway.readMessages().get(0).getMessage();
+                    consoleStage.outputLine(resp.toString());
+                    
+                    if (ioPump != null) {
+                        consoleStage.outputLine("Audio IO pump already started");
+                        break;
+                    }
+                    
+                    consoleStage.outputLine("Starting audio IO pump");
+                    ioPump = new Thread(() -> {
+                        try {
+                            List<Message> recvMsgs = directGateway.readMessages();
+                            
+                            Message[] sendMsgs = recvMsgs.stream()
+                                    .map(m -> new Message(
+                                            m.getDestinationAddress(),
+                                            m.getSourceAddress(),
+                                            new OutputPCMBlock(((InputPCMBlock) m.getMessage()).getData())))
+                                    .toArray(x -> new Message[x]);
+                            
+//                            consoleStage.outputLine(sendMsgs.length + " pumped");
+                            
+                            directGateway.writeMessages(sendMsgs);
+                        } catch (Exception e) {
+                            consoleStage.outputLine("Audio IO pump crashed" + e);
+                        }
+                    });
+                    ioPump.setDaemon(true);
+                    ioPump.setName("Audio IO Pump");
+                    ioPump.start();
                     break;
-                case "close":
-                    consoleStage.outputLine("Not implemented");
+                }
+                case "close": {
+                    if (ioPump != null) {
+                        ioPump.interrupt();
+                        ioPump.join();
+                        ioPump = null;
+                    }
+                    
+                    Thread.sleep(500L);
+                    
+                    directGateway.writeMessage(BASE_AUDIO_ADDRESS, new CloseDevicesRequest());
+                    Object resp = directGateway.readMessages().get(0).getMessage();
+                    consoleStage.outputLine(resp.toString());
                     break;
-                case "exit":
+                }
+                case "exit": {
                     GraphGateway.exitApplication();
                     break top;
+                }
                 default:
                     consoleStage.outputLine("Unrecognized command");
             }
