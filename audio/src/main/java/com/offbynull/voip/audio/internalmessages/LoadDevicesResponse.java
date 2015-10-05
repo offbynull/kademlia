@@ -19,6 +19,14 @@ public final class LoadDevicesResponse {
         this.outputDevices = (UnmodifiableList<OutputDevice>) UnmodifiableList.unmodifiableList(new ArrayList<>(outputDevices));
         this.inputDevices = (UnmodifiableList<InputDevice>) UnmodifiableList.unmodifiableList(new ArrayList<>(inputDevices));
     }
+
+    public UnmodifiableList<OutputDevice> getOutputDevices() {
+        return outputDevices;
+    }
+
+    public UnmodifiableList<InputDevice> getInputDevices() {
+        return inputDevices;
+    }
     
     public static final class OutputDevice {
         private final int id;

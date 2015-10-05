@@ -180,16 +180,15 @@ final class AudioRunnable implements Runnable {
             Line.Info[] lineInfos;
             Map<Integer, LineEntry> newEntries;
 
-            System.out.println("\n\n");
-            System.out.println(info.getName());
-
             // out devices
             try {
                 lineInfos = mixer.getSourceLineInfo(new Line.Info(SourceDataLine.class));
                 newEntries = generateLineEntriesFromJavaSound(mixer, lineInfos);
                 newOutputDevices.putAll(newEntries);
                 newEntries.entrySet().forEach(x -> {
-                    OutputDevice outputDevice = new OutputDevice(x.getKey(), x.getValue().getMixer().toString());
+                    Mixer.Info mi = x.getValue().getMixer().getMixerInfo();
+                    String name = "OUT:" + mi.getName() + "/" + mi.getVersion() + "/" + mi.getVendor() + "/" + mi.getDescription();
+                    OutputDevice outputDevice = new OutputDevice(x.getKey(), name);
                     respOutputDevices.add(outputDevice);
                 });
             } catch (LineUnavailableException lue) {
@@ -202,7 +201,9 @@ final class AudioRunnable implements Runnable {
                 newEntries = generateLineEntriesFromJavaSound(mixer, lineInfos);
                 newInputDevices.putAll(newEntries);
                 newEntries.entrySet().forEach(x -> {
-                    InputDevice inputDevice = new InputDevice(x.getKey(), x.getValue().getMixer().toString());
+                    Mixer.Info mi = x.getValue().getMixer().getMixerInfo();
+                    String name = "IN:" + mi.getName() + "/" + mi.getVersion() + "/" + mi.getVendor() + "/" + mi.getDescription();
+                    InputDevice inputDevice = new InputDevice(x.getKey(), name);
                     respInputDevices.add(inputDevice);
                 });
             } catch (LineUnavailableException lue) {
@@ -344,8 +345,9 @@ final class AudioRunnable implements Runnable {
                 DataLine.Info dataLineInfo = (DataLine.Info) lineInfo;
                 AudioFormat[] forms = dataLineInfo.getFormats();
                 for (AudioFormat form : forms) {
-                    if (form.matches(EXPECTED_FORMAT)) {
+                    if (EXPECTED_FORMAT.matches(form)) {
                         entries.put(nextDeviceId, new LineEntry(m, lineInfo));
+                        nextDeviceId++;
                     }
                 }
             }
@@ -353,7 +355,7 @@ final class AudioRunnable implements Runnable {
         return entries;
     }
 
-    private void sendMessage(Address from, Address to, Object response) {
+    private void sendMessage(Address to, Address from, Object response) {
         String dstPrefix = to.getElement(0);
         Shuttle shuttle = outgoingShuttles.get(dstPrefix);
         
