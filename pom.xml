@@ -16,8 +16,8 @@
     
     <modules>
         <module>build-tools</module>
-        <module>kademlia</module>
         <module>audio</module>
+        <module>dht</module>
     </modules>
     
     <dependencyManagement>
