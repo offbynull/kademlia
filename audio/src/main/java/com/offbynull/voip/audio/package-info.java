@@ -14,23 +14,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.voip.audio.internalmessages;
 
 /**
- * Loads audio output and audio input devices.
- * <p>
- * Responses sent to this request are ...
- * <ul>
- * <li>{@link LoadDevicesResponse}</li>
- * <li>{@link ErrorResponse}</li>
- * </ul>
- * <p>
- * Note that, if you send this request more than once, audio input/output IDs returned by the previous {@link LoadDevicesRequest}s will
- * become unusable.
- * <p>
- * This class is immutable.
+ * Gateway that simultaneously plays audio and captures audio.
+ * 
  * @author Kasra Faghihi
  */
-public final class LoadDevicesRequest {
-    
-}
+package com.offbynull.voip.audio;

@@ -16,6 +16,12 @@
  */
 package com.offbynull.voip.audio.internalmessages;
 
+/**
+ * Generic success response.
+ * <p>
+ * This class is immutable.
+ * @author Kasra Faghihi
+ */
 public final class SuccessResponse {
     
 }
