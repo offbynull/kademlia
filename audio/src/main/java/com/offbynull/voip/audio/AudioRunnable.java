@@ -245,6 +245,7 @@ final class AudioRunnable implements Runnable {
         try {
             openInputDevice = (TargetDataLine) AudioSystem.getLine(inputLineEntry.getLineInfo());
             openInputDevice.open(EXPECTED_FORMAT);
+            openInputDevice.start();
         } catch (Exception e) {
             openInputDevice = null;
             LOG.error("Unable to open input device", e);
@@ -258,6 +259,7 @@ final class AudioRunnable implements Runnable {
         try {
             openOutputDevice = (SourceDataLine) AudioSystem.getLine(outputLineEntry.getLineInfo());
             openOutputDevice.open(EXPECTED_FORMAT);
+            openOutputDevice.start();
         } catch (Exception e) {
             try {
                 openInputDevice.close();
@@ -306,7 +308,7 @@ final class AudioRunnable implements Runnable {
     }
     
     private Object closeDevices() {
-        if (openOutputDevice == null) {
+        if (openOutputDevice != null) {
             try {
                 openOutputDevice.close();
             } catch (Exception innerE) {
@@ -319,7 +321,7 @@ final class AudioRunnable implements Runnable {
             outputQueue = null;
         }
         
-        if (openInputDevice == null) {
+        if (openInputDevice != null) {
             try {
                 openInputDevice.close();
             } catch (Exception innerE) {

@@ -88,18 +88,20 @@ public final class ManualTest {
                     consoleStage.outputLine("Starting audio IO pump");
                     ioPump = new Thread(() -> {
                         try {
-                            List<Message> recvMsgs = directGateway.readMessages();
-                            
-                            Message[] sendMsgs = recvMsgs.stream()
-                                    .map(m -> new Message(
-                                            m.getDestinationAddress(),
-                                            m.getSourceAddress(),
-                                            new OutputPCMBlock(((InputPCMBlock) m.getMessage()).getData())))
-                                    .toArray(x -> new Message[x]);
-                            
-//                            consoleStage.outputLine(sendMsgs.length + " pumped");
-                            
-                            directGateway.writeMessages(sendMsgs);
+                            while (true) {
+                                List<Message> recvMsgs = directGateway.readMessages();
+
+                                Message[] sendMsgs = recvMsgs.stream()
+                                        .map(m -> new Message(
+                                                m.getDestinationAddress(),
+                                                m.getSourceAddress(),
+                                                new OutputPCMBlock(((InputPCMBlock) m.getMessage()).getData())))
+                                        .toArray(x -> new Message[x]);
+
+                                consoleStage.outputLine(sendMsgs.length + " pumped");
+
+                                directGateway.writeMessages(sendMsgs);
+                            }
                         } catch (Exception e) {
                             consoleStage.outputLine("Audio IO pump crashed" + e);
                         }
