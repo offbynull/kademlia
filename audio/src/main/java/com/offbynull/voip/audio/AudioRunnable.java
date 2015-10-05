@@ -37,13 +37,16 @@ final class AudioRunnable implements Runnable {
 
     private static final Logger LOG = LoggerFactory.getLogger(AudioRunnable.class);
 
-    private static final int SAMPLE_RATE = 8000; //8k samples per second
+    private static final int SAMPLE_RATE = 16000; // 16k samples per second
+    private static final int SAMPLE_SIZE = 8; // 8-bits per sample
     private static final int NUM_CHANNELS = 1; // mono
-    private static final int SAMPLE_SIZE = 8; // 1 channel (mono), so 8-bits per sample
 
     // frame = set of samples for all channels at a given point in time
     private static final int FRAME_SIZE = NUM_CHANNELS * SAMPLE_SIZE / 8; // 1 byte per frame (because we're 1 chan (mono) & 8bits per chan)
     private static final int FRAME_RATE = FRAME_SIZE * SAMPLE_RATE;
+    
+    private static final int INPUT_BUFFER_SIZE = FRAME_RATE / 10; // read up to 100ms of data at a time
+    private static final int OUTPUT_BUFFER_SIZE = FRAME_RATE / 5; // play up to 200ms of back data, otherwise will play latest 200ms
 
     private static final AudioFormat EXPECTED_FORMAT = new AudioFormat(PCM_SIGNED, SAMPLE_RATE, SAMPLE_SIZE, NUM_CHANNELS, FRAME_SIZE,
             FRAME_RATE, true);
@@ -277,7 +280,7 @@ final class AudioRunnable implements Runnable {
         
         
         // start input read thread
-        InputReadRunnable inputReadRunnable = new InputReadRunnable(openInputDevice, bus);
+        InputReadRunnable inputReadRunnable = new InputReadRunnable(openInputDevice, bus, INPUT_BUFFER_SIZE);
         inputReadThread = new Thread(inputReadRunnable);
         inputReadThread.setDaemon(true);
         inputReadThread.setName(getClass().getSimpleName() + "-" + inputReadRunnable.getClass().getSimpleName());
@@ -288,7 +291,7 @@ final class AudioRunnable implements Runnable {
         
         // start input read thread
         outputQueue = new LinkedBlockingQueue<>();
-        OutputWriteRunnable outputWriteRunnable = new OutputWriteRunnable(openOutputDevice, outputQueue);
+        OutputWriteRunnable outputWriteRunnable = new OutputWriteRunnable(openOutputDevice, outputQueue, OUTPUT_BUFFER_SIZE);
         outputWriteThread = new Thread(outputWriteRunnable);
         outputWriteThread.setDaemon(true);
         outputWriteThread.setName(getClass().getSimpleName() + "-" + outputWriteRunnable.getClass().getSimpleName());

@@ -12,24 +12,27 @@ final class InputReadRunnable implements Runnable {
     
     private final TargetDataLine openInputDevice;
     private final Bus bus;
+    private final int bufferSize;
 
-    public InputReadRunnable(TargetDataLine openInputDevice, Bus bus) {
+    public InputReadRunnable(TargetDataLine openInputDevice, Bus bus, int bufferSize) {
         Validate.notNull(openInputDevice);
         Validate.notNull(bus);
+        Validate.isTrue(bufferSize > 0);
         this.openInputDevice = openInputDevice;
         this.bus = bus;
+        this.bufferSize = bufferSize;
     }
 
     @Override
     public void run() {
         LOG.info("Input thread started: {}", openInputDevice);
         try {
-            int size = openInputDevice.getBufferSize();
-            Validate.validState(size > 0, "Sanity check failed for input buffer size: %s", size);
-            byte[] dataBytes = new byte[size];
+//            int bufferSize = openInputDevice.getBufferSize();
+//            Validate.validState(bufferSize > 0, "Sanity check failed for input buffer size: %s", bufferSize);
+            byte[] dataBytes = new byte[bufferSize];
             
             while (true) {
-                int amountRead = openInputDevice.read(dataBytes, 0, size);
+                int amountRead = openInputDevice.read(dataBytes, 0, dataBytes.length);
                 if (amountRead != 0) { // may be 0 in some cases
                     bus.add(new InputData(dataBytes, amountRead));
                 }
