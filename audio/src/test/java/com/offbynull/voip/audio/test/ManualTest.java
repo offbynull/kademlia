@@ -14,6 +14,7 @@ import com.offbynull.voip.audio.internalmessages.OutputPCMBlock;
 import java.util.List;
 import java.util.Scanner;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 public final class ManualTest {
 
@@ -77,7 +78,7 @@ public final class ManualTest {
                     int inputId = scanner.nextInt();
                     int outputId = scanner.nextInt();
                     directGateway.writeMessage(BASE_AUDIO_ADDRESS, new OpenDevicesRequest(outputId, inputId));
-                    Object resp = directGateway.readMessages().get(0).getMessage();
+                    Object resp = directGateway.readMessages();
                     consoleStage.outputLine(resp.toString());
                     
                     if (ioPump != null) {
@@ -118,11 +119,13 @@ public final class ManualTest {
                         ioPump = null;
                     }
                     
-                    Thread.sleep(500L);
-                    
                     directGateway.writeMessage(BASE_AUDIO_ADDRESS, new CloseDevicesRequest());
-                    Object resp = directGateway.readMessages().get(0).getMessage();
+                    
+                    Object resp = directGateway.readMessages();
                     consoleStage.outputLine(resp.toString());
+                    resp = directGateway.readMessages(1000L, TimeUnit.MILLISECONDS); // once more to make sure there aren't any lingering incoming PCM blocks (will mess up subsequent commands if there are)
+                    consoleStage.outputLine(resp.toString());
+                    
                     break;
                 }
                 case "exit": {
