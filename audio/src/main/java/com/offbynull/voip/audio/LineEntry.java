@@ -14,25 +14,29 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.voip.audio.internalmessages;
+package com.offbynull.voip.audio;
 
+import javax.sound.sampled.Line;
+import javax.sound.sampled.Mixer;
 import org.apache.commons.lang3.Validate;
 
-public final class ErrorResponse {
-    private final String message;
+final class LineEntry {
+    private final Mixer mixer;
+    private final Line.Info lineInfo;
 
-    public ErrorResponse(String message) {
-        Validate.notNull(message);
-        this.message = message;
+    public LineEntry(Mixer mixer, Line.Info lineInfo) {
+        Validate.notNull(mixer);
+        Validate.notNull(lineInfo);
+        this.mixer = mixer;
+        this.lineInfo = lineInfo;
     }
 
-    public String getMessage() {
-        return message;
+    public Mixer getMixer() {
+        return mixer;
     }
 
-    @Override
-    public String toString() {
-        return "ErrorResponse{" + "message=" + message + '}';
+    public Line.Info getLineInfo() {
+        return lineInfo;
     }
     
 }
