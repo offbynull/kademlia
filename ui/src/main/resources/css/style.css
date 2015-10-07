@@ -60,11 +60,13 @@ div.voip-screen-action {
 }
 
 div.voip-screen-action > div:not(:last-child) {
+    overflow: hidden;
+    
     flex: 1;
     -webkit-flex: 1;
 }
 
-div.voip-screen-action > div:last-child button {
+div.voip-screen-action > div:last-child .action-button {
     height: 160px;
     margin-top: 16px;
     margin-bottom: 16px;
@@ -105,4 +107,5 @@ div.voip-menu-inactive {
 }
 
 #joining-spinner {
+    margin-top: 80px;
 }
