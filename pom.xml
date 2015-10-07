@@ -18,6 +18,7 @@
         <module>build-tools</module>
         <module>audio</module>
         <module>dht</module>
+        <module>ui</module>
     </modules>
     
     <dependencyManagement>

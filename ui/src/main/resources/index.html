@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html ng-app>
+    <!-- COLOUR SCHEME: https://color.adobe.com/Neutral-Blue-color-theme-22361/?showPublished=true -->
+    <head>
+        <title>VoIP</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" type="text/css" href="css/bootstrap.min.css">
+        <link rel="stylesheet" type="text/css" href="css/bootstrap-darkly-theme.min.css">
+        <link rel="stylesheet" type="text/css" href="css/font-awesome.min.css">
+        <link rel="stylesheet" type="text/css" href="css/style.css">
+        <script src="js/jquery-2.1.4.min.js"></script>
+        <script src="js/bootstrap.min.js"></script>
+        <script src="js/angular.min.js"></script>
+    </head>
+    <body>
+        <div id="loginScreen" class="voip-screen-centered voip-screen-inactive">
+            <div class="container-fluid">
+                <img id="logo" class="img-responsive center-block" alt="Logo" src="images/logo.svg">
+            </div>
+            <div class="container-fluid">
+                <div class="form-group">
+                    <label class="sr-only" for="loginUsername">Username</label>
+                    <div class="input-group">
+                        <span class="input-group-addon"><i class="fa fa-user fa-fw"></i></span>
+                        <input class="form-control" type="text" placeholder="Username" id="loginUsername">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="sr-only" for="loginBootstrap">Bootstrap</label>
+                    <div class="input-group">
+                        <span class="input-group-addon"><i class="fa fa-exchange fa-fw"></i></span>
+                        <input class="form-control" type="text" placeholder="Host:Port (empty means you seed the network)" id="loginBootstrap">
+                    </div>
+                </div>
+            </div>
+            <div class="container-fluid">
+                <button id="connect-button" class="btn btn-primary btn-lg btn-block">Connect</button>
+            </div>
+        </div>
+        <div id="loggingInScreen" class="voip-screen-action">
+            <div class="container-fluid">
+                <div style="text-align: center">
+                    <i id="joining-spinner" class="fa fa-circle-o-notch fa-spin fa-5x"></i>
+                </div>
+            </div>
+            <div class="container-fluid">
+                <button id="joining-cancel-button" class="btn btn-primary btn-lg btn-block">Cancel</button>
+            </div>
+        </div>
+        <div id="loggedInScreen" class="voip-screen-centered voip-screen-inactive">
+            <div id="loggedInScreenMenu" class="voip-menu voip-menu-inactive">
+                <p>3</p>
+            </div>
+            <div id="loggedInScreenUnconnected" class="voip-screen-centered voip-screen-inactive">
+                <p>4</p>
+            </div>
+            <div id="loggedInScreenConnecting" class="voip-screen-centered voip-screen-inactive">
+                <p>5</p>
+            </div>
+            <div id="loggedInScreenConnected" class="voip-screen-centered voip-screen-inactive">
+                <p>6</p>
+            </div>
+            <div id="loggedInScreenAudioInputDialog" class="voip-screen-centered voip-screen-inactive">
+                <p>7</p>
+            </div>            
+            <div id="loggedInScreenAudioOutputDialog" class="voip-screen-centered voip-screen-inactive">
+                <p>8</p>
+            </div>            
+        </div>
+
+    </body>
+</html>
