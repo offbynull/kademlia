@@ -23,18 +23,21 @@ div.voip-screen-centered {
     left: 0;
     width: 100%;
     height: 100%;
-    
-/*   http://davidwalsh.name/css-vertical-center-flexbox */
-   display: -webkit-flex;
-   display: flex;
-   -webkit-flex-direction: column;
-   flex-direction: column;
-   -webkit-align-items: center;
-   align-items: center;
-   -webkit-justify-content: center;
-   justify-content: center;
+
+    /*   http://davidwalsh.name/css-vertical-center-flexbox */
+    display: -webkit-flex;
+    display: flex;
+    -webkit-flex-direction: column;
+    flex-direction: column;
+    -webkit-align-items: center;
+    align-items: center;
+    -webkit-justify-content: center;
+    justify-content: center;
 }
 
+div.voip-screen-centered-inactive {
+    display: none
+}
 
 div.voip-screen-centered .container-fluid {
     /* For whatever reason, elements within container-fluid don't expand with when inside of the a flexbox, so explicitly make sure to set width to 100% when using container-fluid. */
@@ -51,17 +54,21 @@ div.voip-screen-action {
     left: 0;
     width: 100%;
     height: 100%;
-    
-/*   http://davidwalsh.name/css-vertical-center-flexbox */
+
+    /*   http://davidwalsh.name/css-vertical-center-flexbox */
     display: -webkit-flex;   
     display: flex;
     -webkit-flex-direction: column;
     flex-direction: column;
 }
 
+div.voip-screen-action-inactive {
+    display: none
+}
+
 div.voip-screen-action > div:not(:last-child) {
-    overflow: hidden;
-    
+    overflow-y: auto;
+
     flex: 1;
     -webkit-flex: 1;
 }
@@ -74,6 +81,7 @@ div.voip-screen-action > div:last-child .action-button {
 
 div.voip-screen-action .container-fluid {
     /* For whatever reason, elements within container-fluid don't expand with when inside of the a flexbox, so explicitly make sure to set width to 100% when using container-fluid. */
+    /* This is also an issue with normal container when it reaches the extrasmall (xs) stage */
     width: 100%;
 }
 
@@ -81,31 +89,44 @@ div.voip-screen-action .container-fluid {
 
 
 
+div.voip-screen-group {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
 
-div.voip-screen-inactive {
-    display:none
+div.voip-screen-group-inactive {
+    display: none
 }
 
 
+
+
+
+div.voip-menu {
+
+}
 
 div.voip-menu-inactive {
-    display:none
+    display: none
 }
-
-
 
 
 
 /* Element specific styling */
 
 #logo {
-    margin-bottom: 120px;
-}
-
-#connect-button {
-    margin-top: 80px;
+    margin-bottom: 30px;
 }
 
 #joining-spinner {
     margin-top: 80px;
 }
+
+#network-activity-indicator {
+    margin-top: 120px;
+}
+
+
