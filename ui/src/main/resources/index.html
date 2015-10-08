@@ -50,7 +50,7 @@
                 <button id="joining-cancel-button" class="btn btn-default btn-lg btn-block action-button">Cancel</button>
             </div>
         </div>
-        <div id="loggedInScreens" class="voip-screen-group">
+        <div id="loggedInScreen" class="voip-screen-centered">
             <div id="loggedInScreenMenu" class="voip-menu">
                 <nav role="navigation" class="navbar navbar-default navbar-fixed-top">
                     <div class="container">
@@ -75,9 +75,9 @@
                     </div>
                 </nav>
             </div>
-            <div id="loggedInScreenUnconnected" class="voip-screen-centered">
+            <div id="loggedInScreenEntryPoint" style="display:none; width: 100%;">
                 <div class="container-fluid">
-                    <p style="text-align: center">Who would you like to call?</p>
+                    <p style="text-align: center"><strong>Who would you like to call?</strong></p>
                 </div>
                 <div class="container-fluid">
                     <div class="row">
@@ -92,36 +92,55 @@
 
                         <div class="col-sm-2 form-group">
                             <label class="sr-only" for="callButton">Call Button</label>
-                            <button class="btn btn-primary" id="callButton" style="width: 100%"><i class="fa fa-phone fa-fw fa-2x"></i></button>
+                            <button class="btn btn-primary" id="callButton" style="width: 100%">
+                                <i class="fa fa-phone fa-fw fa-1x"></i>
+                                Call
+                            </button>
                         </div>
                     </div>
                 </div>
-                <div class="container-fluid" id="network-activity-indicator">
-                    <div class="row">
-                        <div class="col-sm-4">
-                            <strong>NETWORK ACTIVITY</strong><br>
-                            xxx incoming messages/sec<br>
-                            yyy outgoing messages/sec
-                        </div>
+            </div>
+            <div id="loggedInScreenConnecting" style="display:none; width: 100%;">
+                <div class="container-fluid">
+                    <p style="text-align: center"><strong>CONTACTING USERNAME</strong></p>
+                    <div style="text-align: center">
+                        <i id="connecting-spinner" class="fa fa-circle-o-notch fa-spin fa-5x"></i>
+                    </div>
+                </div>
+                <div class="container-fluid">
+                    <button id="connecting-cancel-button" class="btn btn-default btn-lg btn-block">Cancel</button>
+                </div>
+            </div>
+            <div id="loggedInScreenConnected" style="width: 100%">
+                <div class="container-fluid">
+                    <div style="text-align: center">
+                        <span class="fa-stack fa-4x">
+                            <i class="fa fa-circle fa-stack-2x"></i>
+                            <i class="fa fa-phone fa-stack-1x fa-inverse"></i>
+                        </span>
+                    </div>
+                    <p style="text-align: center"><strong>CONNECTED WITH USERNAME</strong></p>
+                </div>
+                <div class="container-fluid">
+                    <button id="connected-end-button" class="btn btn-danger btn-block">
+                        <i class="fa fa-close fa-1x"></i>
+                        Hangup
+                    </button>
+                </div>
+            </div>
+            <div class="container-fluid" id="network-activity-indicator">
+                <div class="row">
+                    <div class="col-sm-4">
+                        <strong>NETWORK ACTIVITY</strong><br>
+                        xxx incoming messages/sec<br>
+                        yyy outgoing messages/sec
+                    </div>
 
-                        <div class="col-sm-8">
-                            <i class="fa fa-warning fa-fw fa-5x"></i>
-                        </div>
+                    <div class="col-sm-8">
+                        <i class="fa fa-warning fa-fw fa-5x"></i>
                     </div>
                 </div>
             </div>
-            <div id="loggedInScreenConnecting" class="voip-screen-centered voip-screen-centered-inactive">
-                <p>5</p>
-            </div>
-            <div id="loggedInScreenConnected" class="voip-screen-centered voip-screen-centered-inactive">
-                <p>6</p>
-            </div>
-            <div id="loggedInScreenAudioInputDialog" class="voip-screen-centered voip-screen-centered-inactive">
-                <p>7</p>
-            </div>            
-            <div id="loggedInScreenAudioOutputDialog" class="voip-screen-centered voip-screen-centered-inactive">
-                <p>8</p>
-            </div>            
         </div>
 
     </body>
