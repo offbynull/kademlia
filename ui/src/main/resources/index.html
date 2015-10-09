@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html ng-app>
-    <!-- COLOUR SCHEME: https://color.adobe.com/Neutral-Blue-color-theme-22361/?showPublished=true -->
     <head>
         <title>VoIP</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,11 +14,15 @@
     <body>
         <div id="loginScreen" class="voip-screen-action voip-screen-action-inactive">
             <div class="container-fluid">
-                <img id="logo" class="img-responsive center-block" alt="Logo" src="images/logo.svg">
+                <div id="logo">
+                    <span class="fa-stack fa-5x">
+                        <i class="fa fa-cloud fa-stack-2x"></i>
+                        <i class="fa fa-phone fa-stack-1x fa-inverse"></i>
+                    </span>
+                </div>
 
                 <p>adjust these feedback icons/colors with angularjs</p>
                 <div class="form-group has-feedback has-success">
-                    <label class="sr-only" for="loginUsername">Username</label>
                     <div class="input-group">
                         <span class="input-group-addon"><i class="fa fa-user fa-fw"></i></span>
                         <input class="form-control" type="text" placeholder="Username" id="loginUsername">
@@ -28,7 +31,6 @@
                 </div>
 
                 <div class="form-group has-feedback has-warning">
-                    <label class="sr-only" for="loginBootstrap">Bootstrap</label>
                     <div class="input-group">
                         <span class="input-group-addon"><i class="fa fa-exchange fa-fw"></i></span>
                         <input class="form-control" type="text" placeholder="Host:Port (empty means you seed the network)" id="loginBootstrap">
@@ -56,7 +58,6 @@
                     <div class="container">
                         <div class="navbar-header">
                             <button type="button" data-target="#navbarCollapse" data-toggle="collapse" class="navbar-toggle">
-                                <span class="sr-only">Toggle navigation</span>
                                 <span class="icon-bar"></span>
                                 <span class="icon-bar"></span>
                                 <span class="icon-bar"></span>
@@ -82,7 +83,6 @@
                 <div class="container-fluid">
                     <div class="row">
                         <div class="col-sm-10 form-group has-feedback has-warning">
-                            <label class="sr-only" for="callUsername">Username</label>
                             <div class="input-group">
                                 <span class="input-group-addon"><i class="fa fa-user fa-fw"></i></span>
                                 <input class="form-control" type="text" placeholder="Username" id="callUsername">
@@ -91,7 +91,6 @@
                         </div>
 
                         <div class="col-sm-2 form-group">
-                            <label class="sr-only" for="callButton">Call Button</label>
                             <button class="btn btn-primary" id="callButton" style="width: 100%">
                                 <i class="fa fa-phone fa-fw fa-1x"></i>
                                 Call
@@ -141,23 +140,24 @@
                     </div>
                 </div>
                 <!-- You need data-background and data-keyboard attributs to stop dialog from closing with ESC or clicking outside dialog window. Tabbing to items behind modal still an issue. -->
-                <!--<button type="button" class="btn btn-info btn-lg" data-toggle="modal" data-backdrop="static" data-keyboard="false"  data-target="#incoming-call-dialog">Open Modal</button>-->
+                <!--<button type="button" class="btn btn-info btn-lg" data-toggle="modal" data-backdrop="static" data-keyboard="false"  data-target="#audio-config-dialog">Open Modal</button>-->
             </div>
         </div>
 
         <div id="incoming-call-dialog" class="modal fade" role="dialog">
             <div class="modal-dialog">
                 <div class="modal-content">
-                    <div class="modal-header">
-                        <h4 class="modal-title">Incoming Call</h4>
-                    </div>
                     <div class="modal-body">
                         <div class="container-fluid">
                             <div style="text-align: center">
-                                <span class="fa-stack fa-4x">
-                                    <i class="fa fa-circle fa-stack-2x"></i>
+                                <i class="fa fa-user fa-2x"></i>
+                                <i class="fa fa-exchange fa-2x"></i>
+                                <span class="fa-stack fa-2x">
+                                    <i class="fa fa-cloud fa-stack-2x"></i>
                                     <i class="fa fa-phone fa-stack-1x fa-inverse"></i>
                                 </span>
+                                <i class="fa fa-exchange fa-2x"></i>
+                                <i class="fa fa-user fa-2x"></i>
                             </div>
                             <p style="text-align: center"><strong>CALL FROM USERNAME</strong></p>
                             <div class="row">
@@ -180,9 +180,6 @@
         <div id="audio-config-dialog" class="modal fade" role="dialog">
             <div class="modal-dialog">
                 <div class="modal-content">
-                    <div class="modal-header">
-                        <h4 class="modal-title">Configure Audio</h4>
-                    </div>
                     <div class="modal-body">
                         <div class="container-fluid">
                             <div class="form-group">
@@ -202,9 +199,9 @@
                                 </select>
                             </div>
                         </div>
-                        <p></p>
+                        <p>If your selections are correct, you should be able to hear yourself speaking.</p>
                         <div class="modal-footer">
-                            <button type="button" class="btn btn-primary" data-dismiss="modal">Done</button>
+                            <button type="button" class="btn btn-primary" data-dismiss="modal">Okay</button>
                         </div>
                     </div>
                 </div>
