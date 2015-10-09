@@ -122,7 +122,7 @@
                     <p style="text-align: center"><strong>CONNECTED WITH USERNAME</strong></p>
                 </div>
                 <div class="container-fluid">
-                    <button id="connected-end-button" class="btn btn-danger btn-block">
+                    <button id="connected-end-button" class="btn btn-lg btn-danger btn-block">
                         <i class="fa fa-close fa-1x"></i>
                         Hangup
                     </button>
@@ -140,8 +140,75 @@
                         <i class="fa fa-warning fa-fw fa-5x"></i>
                     </div>
                 </div>
+                <!-- You need data-background and data-keyboard attributs to stop dialog from closing with ESC or clicking outside dialog window. Tabbing to items behind modal still an issue. -->
+                <!--<button type="button" class="btn btn-info btn-lg" data-toggle="modal" data-backdrop="static" data-keyboard="false"  data-target="#incoming-call-dialog">Open Modal</button>-->
             </div>
         </div>
 
+        <div id="incoming-call-dialog" class="modal fade" role="dialog">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h4 class="modal-title">Incoming Call</h4>
+                    </div>
+                    <div class="modal-body">
+                        <div class="container-fluid">
+                            <div style="text-align: center">
+                                <span class="fa-stack fa-4x">
+                                    <i class="fa fa-circle fa-stack-2x"></i>
+                                    <i class="fa fa-phone fa-stack-1x fa-inverse"></i>
+                                </span>
+                            </div>
+                            <p style="text-align: center"><strong>CALL FROM USERNAME</strong></p>
+                            <div class="row">
+                                <button type="button" class="col-xs-6 btn btn-danger btn-lg" data-dismiss="modal">
+                                    <i class="fa fa-close fa-fw fa-1x"></i>
+                                    Reject
+                                </button>
+                                <button type="button" class="col-xs-6 btn btn-success btn-lg" data-dismiss="modal">
+                                    <i class="fa fa-check fa-fw fa-1x"></i>
+                                    Accept
+                                </button>
+                            </div>
+                        </div>
+                        <p></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="audio-config-dialog" class="modal fade" role="dialog">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h4 class="modal-title">Configure Audio</h4>
+                    </div>
+                    <div class="modal-body">
+                        <div class="container-fluid">
+                            <div class="form-group">
+                                <label for="audio-input-select">Audio Input Device</label>
+                                <select class="form-control" id="audio-input-select" name="audio-input">
+                                    <option>1</option>
+                                    <option>2</option>
+                                    <option>3</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="audio-output-select">Audio Output Device</label>
+                                <select class="form-control" id="audio-output-select"  name="audio-output">
+                                    <option>1</option>
+                                    <option>2</option>
+                                    <option>3</option>
+                                </select>
+                            </div>
+                        </div>
+                        <p></p>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-primary" data-dismiss="modal">Done</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </body>
 </html>
