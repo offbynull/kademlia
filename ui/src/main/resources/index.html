@@ -4,7 +4,7 @@
         <title>VoIP</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <link rel="stylesheet" type="text/css" href="css/bootstrap.min.css">
-        <link rel="stylesheet" type="text/css" href="css/bootstrap-flatly-theme.min.css">
+        <link rel="stylesheet" type="text/css" href="css/bootstrap-theme.min.css">
         <link rel="stylesheet" type="text/css" href="css/font-awesome.min.css">
         <link rel="stylesheet" type="text/css" href="css/style.css">
         <script src="js/jquery-2.1.4.min.js"></script>
@@ -12,7 +12,7 @@
         <script src="js/angular.min.js"></script>
     </head>
     <body>
-        <div id="loginScreen" class="voip-screen-action voip-screen-action-inactive">
+        <div id="loginScreen" class="voip-screen-action">
             <div class="container-fluid">
                 <div id="logo">
                     <span class="fa-stack fa-5x">
@@ -21,7 +21,6 @@
                     </span>
                 </div>
 
-                <p>adjust these feedback icons/colors with angularjs</p>
                 <div class="form-group has-feedback has-success">
                     <div class="input-group">
                         <span class="input-group-addon"><i class="fa fa-user fa-fw"></i></span>
@@ -39,7 +38,7 @@
                 </div>
             </div>
             <div class="container-fluid">
-                <button id="connect-button" class="btn btn-primary btn-lg btn-block action-button">Connect</button>
+                <button id="connect-button" class="btn btn-primary btn-lg btn-block action-button" onclick="messageSender.connectTriggered('hi', 'bye')">Connect</button>
             </div>
         </div>
         <div id="loggingInScreen" class="voip-screen-action voip-screen-action-inactive">
@@ -52,7 +51,7 @@
                 <button id="joining-cancel-button" class="btn btn-default btn-lg btn-block action-button">Cancel</button>
             </div>
         </div>
-        <div id="loggedInScreen" class="voip-screen-centered">
+        <div id="loggedInScreen" class="voip-screen-centered voip-screen-action-inactive">
             <div id="loggedInScreenMenu" class="voip-menu">
                 <nav role="navigation" class="navbar navbar-default navbar-fixed-top">
                     <div class="container">
@@ -66,8 +65,7 @@
                         </div>
                         <div id="navbarCollapse" class="collapse navbar-collapse">
                             <ul class="nav navbar-nav">
-                                <li><a href="#">Configure Audio In</a></li>
-                                <li><a href="#">Configure Audio Out</a></li>
+                                <li><a href="#">Configure Audio</a></li>
                             </ul>
                             <ul class="nav navbar-nav navbar-right">
                                 <li><a href="#">Disconnect</a></li>
@@ -78,7 +76,7 @@
             </div>
             <div id="loggedInScreenEntryPoint" style="display:none; width: 100%;">
                 <div class="container-fluid">
-                    <p style="text-align: center"><strong>Who would you like to call?</strong></p>
+                    <span class="label label-default" style="text-align: center"><strong>Who would you like to call?</strong></span>
                 </div>
                 <div class="container-fluid">
                     <div class="row">
@@ -101,7 +99,7 @@
             </div>
             <div id="loggedInScreenConnecting" style="display:none; width: 100%;">
                 <div class="container-fluid">
-                    <p style="text-align: center"><strong>CONTACTING USERNAME</strong></p>
+                    <span class="label label-default" style="text-align: center"><strong>CONTACTING USERNAME</strong></span>
                     <div style="text-align: center">
                         <i id="connecting-spinner" class="fa fa-circle-o-notch fa-spin fa-5x"></i>
                     </div>
@@ -113,12 +111,16 @@
             <div id="loggedInScreenConnected" style="width: 100%">
                 <div class="container-fluid">
                     <div style="text-align: center">
-                        <span class="fa-stack fa-4x">
-                            <i class="fa fa-circle fa-stack-2x"></i>
+                        <i class="fa fa-user fa-2x"></i>
+                        <i class="fa fa-exchange fa-2x"></i>
+                        <span class="fa-stack fa-2x">
+                            <i class="fa fa-cloud fa-stack-2x"></i>
                             <i class="fa fa-phone fa-stack-1x fa-inverse"></i>
                         </span>
+                        <i class="fa fa-exchange fa-2x"></i>
+                        <i class="fa fa-user fa-2x"></i>
                     </div>
-                    <p style="text-align: center"><strong>CONNECTED WITH USERNAME</strong></p>
+                    <span class="label label-default" style="text-align: center"><strong>CONNECTED WITH USERNAME</strong></span>
                 </div>
                 <div class="container-fluid">
                     <button id="connected-end-button" class="btn btn-lg btn-danger btn-block">
@@ -140,7 +142,7 @@
                     </div>
                 </div>
                 <!-- You need data-background and data-keyboard attributs to stop dialog from closing with ESC or clicking outside dialog window. Tabbing to items behind modal still an issue. -->
-                <!--<button type="button" class="btn btn-info btn-lg" data-toggle="modal" data-backdrop="static" data-keyboard="false"  data-target="#audio-config-dialog">Open Modal</button>-->
+                <button type="button" class="btn btn-info btn-lg" data-toggle="modal" data-backdrop="static" data-keyboard="false"  data-target="#incoming-call-dialog">Open Modal</button>
             </div>
         </div>
 
@@ -159,19 +161,20 @@
                                 <i class="fa fa-exchange fa-2x"></i>
                                 <i class="fa fa-user fa-2x"></i>
                             </div>
-                            <p style="text-align: center"><strong>CALL FROM USERNAME</strong></p>
+                            <span class="label label-default" style="text-align: center"><strong>CALL FROM USERNAME</strong></span>
                             <div class="row">
-                                <button type="button" class="col-xs-6 btn btn-danger btn-lg" data-dismiss="modal">
-                                    <i class="fa fa-close fa-fw fa-1x"></i>
-                                    Reject
-                                </button>
-                                <button type="button" class="col-xs-6 btn btn-success btn-lg" data-dismiss="modal">
-                                    <i class="fa fa-check fa-fw fa-1x"></i>
-                                    Accept
-                                </button>
+                                <div class="col-xs-12 btn-group">
+                                    <button type="button" class="col-xs-6 btn btn-danger btn-lg" data-dismiss="modal">
+                                        <i class="fa fa-close fa-fw fa-1x"></i>
+                                        Reject
+                                    </button>
+                                    <button type="button" class="col-xs-6 btn btn-success btn-lg" data-dismiss="modal">
+                                        <i class="fa fa-check fa-fw fa-1x"></i>
+                                        Accept
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                        <p></p>
                     </div>
                 </div>
             </div>
@@ -199,7 +202,7 @@
                                 </select>
                             </div>
                         </div>
-                        <p>If your selections are correct, you should be able to hear yourself speaking.</p>
+                        <span class="label label-default">If your selections are correct, you should be able to hear yourself speaking.</span>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-primary" data-dismiss="modal">Okay</button>
                         </div>
