@@ -86,13 +86,23 @@ div.voip-screen-action .container-fluid {
 
 
 
-div.voip-menu {
 
+
+
+
+p.text-important {
+    text-align: center;
+    font-weight: bold;
+    font-variant: small-caps;
 }
 
-div.voip-menu-inactive {
-    display: none
+
+
+
+div.emblem-important {
+    text-align: center;
 }
+
 
 
 
@@ -110,8 +120,23 @@ div.voip-menu-inactive {
     margin-top: 80px;
 }
 
-#network-activity-indicator {
+#loggedInScreen .menu {
+
+}
+
+#loggedInScreen .chunk {
+    width: 100%;
+}
+
+#loggedInScreen .chunk-hidden {
+    width: 100%;
+    display: none;
+}
+
+#loggedInScreen #network-activity-indicator {
     margin-top: 120px;
 }
 
-
+#loggedInScreen #callButton {
+    width: 100%;
+}

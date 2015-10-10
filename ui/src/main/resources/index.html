@@ -12,6 +12,9 @@
         <script src="js/angular.min.js"></script>
     </head>
     <body>
+        
+        
+        <!-- LOGIN SCREEN -->
         <div id="loginScreen" class="voip-screen-action">
             <div class="container-fluid">
                 <div id="logo">
@@ -41,9 +44,11 @@
                 <button id="connect-button" class="btn btn-primary btn-lg btn-block action-button" onclick="messageSender.connectTriggered('hi', 'bye')">Connect</button>
             </div>
         </div>
+        
+        <!-- LOGGING IN SCREEN -->
         <div id="loggingInScreen" class="voip-screen-action voip-screen-action-inactive">
             <div class="container-fluid">
-                <div style="text-align: center">
+                <div class="emblem-important">
                     <i id="joining-spinner" class="fa fa-circle-o-notch fa-spin fa-5x"></i>
                 </div>
             </div>
@@ -51,8 +56,13 @@
                 <button id="joining-cancel-button" class="btn btn-default btn-lg btn-block action-button">Cancel</button>
             </div>
         </div>
+        
+        
+        <!-- LOGGED IN SCREEN -->
         <div id="loggedInScreen" class="voip-screen-centered voip-screen-action-inactive">
-            <div id="loggedInScreenMenu" class="voip-menu">
+            
+            <!-- MENU -->
+            <div id="loggedInScreenMenu" class="menu">
                 <nav role="navigation" class="navbar navbar-default navbar-fixed-top">
                     <div class="container">
                         <div class="navbar-header">
@@ -74,9 +84,11 @@
                     </div>
                 </nav>
             </div>
-            <div id="loggedInScreenEntryPoint" style="display:none; width: 100%;">
+            
+            <!-- ENTRY POINT -->
+            <div id="loggedInScreenEntryPoint" class="chunk chunk-hidden">
                 <div class="container-fluid">
-                    <span class="label label-default" style="text-align: center"><strong>Who would you like to call?</strong></span>
+                    <p class="text-important">Who would you like to call?</p>
                 </div>
                 <div class="container-fluid">
                     <div class="row">
@@ -89,7 +101,7 @@
                         </div>
 
                         <div class="col-sm-2 form-group">
-                            <button class="btn btn-primary" id="callButton" style="width: 100%">
+                            <button class="btn btn-primary" id="callButton">
                                 <i class="fa fa-phone fa-fw fa-1x"></i>
                                 Call
                             </button>
@@ -97,10 +109,12 @@
                     </div>
                 </div>
             </div>
-            <div id="loggedInScreenConnecting" style="display:none; width: 100%;">
+            
+            <!-- CONTACTING -->
+            <div id="loggedInScreenConnecting" class="chunk chunk-hidden">
                 <div class="container-fluid">
-                    <span class="label label-default" style="text-align: center"><strong>CONTACTING USERNAME</strong></span>
-                    <div style="text-align: center">
+                    <p class="text-important">CONTACTING USERNAME</p>
+                    <div class="emblem-important">
                         <i id="connecting-spinner" class="fa fa-circle-o-notch fa-spin fa-5x"></i>
                     </div>
                 </div>
@@ -108,9 +122,11 @@
                     <button id="connecting-cancel-button" class="btn btn-default btn-lg btn-block">Cancel</button>
                 </div>
             </div>
-            <div id="loggedInScreenConnected" style="width: 100%">
+            
+            <!-- CONNECTED -->
+            <div id="loggedInScreenConnected" class="chunk">
                 <div class="container-fluid">
-                    <div style="text-align: center">
+                    <div class="emblem-important">
                         <i class="fa fa-user fa-2x"></i>
                         <i class="fa fa-exchange fa-2x"></i>
                         <span class="fa-stack fa-2x">
@@ -120,7 +136,7 @@
                         <i class="fa fa-exchange fa-2x"></i>
                         <i class="fa fa-user fa-2x"></i>
                     </div>
-                    <span class="label label-default" style="text-align: center"><strong>CONNECTED WITH USERNAME</strong></span>
+                    <p class="text-important">CONNECTED WITH USERNAME</p>
                 </div>
                 <div class="container-fluid">
                     <button id="connected-end-button" class="btn btn-lg btn-danger btn-block">
@@ -129,12 +145,16 @@
                     </button>
                 </div>
             </div>
+            
+            <!-- NETWORK ACTIVITY INDICATOR -->
             <div class="container-fluid" id="network-activity-indicator">
                 <div class="row">
                     <div class="col-sm-4">
-                        <strong>NETWORK ACTIVITY</strong><br>
-                        xxx incoming messages/sec<br>
-                        yyy outgoing messages/sec
+                        <p class="text-important text-muted">NETWORK ACTIVITY</p><br>
+                        <span class="text-muted">
+                            xxx incoming messages/sec<br>
+                            yyy outgoing messages/sec
+                        </span>
                     </div>
 
                     <div class="col-sm-8">
@@ -146,6 +166,8 @@
             </div>
         </div>
 
+        
+        <!-- INCOMING CALL DIALOG BOX -->
         <div id="incoming-call-dialog" class="modal fade" role="dialog">
             <div class="modal-dialog">
                 <div class="modal-content">
@@ -161,7 +183,7 @@
                                 <i class="fa fa-exchange fa-2x"></i>
                                 <i class="fa fa-user fa-2x"></i>
                             </div>
-                            <span class="label label-default" style="text-align: center"><strong>CALL FROM USERNAME</strong></span>
+                            <p class="text-important">CALL FROM USERNAME</p>
                             <div class="row">
                                 <div class="col-xs-12 btn-group">
                                     <button type="button" class="col-xs-6 btn btn-danger btn-lg" data-dismiss="modal">
@@ -180,6 +202,8 @@
             </div>
         </div>
 
+        
+        <!-- AUDIO DEVICE CONFIGURATION DIALOG BOX -->
         <div id="audio-config-dialog" class="modal fade" role="dialog">
             <div class="modal-dialog">
                 <div class="modal-content">
@@ -202,7 +226,7 @@
                                 </select>
                             </div>
                         </div>
-                        <span class="label label-default">If your selections are correct, you should be able to hear yourself speaking.</span>
+                        <p>If your selections are correct, you should be able to hear yourself speaking.</p>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-primary" data-dismiss="modal">Okay</button>
                         </div>
