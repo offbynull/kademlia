@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html ng-app>
+<html ng-app="ui">
     <head>
         <title>VoIP</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,9 +10,14 @@
         <script src="js/jquery-2.1.4.min.js"></script>
         <script src="js/bootstrap.min.js"></script>
         <script src="js/angular.min.js"></script>
+        <script src="js/script.js"></script>
     </head>
-    <body>
+    <body ng-controller="MainCtrl">
         
+        <div >
+            <h1>{{loginUsername}}</h1>
+            <div ng-bind="loginBootstrap"></div>
+        </div>
         
         <!-- LOGIN SCREEN -->
         <div id="loginScreen" class="voip-screen-action">
@@ -24,24 +29,24 @@
                     </span>
                 </div>
 
-                <div class="form-group has-feedback has-success">
+                <div class="form-group has-feedback" ng-class="{'has-success': loginUsername !== '', 'has-error': loginUsername === ''}">
                     <div class="input-group">
                         <span class="input-group-addon"><i class="fa fa-user fa-fw"></i></span>
-                        <input class="form-control" type="text" placeholder="Username" id="loginUsername">
+                        <input class="form-control" type="text" placeholder="Username" id="loginUsername" ng-model="loginUsername">
                     </div>
-                    <span class="glyphicon glyphicon-ok form-control-feedback"></span>
+                    <span class="glyphicon form-control-feedback" ng-class="{'glyphicon-ok': loginUsername !== '', 'glyphicon-remove': loginUsername === ''}"></span>
                 </div>
 
                 <div class="form-group has-feedback has-warning">
                     <div class="input-group">
                         <span class="input-group-addon"><i class="fa fa-exchange fa-fw"></i></span>
-                        <input class="form-control" type="text" placeholder="Host:Port (empty means you seed the network)" id="loginBootstrap">
+                        <input class="form-control" type="text" placeholder="Host:Port (empty means you seed the network)" id="loginBootstrap" ng-model="loginBootstrap">
                     </div>
                     <span class="glyphicon glyphicon-warning-sign form-control-feedback"></span>
                 </div>
             </div>
             <div class="container-fluid">
-                <button id="connect-button" class="btn btn-primary btn-lg btn-block action-button" onclick="messageSender.connectTriggered('hi', 'bye')">Connect</button>
+                <button id="connect-button" class="btn btn-primary btn-lg btn-block action-button" ng-class="{disabled: loginUsername === ''}" ng-click="login()">Connect</button>
             </div>
         </div>
         
