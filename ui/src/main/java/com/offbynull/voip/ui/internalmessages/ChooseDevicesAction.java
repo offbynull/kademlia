@@ -1,5 +1,5 @@
 package com.offbynull.voip.ui.internalmessages;
 
-public final class DisconnectResult {
-    
+public final class ChooseDevicesAction {
+
 }

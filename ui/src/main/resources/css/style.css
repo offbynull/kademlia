@@ -78,7 +78,6 @@ div.emblem-important {
 /* Element specific styling */
 
 #logo {
-    margin-top: 20px;
     margin-bottom: 20px;
     text-align: center;
     font-size:1.5em;
@@ -97,8 +96,12 @@ div.emblem-important {
     width: 100%;
 }
 
-#loggedInScreen #network-activity-indicator {
+#loggedInScreen #network-activity {
     margin-top: 120px;
+}
+
+#loggedInScreen #network-activity #network-activity-header {
+    font-weight: bold;
 }
 
 #loggedInScreen #callButton {
