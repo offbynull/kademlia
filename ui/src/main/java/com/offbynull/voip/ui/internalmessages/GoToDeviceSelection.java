@@ -4,11 +4,11 @@ import java.util.HashMap;
 import java.util.Map;
 import org.apache.commons.lang3.Validate;
 
-public final class ShowDeviceSelection {
+public final class GoToDeviceSelection {
     private final Map<Integer, String> inputDevices;
     private final Map<Integer, String> outputDevices;
 
-    public ShowDeviceSelection(Map<Integer, String> inputDevices, Map<Integer, String> outputDevices) {
+    public GoToDeviceSelection(Map<Integer, String> inputDevices, Map<Integer, String> outputDevices) {
         Validate.notNull(inputDevices);
         Validate.notNull(outputDevices);
         Validate.noNullElements(inputDevices.keySet());

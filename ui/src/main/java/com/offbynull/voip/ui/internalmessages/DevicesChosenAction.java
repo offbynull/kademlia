@@ -1,5 +1,5 @@
 package com.offbynull.voip.ui.internalmessages;
 
-public final class InitiateCallAction {
+public final class DevicesChosenAction {
     
 }

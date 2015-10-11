@@ -83,6 +83,22 @@
             </div>
         </div>
 
+        <!-- HARD ERROR -->
+        <div id="hardErrorScreen" class="voip-screen-centered" ng-show="state === 'UNRECOVERABLE_ERROR'">
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-xs-12 emblem-important">
+                        <span class="text-danger"><i class="fa fa-warning fa-5x"></i></span>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-xs-12">
+                        <p class="text-important">{{unrecoverableErrorMessage}}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
 
         <!-- LOGGED IN SCREEN -->
         <div id="loggedInScreen" class="voip-screen-centered" ng-show="state.indexOf('ACTIVE_') === 0">
@@ -103,7 +119,7 @@
                             <ul class="nav navbar-nav">
                             </ul>
                             <ul class="nav navbar-nav navbar-right">
-                                <li><a href="#" ng-click="chooseDevicesAction()">Configure Audio</a></li>
+                                <li><a href="#" ng-click="resetDevicesAction()">Configure Audio</a></li>
                                 <li><a href="#" ng-click="logoutAction()">Disconnect</a></li>
                             </ul>
                         </div>
@@ -136,7 +152,7 @@
             </div>
 
             <!-- CONTACTING -->
-            <div id="loggedInScreenConnecting" class="chunk" ng-show="state === 'ACTIVE_CALLING'">
+            <div id="loggedInScreenConnecting" class="chunk" ng-show="state === 'ACTIVE_OUTGOING_CALLING'">
                 <div class="container-fluid">
                     <p class="text-important">CONTACTING USERNAME</p>
                     <div class="emblem-important">
@@ -171,6 +187,35 @@
                 </div>
             </div>
 
+            <!-- INCOMING CALL -->
+            <div id="loggedInScreenContacted" class="chunk" ng-show="state === 'ACTIVE_INCOMING_CALL'">
+                <div class="container-fluid">
+                    <div style="text-align: center">
+                        <i class="fa fa-user fa-2x"></i>
+                        <i class="fa fa-exchange fa-2x"></i>
+                        <span class="fa-stack fa-2x">
+                            <i class="fa fa-cloud fa-stack-2x"></i>
+                            <i class="fa fa-phone fa-stack-1x fa-inverse"></i>
+                        </span>
+                        <i class="fa fa-exchange fa-2x"></i>
+                        <i class="fa fa-user fa-2x"></i>
+                    </div>
+                    <p class="text-important">CALL FROM USERNAME</p>
+                    <div class="row">
+                        <div class="col-xs-12 btn-group">
+                            <button type="button" class="col-xs-6 btn btn-danger btn-lg" data-dismiss="modal">
+                                <i class="fa fa-close fa-fw fa-1x"></i>
+                                Reject
+                            </button>
+                            <button type="button" class="col-xs-6 btn btn-success btn-lg" data-dismiss="modal">
+                                <i class="fa fa-check fa-fw fa-1x"></i>
+                                Accept
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- NETWORK ACTIVITY INDICATOR -->
             <div class="container-fluid" id="network-activity">
                 <span id="network-activity-header" class="text-uppercase text-muted small lead">Network Activity</span><br>
@@ -179,76 +224,30 @@
                     {{outMessageRate}} outgoing messages/sec
                 </span>
             </div>
+        </div>
 
-            <!-- INCOMING CALL DIALOG BOX -->
-            <div id="incoming-call-dialog" class="modal fade" role="dialog">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-body">
-                            <div class="container-fluid">
-                                <div style="text-align: center">
-                                    <i class="fa fa-user fa-2x"></i>
-                                    <i class="fa fa-exchange fa-2x"></i>
-                                    <span class="fa-stack fa-2x">
-                                        <i class="fa fa-cloud fa-stack-2x"></i>
-                                        <i class="fa fa-phone fa-stack-1x fa-inverse"></i>
-                                    </span>
-                                    <i class="fa fa-exchange fa-2x"></i>
-                                    <i class="fa fa-user fa-2x"></i>
-                                </div>
-                                <p class="text-important">CALL FROM USERNAME</p>
-                                <div class="row">
-                                    <div class="col-xs-12 btn-group">
-                                        <button type="button" class="col-xs-6 btn btn-danger btn-lg" data-dismiss="modal">
-                                            <i class="fa fa-close fa-fw fa-1x"></i>
-                                            Reject
-                                        </button>
-                                        <button type="button" class="col-xs-6 btn btn-success btn-lg" data-dismiss="modal">
-                                            <i class="fa fa-check fa-fw fa-1x"></i>
-                                            Accept
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+        <!-- DEVICE SELECTION -->
+        <div class="voip-screen-centered" ng-show="state === 'DEVICE_SELECTION'">
+            <div class="container-fluid">
+                <div class="panel panel-info">
+                    <div class="panel-body">
+                        <i class="fa fa-info-circle fa-fw fa-2x text-info"></i>
+                        <span class="text-info">
+                            If your selections are correct, you should be able to hear yourself speaking.
+                        </span>
                     </div>
                 </div>
-            </div>
-
-
-            <!-- AUDIO DEVICE CONFIGURATION DIALOG BOX -->
-            <div id="audio-config-dialog" class="modal fade" role="dialog">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-body">
-                            <div class="container-fluid">
-                                <div class="panel panel-info">
-                                    <div class="panel-body">
-                                        <i class="fa fa-info-circle fa-fw fa-2x text-info"></i>
-                                        <span class="text-info">
-                                            If your selections are correct, you should be able to hear yourself speaking.
-                                        </span>
-                                    </div>
-                                </div>
-                                <div class="form-group">
-                                    <label for="audio-input-select">Audio Input Device</label>
-                                    <select class="form-control" id="audio-input-select" name="audio-input">
-                                        <option ng-repeat="(key, value) in inputDevices" value="{{key}}">{{value}}</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label for="audio-output-select">Audio Output Device</label>
-                                    <select class="form-control" id="audio-output-select"  name="audio-output">
-                                        <option ng-repeat="(key, value) in outputDevices" value="{{key}}">{{value}}</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-primary" data-dismiss="modal">Done</button>
-                            </div>
-                        </div>
-                    </div>
+                <div class="form-group">
+                    <label for="audio-input-select">Audio Input Device</label>
+                    <select class="form-control" id="audio-input-select" name="audio-input" ng-model="selectedInputDevice" ng-options="key as value for (key , value) in inputDevices" ng-change="chooseDevicesAction()">
+                    </select>
                 </div>
+                <div class="form-group">
+                    <label for="audio-output-select">Audio Output Device</label>
+                    <select class="form-control" id="audio-output-select"  name="audio-output" ng-model="selectedOutputDevice" ng-options="key as value for (key , value) in outputDevices"  ng-change="chooseDevicesAction()">
+                    </select>
+                </div>
+                <button type="button" class="btn btn-primary btn-block" ng-click="devicesChosenAction()">Done</button>
             </div>
         </div>
     </body>

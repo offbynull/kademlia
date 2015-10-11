@@ -2,11 +2,14 @@ package com.offbynull.voip.ui;
 
 import com.offbynull.peernetic.core.shuttles.simple.Bus;
 import com.offbynull.voip.ui.internalmessages.ChooseDevicesAction;
-import com.offbynull.voip.ui.internalmessages.DisconnectAction;
+import com.offbynull.voip.ui.internalmessages.ResetDevicesAction;
+import com.offbynull.voip.ui.internalmessages.LogoutAction;
 import com.offbynull.voip.ui.internalmessages.GoToIdle;
-import com.offbynull.voip.ui.internalmessages.ConnectAction;
-import com.offbynull.voip.ui.internalmessages.ShowDeviceSelection;
+import com.offbynull.voip.ui.internalmessages.LoginAction;
+import com.offbynull.voip.ui.internalmessages.DevicesChosenAction;
+import com.offbynull.voip.ui.internalmessages.GoToDeviceSelection;
 import com.offbynull.voip.ui.internalmessages.GoToLogin;
+import com.offbynull.voip.ui.internalmessages.GoToUnrecoverableError;
 import com.offbynull.voip.ui.internalmessages.GoToWorking;
 import com.offbynull.voip.ui.internalmessages.ReadyAction;
 import java.net.URL;
@@ -134,7 +137,13 @@ final class UIWebRegion extends Region {
                     Validate.noNullElements(incomingObjects);
 
                     for (Object incomingObj : incomingObjects) {
-                        if (incomingObj instanceof GoToLogin) {
+                        if (incomingObj instanceof GoToUnrecoverableError) {
+                            GoToUnrecoverableError goToUnrecoverableError = (GoToUnrecoverableError) incomingObj;
+                            Platform.runLater(() -> {
+                                JSObject win = (JSObject) webEngine.executeScript("window");
+                                win.call("goToUnrecoverableError", goToUnrecoverableError.getMessage());
+                            });
+                        } else if (incomingObj instanceof GoToLogin) {
                             GoToLogin goToLogin = (GoToLogin) incomingObj;
                             Platform.runLater(() -> {
                                 JSObject win = (JSObject) webEngine.executeScript("window");
@@ -152,8 +161,8 @@ final class UIWebRegion extends Region {
                                 JSObject win = (JSObject) webEngine.executeScript("window");
                                 win.call("goToIdle");
                             });
-                        } else if (incomingObj instanceof ShowDeviceSelection) {
-                            ShowDeviceSelection showDeviceSelection = (ShowDeviceSelection) incomingObj;
+                        } else if (incomingObj instanceof GoToDeviceSelection) {
+                            GoToDeviceSelection showDeviceSelection = (GoToDeviceSelection) incomingObj;
                             Platform.runLater(() -> {
                                 JSObject win = (JSObject) webEngine.executeScript("window");
                                 
@@ -184,15 +193,23 @@ final class UIWebRegion extends Region {
     public final class JavascriptToGatewayBridge {
 
         public void loginAction(String username, String bootstrap) {
-            busToGateway.add(new UIAction(new ConnectAction(username, bootstrap)));
+            busToGateway.add(new UIAction(new LoginAction(username, bootstrap)));
         }
 
         public void logoutAction() {
-            busToGateway.add(new UIAction(new DisconnectAction()));
+            busToGateway.add(new UIAction(new LogoutAction()));
         }
 
-        public void chooseDevicesAction() {
-            busToGateway.add(new UIAction(new ChooseDevicesAction()));
+        public void resetDevicesAction() {
+            busToGateway.add(new UIAction(new ResetDevicesAction()));
+        }
+
+        public void chooseDevicesAction(int inputId, int outputId) {
+            busToGateway.add(new UIAction(new ChooseDevicesAction(inputId, outputId)));
+        }
+
+        public void devicesChosenAction() {
+            busToGateway.add(new UIAction(new DevicesChosenAction()));
         }
     }
 }
