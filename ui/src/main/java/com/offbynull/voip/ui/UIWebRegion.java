@@ -14,6 +14,8 @@ import java.util.List;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import javafx.application.Platform;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.concurrent.Worker.State;
 import javafx.geometry.HPos;
 import javafx.geometry.VPos;
@@ -51,7 +53,7 @@ final class UIWebRegion extends Region {
                     if (newState == State.SUCCEEDED) {
                         JSObject win = (JSObject) ret.webEngine.executeScript("window");
                         win.setMember("messageSender", ret.new JavascriptToGatewayBridge());
-                        
+
                         busToGateway.add(new UIAction(new ReadyAction(false)));
                     } else if (newState == State.CANCELLED || newState == State.FAILED) {
                         busToGateway.add(new UIAction(new ReadyAction(true)));
@@ -98,8 +100,14 @@ final class UIWebRegion extends Region {
 
         webView = new WebView();
         webEngine = webView.getEngine();
-        
+
         webView.setContextMenuEnabled(false);
+        webEngine.getLoadWorker().exceptionProperty().addListener(new ChangeListener<Throwable>() {
+            @Override
+            public void changed(ObservableValue<? extends Throwable> ov, Throwable t, Throwable t1) {
+                System.out.println("Received exception: " + t1.getMessage());
+            }
+        });
 
         getChildren().add(webView);
 
@@ -148,7 +156,13 @@ final class UIWebRegion extends Region {
                             ShowDeviceSelection showDeviceSelection = (ShowDeviceSelection) incomingObj;
                             Platform.runLater(() -> {
                                 JSObject win = (JSObject) webEngine.executeScript("window");
-                                win.call("showDeviceSelection", showDeviceSelection.getInputDevices(), showDeviceSelection.getOutputDevices());
+                                
+                                // Passing Java objects directly as arguments using call() causes a ton of issues. Lots of problems trying
+                                // to access an iterator and elements within map... so convert these maps to JSObjects before submitting
+                                JSObject jsInputDevices = InternalUtils.mapToJSObject(webEngine, showDeviceSelection.getInputDevices());
+                                JSObject jsOutputDevices = InternalUtils.mapToJSObject(webEngine, showDeviceSelection.getOutputDevices());
+                                
+                                win.call("showDeviceSelection", jsInputDevices, jsOutputDevices);
                             });
                         } else {
                             LOG.error("Unrecognized message: {}", incomingObj);

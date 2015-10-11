@@ -43,10 +43,10 @@ public class ManualTest {
                 } else if (payload instanceof ConnectAction) {
                     directGateway.writeMessage(Address.of("ui"), new GoToWorking("Logging in 1..."));
                     Thread.sleep(1000L);
-                    directGateway.writeMessage(Address.of("ui"), new GoToWorking("Logging in 2..."));
-                    Thread.sleep(1000L);
-                    directGateway.writeMessage(Address.of("ui"), new GoToWorking("Logging in 3..."));
-                    Thread.sleep(1000L);
+//                    directGateway.writeMessage(Address.of("ui"), new GoToWorking("Logging in 2..."));
+//                    Thread.sleep(1000L);
+//                    directGateway.writeMessage(Address.of("ui"), new GoToWorking("Logging in 3..."));
+//                    Thread.sleep(1000L);
                     directGateway.writeMessage(Address.of("ui"), new GoToIdle());
                 } else if (payload instanceof DisconnectAction) {
                     directGateway.writeMessage(Address.of("ui"), new GoToLogin());
