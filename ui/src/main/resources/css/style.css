@@ -107,3 +107,7 @@ div.emblem-important {
 #loggedInScreen #callButton {
     width: 100%;
 }
+
+#audio-config-notice {
+    margin-bottom: 12px;
+}
