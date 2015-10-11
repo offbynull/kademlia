@@ -3,13 +3,18 @@
     <head>
         <title>VoIP</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link rel="stylesheet" type="text/css" href="css/bootstrap.min.css">
-        <link rel="stylesheet" type="text/css" href="css/bootstrap-theme.min.css">
-        <link rel="stylesheet" type="text/css" href="css/font-awesome.min.css">
+        <link rel="stylesheet" type="text/css" href="libs/css/bootstrap.min.css">
+        <link rel="stylesheet" type="text/css" href="libs/css/bootstrap-theme.min.css">
+        <link rel="stylesheet" type="text/css" href="libs/css/font-awesome.min.css">
         <link rel="stylesheet" type="text/css" href="css/style.css">
-        <script src="js/jquery-2.1.4.min.js"></script>
-        <script src="js/bootstrap.min.js"></script>
-        <script src="js/angular.min.js"></script>
+
+        <!-- This is version 1.2 of firebug lite, newer versions do not work unless used with external urls (browser/JS security feature)? Taken from http://getfirebug.com/releases/lite/1.2/firebug-lite-compressed.js -->
+        <!-- http://stackoverflow.com/questions/17387981/javafx-webview-webengine-firebuglite-or-some-other-debugger -->
+        <script src="libs/js/firebug-lite.js"></script>
+
+        <script src="libs/js/jquery-2.1.4.min.js"></script>
+        <script src="libs/js/bootstrap.min.js"></script>
+        <script src="libs/js/angular.min.js"></script>
         <script src="js/script.js"></script>
     </head>
     <body ng-controller="MainCtrl">
@@ -96,9 +101,9 @@
                         </div>
                         <div id="navbarCollapse" class="collapse navbar-collapse">
                             <ul class="nav navbar-nav">
-                                <li><a href="#" ng-click="chooseDevicesAction()">Configure Audio</a></li>
                             </ul>
                             <ul class="nav navbar-nav navbar-right">
+                                <li><a href="#" ng-click="chooseDevicesAction()">Configure Audio</a></li>
                                 <li><a href="#" ng-click="logoutAction()">Disconnect</a></li>
                             </ul>
                         </div>
@@ -173,8 +178,6 @@
                     {{inMessageRate}} incoming messages/sec<br>
                     {{outMessageRate}} outgoing messages/sec
                 </span>
-                <!-- You need data-background and data-keyboard attributs to stop dialog from closing with ESC or clicking outside dialog window. Tabbing to items behind modal still an issue. -->
-                <!--<button type="button" class="btn btn-info btn-lg" data-toggle="modal" data-backdrop="static" data-keyboard="false"  data-target="#incoming-call-dialog">Open Modal</button>-->
             </div>
 
             <!-- INCOMING CALL DIALOG BOX -->
@@ -224,14 +227,12 @@
                                 <div class="form-group">
                                     <label for="audio-input-select">Audio Input Device</label>
                                     <select class="form-control" id="audio-input-select" name="audio-input">
-                                        <option>{{inputDevices}}</option>
                                         <option ng-repeat="(key, value) in inputDevices" value="{{key}}">{{value}}</option>
                                     </select>
                                 </div>
                                 <div class="form-group">
                                     <label for="audio-output-select">Audio Output Device</label>
                                     <select class="form-control" id="audio-output-select"  name="audio-output">
-                                        <option>{{outputDevices}}</option>
                                         <option ng-repeat="(key, value) in outputDevices" value="{{key}}">{{value}}</option>
                                     </select>
                                 </div>

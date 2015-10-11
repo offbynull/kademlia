@@ -58,7 +58,6 @@ window.goToIdle = function () {
 
     $scope.$apply(function () {
         $scope.state = 'ACTIVE_IDLE';
-        $scope.workingMessage = message;
     });
 };
 
@@ -68,6 +67,8 @@ window.showDeviceSelection = function (inputDevices, outputDevices) {
     $scope = $scope.$$childHead;
 
     $scope.$apply(function () {
+//        printObjectToConsole(inputDevices);
+        
         $scope.inputDevices = inputDevices;
         $scope.outputDevices = outputDevices;
         $('#audio-config-dialog').modal({
@@ -75,4 +76,11 @@ window.showDeviceSelection = function (inputDevices, outputDevices) {
             keyboard: false
         });
     });
+};
+
+window.printObjectToConsole = function(obj) {
+    for (var key in Object.keys(obj)) {
+        console.warn(key);
+        console.warn(obj[key]);
+    }
 };
