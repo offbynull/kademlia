@@ -19,9 +19,9 @@ package com.offbynull.voip.ui;
 import com.offbynull.peernetic.core.shuttle.Shuttle;
 import com.offbynull.peernetic.core.gateway.InputGateway;
 import com.offbynull.peernetic.core.gateway.OutputGateway;
+import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.shuttles.simple.Bus;
 import com.offbynull.peernetic.core.shuttles.simple.SimpleShuttle;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 import javafx.scene.Parent;
 import org.apache.commons.lang3.Validate;
@@ -30,29 +30,22 @@ public final class UIGateway implements InputGateway, OutputGateway {
 
     private final Thread thread;
     private final Bus bus;
-    private final Bus busToJavaFX; // bus to UI component
+    private final Bus busToWebRegion; // bus to UI component
 
     private final SimpleShuttle shuttle;
 
-    private final Supplier<Parent> javaFxComponent;
+    private final SingleSupplier<Parent> webRegionSupplier;
 
-    public UIGateway(String prefix) {
+    public UIGateway(String prefix, Address dstAddress) {
         Validate.notNull(prefix);
 
         bus = new Bus();
-        busToJavaFX = new Bus();
 
-        AtomicBoolean consumedComponent = new AtomicBoolean(false);
-        javaFxComponent = () -> {
-            // you need a supplier because you can't create a webregion outside of a javafx context
-            // if you try to call supplier.get() outside of a javafx context, it'll throw an exception
-            // if you try to call supplier.get() more than once, it'll throw an illegalstateexception
-            Validate.validState(consumedComponent.compareAndSet(false, true), "Consumed already -- only allowed to call get() once");
-            return WebRegion.create(bus, busToJavaFX);
-        };
+        busToWebRegion = new Bus();
+        webRegionSupplier = new SingleSupplier<>(() -> UIWebRegion.create(busToWebRegion, bus));
         
         shuttle = new SimpleShuttle(prefix, bus);
-        thread = new Thread(new UIRunnable(bus));
+        thread = new Thread(new UIRunnable(shuttle.getPrefix(), dstAddress, bus, webRegionSupplier, busToWebRegion));
         thread.setDaemon(true);
         thread.setName(getClass().getSimpleName() + "-" + prefix);
         thread.start();
@@ -82,6 +75,6 @@ public final class UIGateway implements InputGateway, OutputGateway {
     }
 
     public Supplier<Parent> getJavaFXComponent() {
-        return javaFxComponent;
+        return webRegionSupplier;
     }
 }

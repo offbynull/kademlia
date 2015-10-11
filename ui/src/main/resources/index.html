@@ -13,14 +13,9 @@
         <script src="js/script.js"></script>
     </head>
     <body ng-controller="MainCtrl">
-        
-        <div >
-            <h1>{{loginUsername}}</h1>
-            <div ng-bind="loginBootstrap"></div>
-        </div>
-        
+
         <!-- LOGIN SCREEN -->
-        <div id="loginScreen" class="voip-screen-action">
+        <div id="loginScreen" class="voip-screen-action" ng-show="state === 'LOGIN'">
             <div class="container-fluid">
                 <div id="logo">
                     <span class="fa-stack fa-5x">
@@ -29,43 +24,64 @@
                     </span>
                 </div>
 
-                <div class="form-group has-feedback" ng-class="{'has-success': loginUsername !== '', 'has-error': loginUsername === ''}">
-                    <div class="input-group">
-                        <span class="input-group-addon"><i class="fa fa-user fa-fw"></i></span>
-                        <input class="form-control" type="text" placeholder="Username" id="loginUsername" ng-model="loginUsername">
+                <div class="panel panel-danger" ng-show="errorMessage !== ''">
+                    <div class="panel-heading">
+                        <span><i class="fa fa-exclamation-circle fa-fw text-danger"></i>Error</span>
                     </div>
-                    <span class="glyphicon form-control-feedback" ng-class="{'glyphicon-ok': loginUsername !== '', 'glyphicon-remove': loginUsername === ''}"></span>
+                    <div class="panel-body">
+                        <span class="text-danger">{{errorMessage}}</span>
+                    </div>
                 </div>
 
-                <div class="form-group has-feedback has-warning">
-                    <div class="input-group">
-                        <span class="input-group-addon"><i class="fa fa-exchange fa-fw"></i></span>
-                        <input class="form-control" type="text" placeholder="Host:Port (empty means you seed the network)" id="loginBootstrap" ng-model="loginBootstrap">
+                <div class="row">
+                    <div class="col-xs-12 form-group">
+                        <div class="input-group">
+                            <span class="input-group-addon"><i class="fa fa-user fa-fw"></i></span>
+                            <input class="form-control" type="text" placeholder="Username" id="loginUsername" ng-model="loginUsername">
+                        </div>
                     </div>
-                    <span class="glyphicon glyphicon-warning-sign form-control-feedback"></span>
+                </div>
+
+                <div class="row">
+                    <div class="col-xs-12 form-group">
+                        <div class="input-group">
+                            <span class="input-group-addon"><i class="fa fa-exchange fa-fw"></i></span>
+                            <input class="form-control" type="text" placeholder="Bootstrap Host:Port (leave empty if you're the first node in the network)" id="loginBootstrap" ng-model="loginBootstrap">
+                        </div>
+                    </div>
                 </div>
             </div>
+
             <div class="container-fluid">
-                <button id="connect-button" class="btn btn-primary btn-lg btn-block action-button" ng-class="{disabled: loginUsername === ''}" ng-click="login()">Connect</button>
+                <div class="row">
+                    <div class="col-xs-12">
+                        <button id="connect-button" class="col-xs-12 btn btn-primary btn-lg" ng-click="loginAction()">Connect</button>
+                    </div>
+                </div>
             </div>
         </div>
-        
+
+
         <!-- LOGGING IN SCREEN -->
-        <div id="loggingInScreen" class="voip-screen-action voip-screen-action-inactive">
+        <div id="workingScreen" class="voip-screen-centered" ng-show="state === 'WORKING'">
             <div class="container-fluid">
-                <div class="emblem-important">
-                    <i id="joining-spinner" class="fa fa-circle-o-notch fa-spin fa-5x"></i>
+                <div class="row">
+                    <div class="col-xs-12 emblem-important">
+                        <i id="working-spinner" class="fa fa-circle-o-notch fa-spin fa-5x"></i>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-xs-12">
+                        <p class="text-important">{{workingMessage}}</p>
+                    </div>
                 </div>
             </div>
-            <div class="container-fluid">
-                <button id="joining-cancel-button" class="btn btn-default btn-lg btn-block action-button">Cancel</button>
-            </div>
         </div>
-        
-        
+
+
         <!-- LOGGED IN SCREEN -->
-        <div id="loggedInScreen" class="voip-screen-centered voip-screen-action-inactive">
-            
+        <div id="loggedInScreen" class="voip-screen-centered" ng-show="state.indexOf('ACTIVE_') === 0">
+
             <!-- MENU -->
             <div id="loggedInScreenMenu" class="menu">
                 <nav role="navigation" class="navbar navbar-default navbar-fixed-top">
@@ -89,9 +105,9 @@
                     </div>
                 </nav>
             </div>
-            
+
             <!-- ENTRY POINT -->
-            <div id="loggedInScreenEntryPoint" class="chunk chunk-hidden">
+            <div id="loggedInScreenEntryPoint" class="chunk" ng-show="state === 'ACTIVE_IDLE'">
                 <div class="container-fluid">
                     <p class="text-important">Who would you like to call?</p>
                 </div>
@@ -114,9 +130,9 @@
                     </div>
                 </div>
             </div>
-            
+
             <!-- CONTACTING -->
-            <div id="loggedInScreenConnecting" class="chunk chunk-hidden">
+            <div id="loggedInScreenConnecting" class="chunk" ng-show="state === 'ACTIVE_CALLING'">
                 <div class="container-fluid">
                     <p class="text-important">CONTACTING USERNAME</p>
                     <div class="emblem-important">
@@ -127,9 +143,9 @@
                     <button id="connecting-cancel-button" class="btn btn-default btn-lg btn-block">Cancel</button>
                 </div>
             </div>
-            
+
             <!-- CONNECTED -->
-            <div id="loggedInScreenConnected" class="chunk">
+            <div id="loggedInScreenConnected" class="chunk" ng-show="state === 'ACTIVE_IN_CALL'">
                 <div class="container-fluid">
                     <div class="emblem-important">
                         <i class="fa fa-user fa-2x"></i>
@@ -150,15 +166,15 @@
                     </button>
                 </div>
             </div>
-            
+
             <!-- NETWORK ACTIVITY INDICATOR -->
             <div class="container-fluid" id="network-activity-indicator">
                 <div class="row">
                     <div class="col-sm-4">
                         <p class="text-important text-muted">NETWORK ACTIVITY</p><br>
                         <span class="text-muted">
-                            xxx incoming messages/sec<br>
-                            yyy outgoing messages/sec
+                            {{inMessageRate}} incoming messages/sec<br>
+                            {{outMessageRate}} outgoing messages/sec
                         </span>
                     </div>
 
@@ -169,71 +185,70 @@
                 <!-- You need data-background and data-keyboard attributs to stop dialog from closing with ESC or clicking outside dialog window. Tabbing to items behind modal still an issue. -->
                 <button type="button" class="btn btn-info btn-lg" data-toggle="modal" data-backdrop="static" data-keyboard="false"  data-target="#incoming-call-dialog">Open Modal</button>
             </div>
-        </div>
 
-        
-        <!-- INCOMING CALL DIALOG BOX -->
-        <div id="incoming-call-dialog" class="modal fade" role="dialog">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-body">
-                        <div class="container-fluid">
-                            <div style="text-align: center">
-                                <i class="fa fa-user fa-2x"></i>
-                                <i class="fa fa-exchange fa-2x"></i>
-                                <span class="fa-stack fa-2x">
-                                    <i class="fa fa-cloud fa-stack-2x"></i>
-                                    <i class="fa fa-phone fa-stack-1x fa-inverse"></i>
-                                </span>
-                                <i class="fa fa-exchange fa-2x"></i>
-                                <i class="fa fa-user fa-2x"></i>
-                            </div>
-                            <p class="text-important">CALL FROM USERNAME</p>
-                            <div class="row">
-                                <div class="col-xs-12 btn-group">
-                                    <button type="button" class="col-xs-6 btn btn-danger btn-lg" data-dismiss="modal">
-                                        <i class="fa fa-close fa-fw fa-1x"></i>
-                                        Reject
-                                    </button>
-                                    <button type="button" class="col-xs-6 btn btn-success btn-lg" data-dismiss="modal">
-                                        <i class="fa fa-check fa-fw fa-1x"></i>
-                                        Accept
-                                    </button>
+            <!-- INCOMING CALL DIALOG BOX -->
+            <div id="incoming-call-dialog" class="modal fade" role="dialog">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-body">
+                            <div class="container-fluid">
+                                <div style="text-align: center">
+                                    <i class="fa fa-user fa-2x"></i>
+                                    <i class="fa fa-exchange fa-2x"></i>
+                                    <span class="fa-stack fa-2x">
+                                        <i class="fa fa-cloud fa-stack-2x"></i>
+                                        <i class="fa fa-phone fa-stack-1x fa-inverse"></i>
+                                    </span>
+                                    <i class="fa fa-exchange fa-2x"></i>
+                                    <i class="fa fa-user fa-2x"></i>
+                                </div>
+                                <p class="text-important">CALL FROM USERNAME</p>
+                                <div class="row">
+                                    <div class="col-xs-12 btn-group">
+                                        <button type="button" class="col-xs-6 btn btn-danger btn-lg" data-dismiss="modal">
+                                            <i class="fa fa-close fa-fw fa-1x"></i>
+                                            Reject
+                                        </button>
+                                        <button type="button" class="col-xs-6 btn btn-success btn-lg" data-dismiss="modal">
+                                            <i class="fa fa-check fa-fw fa-1x"></i>
+                                            Accept
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        
-        <!-- AUDIO DEVICE CONFIGURATION DIALOG BOX -->
-        <div id="audio-config-dialog" class="modal fade" role="dialog">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-body">
-                        <div class="container-fluid">
-                            <div class="form-group">
-                                <label for="audio-input-select">Audio Input Device</label>
-                                <select class="form-control" id="audio-input-select" name="audio-input">
-                                    <option>1</option>
-                                    <option>2</option>
-                                    <option>3</option>
-                                </select>
+
+            <!-- AUDIO DEVICE CONFIGURATION DIALOG BOX -->
+            <div id="audio-config-dialog" class="modal fade" role="dialog">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-body">
+                            <div class="container-fluid">
+                                <div class="form-group">
+                                    <label for="audio-input-select">Audio Input Device</label>
+                                    <select class="form-control" id="audio-input-select" name="audio-input">
+                                        <option>1</option>
+                                        <option>2</option>
+                                        <option>3</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="audio-output-select">Audio Output Device</label>
+                                    <select class="form-control" id="audio-output-select"  name="audio-output">
+                                        <option>1</option>
+                                        <option>2</option>
+                                        <option>3</option>
+                                    </select>
+                                </div>
                             </div>
-                            <div class="form-group">
-                                <label for="audio-output-select">Audio Output Device</label>
-                                <select class="form-control" id="audio-output-select"  name="audio-output">
-                                    <option>1</option>
-                                    <option>2</option>
-                                    <option>3</option>
-                                </select>
+                            <p>If your selections are correct, you should be able to hear yourself speaking.</p>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-primary" data-dismiss="modal">Okay</button>
                             </div>
-                        </div>
-                        <p>If your selections are correct, you should be able to hear yourself speaking.</p>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-primary" data-dismiss="modal">Okay</button>
                         </div>
                     </div>
                 </div>

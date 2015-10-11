@@ -15,6 +15,7 @@ import org.apache.commons.lang3.Validate;
 public final class PlaceholderApplication extends Application {
 
     private static final Lock LOCK = new ReentrantLock();
+    private static Thread runnerThread;
     private static Supplier<Parent> startNodeSupplier;
 
     @Override
@@ -34,16 +35,23 @@ public final class PlaceholderApplication extends Application {
         stage.show();
     }
 
-    public static void start(Supplier<Parent> nodeSupplier) {
+    public static void start(Supplier<Parent> nodeSupplier) throws Exception {
         LOCK.lock();
         try {
-            Validate.validState(PlaceholderApplication.startNodeSupplier == null);
+            Validate.validState(PlaceholderApplication.startNodeSupplier == null, "Application already running");
             PlaceholderApplication.startNodeSupplier = nodeSupplier;
+            
+            // There's a race condition where stop() may have been called by the JavaFX framework but the Application hasn't terminated yet,
+            // so wait for the runnerThread to be fully shut down before attempting to launch a new application
+            if (runnerThread != null) {
+                runnerThread.join();
+            }
+            
+            runnerThread = new Thread(() -> Application.launch());
+            runnerThread.start();
         } finally {
             LOCK.unlock();
         }
-        
-        Application.launch();
     }
 
     @Override

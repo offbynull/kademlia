@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import javafx.scene.Parent;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,18 +33,38 @@ final class UIRunnable implements Runnable {
 
     private static final Logger LOG = LoggerFactory.getLogger(UIRunnable.class);
 
+    private final String selfPrefix;
+    private final Address dstAddress;
+    
     private final Bus bus;
     private final Map<String, Shuttle> outgoingShuttles;
+    
+    private final SingleSupplier<Parent> webRegionSupplier;
+    private final Bus busToWebRegion;
 
-    public UIRunnable(Bus bus) {
+    public UIRunnable(String selfPrefix, Address dstAddress, Bus bus, SingleSupplier<Parent> webRegionSupplier, Bus busToWebRegion) {
+        Validate.notNull(selfPrefix);
+        Validate.notNull(dstAddress);
         Validate.notNull(bus);
+        Validate.notNull(webRegionSupplier);
+        Validate.notNull(busToWebRegion);
+        Validate.isTrue(!dstAddress.isEmpty());
+        
+        this.selfPrefix = selfPrefix;
+        this.dstAddress = dstAddress;
+        
         this.bus = bus;
         outgoingShuttles = new HashMap<>();
+    
+        this.webRegionSupplier = webRegionSupplier;
+        this.busToWebRegion = busToWebRegion;
     }
 
     @Override
     public void run() {
         try {
+            UIWebRegion webRegion = (UIWebRegion) webRegionSupplier.retainedReference(); // doesn't return until its created
+            
             while (true) {
                 // Poll for new messages
                 List<Object> incomingObjects = bus.pull();
@@ -59,30 +80,7 @@ final class UIRunnable implements Runnable {
                         Object payload = msg.getMessage();
 
                         LOG.debug("Processing incoming message from {} to {}: {}", src, dst, payload);
-
-//                        if (payload instanceof LoadDevicesRequest) {
-//                            Object response = loadDevices();
-//                            sendMessage(src, dst, response);
-//                        } else if (payload instanceof OpenDevicesRequest) {
-//                            Object response = openDevices(src, dst, (OpenDevicesRequest) payload);
-//                            sendMessage(src, dst, response);
-//                        } else if (payload instanceof CloseDevicesRequest) {
-//                            Object response = closeDevices();
-//                            sendMessage(src, dst, response);
-//                        } else if (payload instanceof OutputPCMBlock) {
-//                            if (openedToAddress == null || openedFromAddress == null) {
-//                                LOG.warn("Output PCM block received but devices closed");
-//                                continue;
-//                            }
-//                            
-//                            OutputPCMBlock outputPCMBlock = (OutputPCMBlock) payload;
-//                            byte[] data = outputPCMBlock.getData();
-//                            OutputData outputData = new OutputData(data);
-//                            
-//                            outputQueue.put(outputData);
-//                        } else {
-//                            LOG.error("Unrecognized message: {}", payload);
-//                        }
+                        busToWebRegion.add(payload);
                     } else if (incomingObj instanceof AddShuttle) {
                         AddShuttle addShuttle = (AddShuttle) incomingObj;
                         Shuttle shuttle = addShuttle.getShuttle();
@@ -93,6 +91,10 @@ final class UIRunnable implements Runnable {
                         String prefix = removeShuttle.getPrefix();
                         Shuttle oldShuttle = outgoingShuttles.remove(prefix);
                         Validate.validState(oldShuttle != null);
+                    } else if (incomingObj instanceof UIAction) {
+                        UIAction uiAction = (UIAction) incomingObj;
+                        Object payload = uiAction.getMessage();
+                        sendMessage(payload);
                     } else {
                         throw new IllegalStateException("Unexpected message type: " + incomingObj);
                     }
@@ -108,14 +110,14 @@ final class UIRunnable implements Runnable {
         }
     }
 
-    private void sendMessage(Address to, Address from, Object response) {
-        String dstPrefix = to.getElement(0);
+    private void sendMessage(Object payload) {
+        String dstPrefix = dstAddress.getElement(0);
         Shuttle shuttle = outgoingShuttles.get(dstPrefix);
         
         if (shuttle != null) {
-            shuttle.send(Collections.singleton(new Message(from, to, response)));
+            shuttle.send(Collections.singleton(new Message(Address.of(selfPrefix), dstAddress, payload)));
         } else {
-            LOG.warn("Unable to find shuttle for outgoing response: {}", response);
+            LOG.warn("Unable to find shuttle for outgoing response: {}", payload);
         }
     }
     
