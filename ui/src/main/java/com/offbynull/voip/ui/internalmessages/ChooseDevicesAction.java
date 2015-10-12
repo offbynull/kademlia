@@ -16,19 +16,38 @@
  */
 package com.offbynull.voip.ui.internalmessages;
 
+/**
+ * The user has performed an action to change the audio input/output device.
+ * <p>
+ * This class is immutable.
+ * @author Kasra Faghihi
+ */
 public final class ChooseDevicesAction {
     private final int inputId;
     private final int outputId;
 
+    /**
+     * Constructs a {@link ChooseDevicesAction} object.
+     * @param inputId the desired id of the audio input device
+     * @param outputId the desired id of the audio output device
+     */
     public ChooseDevicesAction(int inputId, int outputId) {
         this.inputId = inputId;
         this.outputId = outputId;
     }
 
+    /**
+     * Get the desired audio input device id.
+     * @return id of the desired audio input device
+     */
     public int getInputId() {
         return inputId;
     }
 
+    /**
+     * Get the desired audio output device id.
+     * @return id of the desired audio output device
+     */
     public int getOutputId() {
         return outputId;
     }

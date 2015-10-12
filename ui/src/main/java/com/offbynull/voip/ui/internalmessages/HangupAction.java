@@ -16,6 +16,12 @@
  */
 package com.offbynull.voip.ui.internalmessages;
 
+/**
+ * The user has performed an action to hangup the call.
+ * <p>
+ * This class is immutable.
+ * @author Kasra Faghihi
+ */
 public final class HangupAction {
     
 }

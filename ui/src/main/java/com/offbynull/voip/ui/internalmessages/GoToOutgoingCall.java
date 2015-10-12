@@ -18,14 +18,29 @@ package com.offbynull.voip.ui.internalmessages;
 
 import org.apache.commons.lang3.Validate;
 
+/**
+ * Changes the UI to the outgoing call screen (the screen in which you're waiting for the person you're calling to pick up).
+ * <p>
+ * This class is immutable.
+ * @author Kasra Faghihi
+ */
 public final class GoToOutgoingCall {
     private final String username;
 
+    /**
+     * Constructs a {@link GoToOutgoingCall} object.
+     * @param username username being called
+     * @throws NullPointerException if any argument is {@code null}
+     */
     public GoToOutgoingCall(String username) {
         Validate.notNull(username);
         this.username = username;
     }
 
+    /**
+     * Get the username being called.
+     * @return username being called
+     */
     public String getUsername() {
         return username;
     }

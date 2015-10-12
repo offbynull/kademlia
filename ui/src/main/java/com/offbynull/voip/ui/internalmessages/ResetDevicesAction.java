@@ -16,6 +16,12 @@
  */
 package com.offbynull.voip.ui.internalmessages;
 
+/**
+ * The user has performed an action to re-select the audio input/output device.
+ * <p>
+ * This class is immutable.
+ * @author Kasra Faghihi
+ */
 public final class ResetDevicesAction {
 
 }

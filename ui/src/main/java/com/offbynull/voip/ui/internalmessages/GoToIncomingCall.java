@@ -18,14 +18,28 @@ package com.offbynull.voip.ui.internalmessages;
 
 import org.apache.commons.lang3.Validate;
 
+/**
+ * Changes the UI to the incoming call screen.
+ * <p>
+ * This class is immutable.
+ * @author Kasra Faghihi
+ */
 public final class GoToIncomingCall {
     private final String username;
 
+    /**
+     * Constructs a {@link GoToIncomingCall} message.
+     * @param username username calling
+     */
     public GoToIncomingCall(String username) {
         Validate.notNull(username);
         this.username = username;
     }
 
+    /**
+     * Get the caller's username.
+     * @return username calling
+     */
     public String getUsername() {
         return username;
     }

@@ -16,6 +16,12 @@
  */
 package com.offbynull.voip.ui.internalmessages;
 
+/**
+ * Changes the UI to the established call screen (the screen in which you're in a call).
+ * <p>
+ * This class is immutable.
+ * @author Kasra Faghihi
+ */
 public final class GoToEstablishedCall {
     
 }

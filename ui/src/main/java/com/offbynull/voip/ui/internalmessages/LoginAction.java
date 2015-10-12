@@ -18,10 +18,21 @@ package com.offbynull.voip.ui.internalmessages;
 
 import org.apache.commons.lang3.Validate;
 
+/**
+ * The user has performed an action to log in to the network.
+ * <p>
+ * This class is immutable.
+ * @author Kasra Faghihi
+ */
 public final class LoginAction {
     private final String username;
     private final String bootstrap;
 
+    /**
+     * Constructs a {@link LoginAction} object.
+     * @param username login username
+     * @param bootstrap bootstrap link to use to join the network
+     */
     public LoginAction(String username, String bootstrap) {
         Validate.notNull(username);
         Validate.notNull(bootstrap);
@@ -29,10 +40,18 @@ public final class LoginAction {
         this.bootstrap = bootstrap;
     }
 
+    /**
+     * Get the username.
+     * @return login username
+     */
     public String getUsername() {
         return username;
     }
 
+    /**
+     * Get the bootstrap link.
+     * @return link to use to join the network
+     */
     public String getBoostrap() {
         return bootstrap;
     }

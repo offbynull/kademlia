@@ -18,14 +18,29 @@ package com.offbynull.voip.ui.internalmessages;
 
 import org.apache.commons.lang3.Validate;
 
+/**
+ * The user has performed an action to place an outgoing call.
+ * <p>
+ * This class is immutable.
+ * @author Kasra Faghihi
+ */
 public final class CallAction {
     private final String username;
 
+    /**
+     * Constructs a {@link CallAction} object.
+     * @param username username to call
+     * @throws NullPointerException if any argument is {@code null}
+     */
     public CallAction(String username) {
         Validate.notNull(username);
         this.username = username;
     }
 
+    /**
+     * Get username to call.
+     * @return username to call
+     */
     public String getUsername() {
         return username;
     }

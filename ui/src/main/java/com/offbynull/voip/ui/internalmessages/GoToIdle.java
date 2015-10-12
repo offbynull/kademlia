@@ -16,6 +16,12 @@
  */
 package com.offbynull.voip.ui.internalmessages;
 
+/**
+ * Changes the UI to the idle screen (the screen in which you're successfully logged in but are not doing anything).
+ * <p>
+ * This class is immutable.
+ * @author Kasra Faghihi
+ */
 public final class GoToIdle {
     
 }

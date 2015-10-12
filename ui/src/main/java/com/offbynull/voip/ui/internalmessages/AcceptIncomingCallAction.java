@@ -16,6 +16,12 @@
  */
 package com.offbynull.voip.ui.internalmessages;
 
+/**
+ * The user has performed an action to accepted the incoming call.
+ * <p>
+ * This class is immutable.
+ * @author Kasra Faghihi
+ */
 public final class AcceptIncomingCallAction {
     
 }

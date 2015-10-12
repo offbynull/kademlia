@@ -20,10 +20,22 @@ import java.util.HashMap;
 import java.util.Map;
 import org.apache.commons.lang3.Validate;
 
+/**
+ * Changes the UI to the audio input/output device selection screen.
+ * <p>
+ * This class is immutable.
+ * @author Kasra Faghihi
+ */
 public final class GoToDeviceSelection {
     private final Map<Integer, String> inputDevices;
     private final Map<Integer, String> outputDevices;
 
+    /**
+     * Constructs a {@link GoToDeviceSelection} object.
+     * @param inputDevices map of audio input devices (key = id, value = name)
+     * @param outputDevices map of audio output devices (key = id, value = name)
+     * @throws NullPointerException if any argument is {@code null} or contains {@code null}
+     */
     public GoToDeviceSelection(Map<Integer, String> inputDevices, Map<Integer, String> outputDevices) {
         Validate.notNull(inputDevices);
         Validate.notNull(outputDevices);
@@ -35,10 +47,18 @@ public final class GoToDeviceSelection {
         this.outputDevices = new HashMap<>(outputDevices);
     }
 
+    /**
+     * Get audio input devices.
+     * @return map of audio input devices (key = id, value = name)
+     */
     public Map<Integer, String> getInputDevices() {
         return new HashMap<>(inputDevices);
     }
 
+    /**
+     * Get audio output devices.
+     * @return map of audio output devices (key = id, value = name)
+     */
     public Map<Integer, String> getOutputDevices() {
         return new HashMap<>(outputDevices);
     }

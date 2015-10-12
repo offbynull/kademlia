@@ -16,13 +16,27 @@
  */
 package com.offbynull.voip.ui.internalmessages;
 
+/**
+ * The UI is ready.
+ * <p>
+ * This class is immutable.
+ * @author Kasra Faghihi
+ */
 public final class ReadyAction {
     private final boolean failed;
 
+    /**
+     * Constructs a {@link ReadyAction} object.
+     * @param failed {@code true} if loading the UI failed, {@code false} otherwise
+     */
     public ReadyAction(boolean failed) {
         this.failed = failed;
     }
 
+    /**
+     * Get the loading state.
+     * @return {@code true} if loading the UI failed, {@code false} otherwise
+     */
     public boolean isFailed() {
         return failed;
     }

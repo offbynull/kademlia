@@ -22,6 +22,10 @@ import netscape.javascript.JSObject;
 
 final class InternalUtils {
 
+    private InternalUtils() {
+        // do nothing
+    }
+    
     public static JSObject mapToJSObject(WebEngine webEngine, Map<?, ?> map) {
         // Cannot use "{}" to create a javascript object because this will cause executeScript to return a String rather than a JSObject...
         // not sure why this is the case. Trying to put stuff inside the brackets just screws things up even more.
