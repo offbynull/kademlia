@@ -1,6 +1,7 @@
 package com.offbynull.voip.ui;
 
 import com.offbynull.peernetic.core.shuttles.simple.Bus;
+import com.offbynull.voip.ui.internalmessages.AcceptIncomingCallAction;
 import com.offbynull.voip.ui.internalmessages.CallAction;
 import com.offbynull.voip.ui.internalmessages.ChooseDevicesAction;
 import com.offbynull.voip.ui.internalmessages.ResetDevicesAction;
@@ -10,11 +11,15 @@ import com.offbynull.voip.ui.internalmessages.LoginAction;
 import com.offbynull.voip.ui.internalmessages.DevicesChosenAction;
 import com.offbynull.voip.ui.internalmessages.GoToOutgoingCall;
 import com.offbynull.voip.ui.internalmessages.GoToDeviceSelection;
+import com.offbynull.voip.ui.internalmessages.GoToEstablishedCall;
 import com.offbynull.voip.ui.internalmessages.GoToIncomingCall;
 import com.offbynull.voip.ui.internalmessages.GoToLogin;
 import com.offbynull.voip.ui.internalmessages.GoToUnrecoverableError;
 import com.offbynull.voip.ui.internalmessages.GoToWorking;
+import com.offbynull.voip.ui.internalmessages.HangupAction;
 import com.offbynull.voip.ui.internalmessages.ReadyAction;
+import com.offbynull.voip.ui.internalmessages.RejectIncomingCallAction;
+import com.offbynull.voip.ui.internalmessages.UpdateMessageRate;
 import java.net.URL;
 import java.util.List;
 import java.util.concurrent.locks.Lock;
@@ -176,6 +181,18 @@ final class UIWebRegion extends Region {
                                 JSObject win = (JSObject) webEngine.executeScript("window");
                                 win.call("goToIncomingCall", goToIncomingCall.getUsername());
                             });
+                        } else if (incomingObj instanceof GoToEstablishedCall) {
+                            Platform.runLater(() -> {
+                                JSObject win = (JSObject) webEngine.executeScript("window");
+                                win.call("goToEstablishedCall");
+                            });
+                        } else if (incomingObj instanceof UpdateMessageRate) {
+                            UpdateMessageRate updateMessageRate = (UpdateMessageRate) incomingObj;
+                            Platform.runLater(() -> {
+                                JSObject win = (JSObject) webEngine.executeScript("window");
+                                win.call("updateMessageRate", updateMessageRate.getIncomingMessagesPerSecond(),
+                                        updateMessageRate.getOutgoingMessagesPerSecond());
+                            });
                         } else if (incomingObj instanceof GoToDeviceSelection) {
                             GoToDeviceSelection showDeviceSelection = (GoToDeviceSelection) incomingObj;
                             Platform.runLater(() -> {
@@ -229,6 +246,18 @@ final class UIWebRegion extends Region {
 
         public void callAction(String username) {
             busToGateway.add(new UIAction(new CallAction(username)));
+        }
+
+        public void acceptIncomingCallAction() {
+            busToGateway.add(new UIAction(new AcceptIncomingCallAction()));
+        }
+
+        public void rejectIncomingCallAction() {
+            busToGateway.add(new UIAction(new RejectIncomingCallAction()));
+        }
+
+        public void hangupCallAction() {
+            busToGateway.add(new UIAction(new HangupAction()));
         }
     }
 }

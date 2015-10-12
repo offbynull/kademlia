@@ -19,6 +19,10 @@
     </head>
     <body ng-controller="MainCtrl">
 
+                
+        <div id="inputBlocker" ng-show="blockInput === true">
+        </div>
+        
         <!-- LOGIN SCREEN -->
         <div id="loginScreen" class="voip-screen-centered" ng-show="state === 'LOGIN'">
             <div class="container-fluid">
@@ -169,7 +173,7 @@
             </div>
 
             <!-- CONNECTED -->
-            <div id="loggedInScreenConnected" class="chunk" ng-show="state === 'ACTIVE_IN_CALL'">
+            <div id="loggedInScreenConnected" class="chunk" ng-show="state === 'ACTIVE_CALL'">
                 <div class="container-fluid">
                     <div class="emblem-important">
                         <i class="fa fa-user fa-2x"></i>
@@ -184,7 +188,7 @@
                     <p class="text-important">Connected with {{callUsername}}</p>
                 </div>
                 <div class="container-fluid">
-                    <button id="connected-end-button" class="btn btn-lg btn-danger btn-block">
+                    <button id="connected-end-button" class="btn btn-lg btn-danger btn-block" ng-click="hangupCallAction()">
                         <i class="fa fa-close fa-1x"></i>
                         Hangup
                     </button>
@@ -207,11 +211,11 @@
                     <p class="text-important">Call from {{callUsername}}</p>
                     <div class="row">
                         <div class="col-xs-12 btn-group">
-                            <button type="button" class="col-xs-6 btn btn-danger btn-lg" data-dismiss="modal">
+                            <button type="button" class="col-xs-6 btn btn-danger btn-lg" ng-click="rejectIncomingCallAction()">
                                 <i class="fa fa-close fa-fw fa-1x"></i>
                                 Reject
                             </button>
-                            <button type="button" class="col-xs-6 btn btn-success btn-lg" data-dismiss="modal">
+                            <button type="button" class="col-xs-6 btn btn-success btn-lg" ng-click="acceptIncomingCallAction()">
                                 <i class="fa fa-check fa-fw fa-1x"></i>
                                 Accept
                             </button>

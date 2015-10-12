@@ -3,6 +3,7 @@ package com.offbynull.voip.ui;
 import com.offbynull.peernetic.core.gateways.direct.DirectGateway;
 import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.shuttle.Message;
+import com.offbynull.voip.ui.internalmessages.AcceptIncomingCallAction;
 import com.offbynull.voip.ui.internalmessages.CallAction;
 import com.offbynull.voip.ui.internalmessages.ChooseDevicesAction;
 import com.offbynull.voip.ui.internalmessages.ResetDevicesAction;
@@ -14,9 +15,12 @@ import com.offbynull.voip.ui.internalmessages.DevicesChosenAction;
 import com.offbynull.voip.ui.internalmessages.GoToOutgoingCall;
 import com.offbynull.voip.ui.internalmessages.LogoutAction;
 import com.offbynull.voip.ui.internalmessages.GoToDeviceSelection;
+import com.offbynull.voip.ui.internalmessages.GoToEstablishedCall;
 import com.offbynull.voip.ui.internalmessages.GoToIncomingCall;
-import com.offbynull.voip.ui.internalmessages.GoToUnrecoverableError;
+import com.offbynull.voip.ui.internalmessages.HangupAction;
 import com.offbynull.voip.ui.internalmessages.ReadyAction;
+import com.offbynull.voip.ui.internalmessages.RejectIncomingCallAction;
+import com.offbynull.voip.ui.internalmessages.UpdateMessageRate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.function.Supplier;
@@ -39,12 +43,14 @@ public class ManualTest {
         
 
         
+        
         while (true) {
             List<Message> messages = directGateway.readMessages();
             for (Message message : messages) {
                 Object payload = message.getMessage();
                 
                 if (payload instanceof ReadyAction) {
+                    directGateway.writeMessage(Address.of("ui"), new UpdateMessageRate(222, 333));
                     directGateway.writeMessage(Address.of("ui"), new GoToLogin());
                 } else if (payload instanceof LoginAction) {
                     directGateway.writeMessage(Address.of("ui"), new GoToWorking("Logging in 1..."));
@@ -76,6 +82,12 @@ public class ManualTest {
                 } else if (payload instanceof CallAction) {
                     CallAction callAction = (CallAction) payload;
                     directGateway.writeMessage(Address.of("ui"), new GoToOutgoingCall(callAction.getUsername()));
+                } else if (payload instanceof AcceptIncomingCallAction) {
+                    directGateway.writeMessage(Address.of("ui"), new GoToEstablishedCall());
+                } else if (payload instanceof RejectIncomingCallAction) {
+                    directGateway.writeMessage(Address.of("ui"), new GoToIdle());
+                } else if (payload instanceof HangupAction) {
+                    directGateway.writeMessage(Address.of("ui"), new GoToIdle());
                 }
             }
         }
