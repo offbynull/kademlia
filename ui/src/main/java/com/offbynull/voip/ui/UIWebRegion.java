@@ -8,8 +8,9 @@ import com.offbynull.voip.ui.internalmessages.LogoutAction;
 import com.offbynull.voip.ui.internalmessages.GoToIdle;
 import com.offbynull.voip.ui.internalmessages.LoginAction;
 import com.offbynull.voip.ui.internalmessages.DevicesChosenAction;
-import com.offbynull.voip.ui.internalmessages.GoToCalling;
+import com.offbynull.voip.ui.internalmessages.GoToOutgoingCall;
 import com.offbynull.voip.ui.internalmessages.GoToDeviceSelection;
+import com.offbynull.voip.ui.internalmessages.GoToIncomingCall;
 import com.offbynull.voip.ui.internalmessages.GoToLogin;
 import com.offbynull.voip.ui.internalmessages.GoToUnrecoverableError;
 import com.offbynull.voip.ui.internalmessages.GoToWorking;
@@ -163,11 +164,17 @@ final class UIWebRegion extends Region {
                                 JSObject win = (JSObject) webEngine.executeScript("window");
                                 win.call("goToIdle");
                             });
-                        } else if (incomingObj instanceof GoToCalling) {
-                            GoToCalling goToCalling = (GoToCalling) incomingObj;
+                        } else if (incomingObj instanceof GoToOutgoingCall) {
+                            GoToOutgoingCall goToOutgoingCall = (GoToOutgoingCall) incomingObj;
                             Platform.runLater(() -> {
                                 JSObject win = (JSObject) webEngine.executeScript("window");
-                                win.call("goToCalling", goToCalling.getUsername());
+                                win.call("goToOutgoingCall", goToOutgoingCall.getUsername());
+                            });
+                        } else if (incomingObj instanceof GoToIncomingCall) {
+                            GoToIncomingCall goToIncomingCall = (GoToIncomingCall) incomingObj;
+                            Platform.runLater(() -> {
+                                JSObject win = (JSObject) webEngine.executeScript("window");
+                                win.call("goToIncomingCall", goToIncomingCall.getUsername());
                             });
                         } else if (incomingObj instanceof GoToDeviceSelection) {
                             GoToDeviceSelection showDeviceSelection = (GoToDeviceSelection) incomingObj;

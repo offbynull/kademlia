@@ -76,12 +76,21 @@ window.goToIdle = function () {
     });
 };
 
-window.goToCalling = function (username) {
+window.goToOutgoingCall = function (username) {
     var $scope = getAngularScope();
     
     $scope.$apply(function () {
         $scope.callUsername = username;
-        $scope.state = 'ACTIVE_OUTGOING_CALLING';
+        $scope.state = 'ACTIVE_OUTGOING_CALL';
+    });
+};
+
+window.goToIncomingCall = function (username) {
+    var $scope = getAngularScope();
+    
+    $scope.$apply(function () {
+        $scope.callUsername = username;
+        $scope.state = 'ACTIVE_INCOMING_CALL';
     });
 };
 

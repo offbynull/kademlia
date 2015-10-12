@@ -11,9 +11,10 @@ import com.offbynull.voip.ui.internalmessages.GoToLogin;
 import com.offbynull.voip.ui.internalmessages.GoToWorking;
 import com.offbynull.voip.ui.internalmessages.LoginAction;
 import com.offbynull.voip.ui.internalmessages.DevicesChosenAction;
-import com.offbynull.voip.ui.internalmessages.GoToCalling;
+import com.offbynull.voip.ui.internalmessages.GoToOutgoingCall;
 import com.offbynull.voip.ui.internalmessages.LogoutAction;
 import com.offbynull.voip.ui.internalmessages.GoToDeviceSelection;
+import com.offbynull.voip.ui.internalmessages.GoToIncomingCall;
 import com.offbynull.voip.ui.internalmessages.GoToUnrecoverableError;
 import com.offbynull.voip.ui.internalmessages.ReadyAction;
 import java.util.HashMap;
@@ -55,7 +56,7 @@ public class ManualTest {
                     directGateway.writeMessage(Address.of("ui"), new GoToIdle());
                 } else if (payload instanceof LogoutAction) {
 //                    directGateway.writeMessage(Address.of("ui"), new GoToLogin());
-                    directGateway.writeMessage(Address.of("ui"), new GoToUnrecoverableError("ERROR ERROR ERROR ^_^"));
+                    directGateway.writeMessage(Address.of("ui"), new GoToIncomingCall("test"));
                 } else if (payload instanceof ResetDevicesAction) {
                     HashMap<Integer, String> inDevices = new HashMap<>();
                     HashMap<Integer, String> outDevices = new HashMap<>();
@@ -74,7 +75,7 @@ public class ManualTest {
                     directGateway.writeMessage(Address.of("ui"), new GoToIdle());
                 } else if (payload instanceof CallAction) {
                     CallAction callAction = (CallAction) payload;
-                    directGateway.writeMessage(Address.of("ui"), new GoToCalling(callAction.getUsername()));
+                    directGateway.writeMessage(Address.of("ui"), new GoToOutgoingCall(callAction.getUsername()));
                 }
             }
         }

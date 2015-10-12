@@ -152,7 +152,7 @@
             </div>
 
             <!-- CONTACTING -->
-            <div id="loggedInScreenConnecting" class="chunk" ng-show="state === 'ACTIVE_OUTGOING_CALLING'">
+            <div id="loggedInScreenConnecting" class="chunk" ng-show="state === 'ACTIVE_OUTGOING_CALL'">
                 <div class="container-fluid">
                     <div class="callLogo">
                         <i class="fa fa-user fa-2x"></i>
@@ -181,7 +181,7 @@
                         <i class="fa fa-exchange fa-2x"></i>
                         <i class="fa fa-user fa-2x"></i>
                     </div>
-                    <p class="text-important">CONNECTED WITH USERNAME</p>
+                    <p class="text-important">Connected with {{callUsername}}</p>
                 </div>
                 <div class="container-fluid">
                     <button id="connected-end-button" class="btn btn-lg btn-danger btn-block">
