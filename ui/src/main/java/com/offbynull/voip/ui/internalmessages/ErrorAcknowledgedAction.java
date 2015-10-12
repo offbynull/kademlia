@@ -16,33 +16,12 @@
  */
 package com.offbynull.voip.ui.internalmessages;
 
-import org.apache.commons.lang3.Validate;
-
 /**
- * Changes the UI to the unrecoverable error screen (the screen in which a critical error has occurred that you can't navigate away from).
+ * The user has performed an action to acknowledge the error message (shown by {@link GoToError}).
  * <p>
  * This class is immutable.
  * @author Kasra Faghihi
  */
-public final class GoToUnrecoverableError {
-    private final String message;
-    
-    /**
-     * Constructs a {@link GoToUnrecoverableError} object.
-     * @param message error text to display
-     * @throws NullPointerException if any argument is {@code null}
-     */
-    public GoToUnrecoverableError(String message) {
-        Validate.notNull(message);
-        this.message = message;
-    }
-
-    /**
-     * Get the message.
-     * @return error text to display
-     */
-    public String getMessage() {
-        return message;
-    }
+public final class ErrorAcknowledgedAction {
     
 }

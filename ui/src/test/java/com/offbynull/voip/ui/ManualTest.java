@@ -12,11 +12,12 @@ import com.offbynull.voip.ui.internalmessages.GoToLogin;
 import com.offbynull.voip.ui.internalmessages.GoToWorking;
 import com.offbynull.voip.ui.internalmessages.LoginAction;
 import com.offbynull.voip.ui.internalmessages.DevicesChosenAction;
+import com.offbynull.voip.ui.internalmessages.ErrorAcknowledgedAction;
 import com.offbynull.voip.ui.internalmessages.GoToOutgoingCall;
 import com.offbynull.voip.ui.internalmessages.LogoutAction;
 import com.offbynull.voip.ui.internalmessages.GoToDeviceSelection;
+import com.offbynull.voip.ui.internalmessages.GoToError;
 import com.offbynull.voip.ui.internalmessages.GoToEstablishedCall;
-import com.offbynull.voip.ui.internalmessages.GoToIncomingCall;
 import com.offbynull.voip.ui.internalmessages.HangupAction;
 import com.offbynull.voip.ui.internalmessages.ReadyAction;
 import com.offbynull.voip.ui.internalmessages.RejectIncomingCallAction;
@@ -51,18 +52,13 @@ public class ManualTest {
                 
                 if (payload instanceof ReadyAction) {
                     directGateway.writeMessage(Address.of("ui"), new UpdateMessageRate(222, 333));
-                    directGateway.writeMessage(Address.of("ui"), new GoToLogin());
+                    directGateway.writeMessage(Address.of("ui"), new GoToLogin(true));
                 } else if (payload instanceof LoginAction) {
                     directGateway.writeMessage(Address.of("ui"), new GoToWorking("Logging in 1..."));
                     Thread.sleep(1000L);
-//                    directGateway.writeMessage(Address.of("ui"), new GoToWorking("Logging in 2..."));
-//                    Thread.sleep(1000L);
-//                    directGateway.writeMessage(Address.of("ui"), new GoToWorking("Logging in 3..."));
-//                    Thread.sleep(1000L);
                     directGateway.writeMessage(Address.of("ui"), new GoToIdle());
                 } else if (payload instanceof LogoutAction) {
-//                    directGateway.writeMessage(Address.of("ui"), new GoToLogin());
-                    directGateway.writeMessage(Address.of("ui"), new GoToIncomingCall("test"));
+                    directGateway.writeMessage(Address.of("ui"), new GoToError("test", true));
                 } else if (payload instanceof ResetDevicesAction) {
                     HashMap<Integer, String> inDevices = new HashMap<>();
                     HashMap<Integer, String> outDevices = new HashMap<>();
@@ -88,6 +84,8 @@ public class ManualTest {
                     directGateway.writeMessage(Address.of("ui"), new GoToIdle());
                 } else if (payload instanceof HangupAction) {
                     directGateway.writeMessage(Address.of("ui"), new GoToIdle());
+                } else if (payload instanceof ErrorAcknowledgedAction) {
+                    directGateway.writeMessage(Address.of("ui"), new GoToLogin(false));
                 }
             }
         }

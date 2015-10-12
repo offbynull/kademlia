@@ -16,8 +16,6 @@
  */
 package com.offbynull.voip.ui.internalmessages;
 
-import org.apache.commons.lang3.Validate;
-
 /**
  * Changes the UI to the log in screen.
  * <p>
@@ -25,35 +23,15 @@ import org.apache.commons.lang3.Validate;
  * @author Kasra Faghihi
  */
 public final class GoToLogin {
-    private final String message;
     private final boolean reset;
 
     /**
-     * Constructs a {@link GoToLogin} object without a message.
-     */
-    public GoToLogin() {
-        this("", true);
-    }
-
-    /**
      * Constructs a {@link GoToLogin} object.
-     * @param message error message to display (empty string means no error)
      * @param reset if {@code true} resets previously set fields on the login page (username and bootstrap link), {@code false} keeps them
      * intact
-     * @throws NullPointerException if any argument is {@code null}
      */
-    public GoToLogin(String message, boolean reset) {
-        Validate.notNull(message);
-        this.message = message;
+    public GoToLogin(boolean reset) {
         this.reset = reset;
-    }
-
-    /**
-     * Get message.
-     * @return error message to display (empty string means no error)
-     */
-    public String getMessage() {
-        return message;
     }
 
     /**

@@ -99,8 +99,8 @@ div.emblem-important {
     margin-top: 80px;
 }
 
-#loggedInScreen .menu {
-
+#errorAckButton {
+    margin-top: 40px;
 }
 
 #loggedInScreen .chunk {

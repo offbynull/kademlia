@@ -33,7 +33,8 @@ angular.module('ui', [])
 
             $scope.chooseDevicesAction = function () {
                 messageSender.chooseDevicesAction($scope.selectedInputDevice, $scope.selectedOutputDevice);
-                $scope.blockInput = true;
+                // asynch operation, do not block input
+                // $scope.blockInput = true;
             };
 
             $scope.devicesChosenAction = function () {
@@ -60,6 +61,11 @@ angular.module('ui', [])
                 messageSender.hangupCallAction();
                 $scope.blockInput = true;
             };
+
+            $scope.errorAcknowledgedAction = function () {
+                messageSender.errorAcknowledgedAction();
+                $scope.blockInput = true;
+            };
         });
 
 
@@ -67,13 +73,12 @@ angular.module('ui', [])
 //
 // CALLBACKS INVOKED FROM JAVA TO FORCE THE UI TO GO TO A DIFFERENT STATE
 //
-window.goToLogin = function (message, reset) {
+window.goToLogin = function (reset) {
     var $scope = getAngularScope();
 
     $scope.$apply(function () {
         $scope.blockInput = false;
         $scope.state = 'LOGIN';
-        $scope.errorMessage = message;
 
         if (reset === true) {
             $scope.loginUsername = '';
@@ -82,13 +87,14 @@ window.goToLogin = function (message, reset) {
     });
 };
 
-window.goToUnrecoverableError = function (message) {
+window.goToError = function (message, critical) {
     var $scope = getAngularScope();
 
     $scope.$apply(function () {
         $scope.blockInput = false;
-        $scope.state = 'UNRECOVERABLE_ERROR';
-        $scope.unrecoverableErrorMessage = message;
+        $scope.state = 'ERROR';
+        $scope.errorMessage = message;
+        $scope.errorCritical = critical;
     });
 };
 

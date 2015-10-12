@@ -25,12 +25,13 @@ import com.offbynull.voip.ui.internalmessages.LogoutAction;
 import com.offbynull.voip.ui.internalmessages.GoToIdle;
 import com.offbynull.voip.ui.internalmessages.LoginAction;
 import com.offbynull.voip.ui.internalmessages.DevicesChosenAction;
+import com.offbynull.voip.ui.internalmessages.ErrorAcknowledgedAction;
 import com.offbynull.voip.ui.internalmessages.GoToOutgoingCall;
 import com.offbynull.voip.ui.internalmessages.GoToDeviceSelection;
 import com.offbynull.voip.ui.internalmessages.GoToEstablishedCall;
 import com.offbynull.voip.ui.internalmessages.GoToIncomingCall;
 import com.offbynull.voip.ui.internalmessages.GoToLogin;
-import com.offbynull.voip.ui.internalmessages.GoToUnrecoverableError;
+import com.offbynull.voip.ui.internalmessages.GoToError;
 import com.offbynull.voip.ui.internalmessages.GoToWorking;
 import com.offbynull.voip.ui.internalmessages.HangupAction;
 import com.offbynull.voip.ui.internalmessages.ReadyAction;
@@ -161,17 +162,17 @@ final class UIWebRegion extends Region {
                     Validate.noNullElements(incomingObjects);
 
                     for (Object incomingObj : incomingObjects) {
-                        if (incomingObj instanceof GoToUnrecoverableError) {
-                            GoToUnrecoverableError goToUnrecoverableError = (GoToUnrecoverableError) incomingObj;
+                        if (incomingObj instanceof GoToError) {
+                            GoToError goToError = (GoToError) incomingObj;
                             Platform.runLater(() -> {
                                 JSObject win = (JSObject) webEngine.executeScript("window");
-                                win.call("goToUnrecoverableError", goToUnrecoverableError.getMessage());
+                                win.call("goToError", goToError.getMessage(), goToError.isUnrecoverable());
                             });
                         } else if (incomingObj instanceof GoToLogin) {
                             GoToLogin goToLogin = (GoToLogin) incomingObj;
                             Platform.runLater(() -> {
                                 JSObject win = (JSObject) webEngine.executeScript("window");
-                                win.call("goToLogin", goToLogin.getMessage(), goToLogin.isReset());
+                                win.call("goToLogin", goToLogin.isReset());
                             });
                         } else if (incomingObj instanceof GoToWorking) {
                             GoToWorking goToWorking = (GoToWorking) incomingObj;
@@ -274,6 +275,10 @@ final class UIWebRegion extends Region {
 
         public void hangupCallAction() {
             busToGateway.add(new UIAction(new HangupAction()));
+        }
+
+        public void errorAcknowledgedAction() {
+            busToGateway.add(new UIAction(new ErrorAcknowledgedAction()));
         }
     }
 }

@@ -19,10 +19,10 @@
     </head>
     <body ng-controller="MainCtrl">
 
-                
+
         <div id="inputBlocker" ng-show="blockInput === true">
         </div>
-        
+
         <!-- LOGIN SCREEN -->
         <div id="loginScreen" class="voip-screen-centered" ng-show="state === 'LOGIN'">
             <div class="container-fluid">
@@ -31,15 +31,6 @@
                         <i class="fa fa-cloud fa-stack-2x"></i>
                         <i class="fa fa-phone fa-stack-1x fa-inverse"></i>
                     </span>
-                </div>
-
-                <div class="panel panel-danger" ng-show="errorMessage !== ''">
-                    <div class="panel-heading">
-                        <span><i class="fa fa-exclamation-circle fa-fw text-danger"></i>Error</span>
-                    </div>
-                    <div class="panel-body">
-                        <span class="text-danger">{{errorMessage}}</span>
-                    </div>
                 </div>
 
                 <div class="row">
@@ -87,8 +78,8 @@
             </div>
         </div>
 
-        <!-- HARD ERROR -->
-        <div id="hardErrorScreen" class="voip-screen-centered" ng-show="state === 'UNRECOVERABLE_ERROR'">
+        <!-- ERROR -->
+        <div id="errorScreen" class="voip-screen-centered" ng-show="state === 'ERROR'">
             <div class="container-fluid">
                 <div class="row">
                     <div class="col-xs-12 emblem-important">
@@ -97,7 +88,12 @@
                 </div>
                 <div class="row">
                     <div class="col-xs-12">
-                        <p class="text-important">{{unrecoverableErrorMessage}}</p>
+                        <p class="text-important">{{errorMessage}}</p>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-xs-offset-4 col-xs-4">
+                        <button class="btn btn-default btn-block" id="errorAckButton" ng-show="errorCritical !== true" ng-click="errorAcknowledgedAction()">Okay</button>
                     </div>
                 </div>
             </div>
