@@ -1,12 +1,14 @@
 package com.offbynull.voip.ui;
 
 import com.offbynull.peernetic.core.shuttles.simple.Bus;
+import com.offbynull.voip.ui.internalmessages.CallAction;
 import com.offbynull.voip.ui.internalmessages.ChooseDevicesAction;
 import com.offbynull.voip.ui.internalmessages.ResetDevicesAction;
 import com.offbynull.voip.ui.internalmessages.LogoutAction;
 import com.offbynull.voip.ui.internalmessages.GoToIdle;
 import com.offbynull.voip.ui.internalmessages.LoginAction;
 import com.offbynull.voip.ui.internalmessages.DevicesChosenAction;
+import com.offbynull.voip.ui.internalmessages.GoToCalling;
 import com.offbynull.voip.ui.internalmessages.GoToDeviceSelection;
 import com.offbynull.voip.ui.internalmessages.GoToLogin;
 import com.offbynull.voip.ui.internalmessages.GoToUnrecoverableError;
@@ -156,10 +158,16 @@ final class UIWebRegion extends Region {
                                 win.call("goToWorking", goToWorking.getMessage());
                             });
                         } else if (incomingObj instanceof GoToIdle) {
-                            GoToIdle goToLoggedIn = (GoToIdle) incomingObj;
+                            GoToIdle goToIdle = (GoToIdle) incomingObj;
                             Platform.runLater(() -> {
                                 JSObject win = (JSObject) webEngine.executeScript("window");
                                 win.call("goToIdle");
+                            });
+                        } else if (incomingObj instanceof GoToCalling) {
+                            GoToCalling goToCalling = (GoToCalling) incomingObj;
+                            Platform.runLater(() -> {
+                                JSObject win = (JSObject) webEngine.executeScript("window");
+                                win.call("goToCalling", goToCalling.getUsername());
                             });
                         } else if (incomingObj instanceof GoToDeviceSelection) {
                             GoToDeviceSelection showDeviceSelection = (GoToDeviceSelection) incomingObj;
@@ -210,6 +218,10 @@ final class UIWebRegion extends Region {
 
         public void devicesChosenAction() {
             busToGateway.add(new UIAction(new DevicesChosenAction()));
+        }
+
+        public void callAction(String username) {
+            busToGateway.add(new UIAction(new CallAction(username)));
         }
     }
 }

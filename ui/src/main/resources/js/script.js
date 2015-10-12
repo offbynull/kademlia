@@ -30,13 +30,15 @@ angular.module('ui', [])
             $scope.devicesChosenAction = function () {
                 messageSender.devicesChosenAction();
             };
+
+            $scope.callAction = function () {
+                messageSender.callAction($scope.callUsername);
+            };
         });
 
 window.goToLogin = function (message, reset) {
-    var appElement = document.querySelector('[ng-app=ui]');
-    var $scope = angular.element(appElement).scope();
-    $scope = $scope.$$childHead;
-
+    var $scope = getAngularScope();
+    
     $scope.$apply(function () {
         $scope.state = 'LOGIN';
         $scope.errorMessage = message;
@@ -49,10 +51,8 @@ window.goToLogin = function (message, reset) {
 };
 
 window.goToUnrecoverableError = function (message) {
-    var appElement = document.querySelector('[ng-app=ui]');
-    var $scope = angular.element(appElement).scope();
-    $scope = $scope.$$childHead;
-
+    var $scope = getAngularScope();
+    
     $scope.$apply(function () {
         $scope.state = 'UNRECOVERABLE_ERROR';
         $scope.unrecoverableErrorMessage = message;
@@ -60,10 +60,8 @@ window.goToUnrecoverableError = function (message) {
 };
 
 window.goToWorking = function (message) {
-    var appElement = document.querySelector('[ng-app=ui]');
-    var $scope = angular.element(appElement).scope();
-    $scope = $scope.$$childHead;
-
+    var $scope = getAngularScope();
+    
     $scope.$apply(function () {
         $scope.state = 'WORKING';
         $scope.workingMessage = message;
@@ -71,20 +69,25 @@ window.goToWorking = function (message) {
 };
 
 window.goToIdle = function () {
-    var appElement = document.querySelector('[ng-app=ui]');
-    var $scope = angular.element(appElement).scope();
-    $scope = $scope.$$childHead;
-
+    var $scope = getAngularScope();
+    
     $scope.$apply(function () {
         $scope.state = 'ACTIVE_IDLE';
     });
 };
 
-window.showDeviceSelection = function (inputDevices, outputDevices) {
-    var appElement = document.querySelector('[ng-app=ui]');
-    var $scope = angular.element(appElement).scope();
-    $scope = $scope.$$childHead;
+window.goToCalling = function (username) {
+    var $scope = getAngularScope();
+    
+    $scope.$apply(function () {
+        $scope.callUsername = username;
+        $scope.state = 'ACTIVE_OUTGOING_CALLING';
+    });
+};
 
+window.showDeviceSelection = function (inputDevices, outputDevices) {
+    var $scope = getAngularScope();
+    
     $scope.$apply(function () {
         $scope.inputDevices = inputDevices;
         $scope.outputDevices = outputDevices;
@@ -100,6 +103,12 @@ window.showDeviceSelection = function (inputDevices, outputDevices) {
         
         $scope.state = 'DEVICE_SELECTION';
     });
+};
+
+window.getAngularScope = function() {
+    var appElement = document.querySelector('[ng-app=ui]');
+    var $scope = angular.element(appElement).scope();
+    return $scope.$$childHead;
 };
 
 // http://stackoverflow.com/questions/909003/javascript-getting-the-first-index-of-an-object

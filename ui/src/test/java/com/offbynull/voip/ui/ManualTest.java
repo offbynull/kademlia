@@ -3,6 +3,7 @@ package com.offbynull.voip.ui;
 import com.offbynull.peernetic.core.gateways.direct.DirectGateway;
 import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.shuttle.Message;
+import com.offbynull.voip.ui.internalmessages.CallAction;
 import com.offbynull.voip.ui.internalmessages.ChooseDevicesAction;
 import com.offbynull.voip.ui.internalmessages.ResetDevicesAction;
 import com.offbynull.voip.ui.internalmessages.GoToIdle;
@@ -10,6 +11,7 @@ import com.offbynull.voip.ui.internalmessages.GoToLogin;
 import com.offbynull.voip.ui.internalmessages.GoToWorking;
 import com.offbynull.voip.ui.internalmessages.LoginAction;
 import com.offbynull.voip.ui.internalmessages.DevicesChosenAction;
+import com.offbynull.voip.ui.internalmessages.GoToCalling;
 import com.offbynull.voip.ui.internalmessages.LogoutAction;
 import com.offbynull.voip.ui.internalmessages.GoToDeviceSelection;
 import com.offbynull.voip.ui.internalmessages.GoToUnrecoverableError;
@@ -70,6 +72,9 @@ public class ManualTest {
                     System.out.println(chooseDevicesAction.getInputId() + " / " + chooseDevicesAction.getOutputId());
                 } else if (payload instanceof DevicesChosenAction) {
                     directGateway.writeMessage(Address.of("ui"), new GoToIdle());
+                } else if (payload instanceof CallAction) {
+                    CallAction callAction = (CallAction) payload;
+                    directGateway.writeMessage(Address.of("ui"), new GoToCalling(callAction.getUsername()));
                 }
             }
         }
