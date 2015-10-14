@@ -14,23 +14,40 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.voip.audio.internalmessages;
+package com.offbynull.voip.audio.gateways.io.internalmessages;
+
+import org.apache.commons.lang3.Validate;
 
 /**
- * Loads audio output and audio input devices.
- * <p>
- * Responses sent to this request are ...
- * <ul>
- * <li>{@link LoadDevicesResponse}</li>
- * <li>{@link ErrorResponse}</li>
- * </ul>
- * <p>
- * Note that, if you send this request more than once, audio input/output IDs returned by the previous {@link LoadDevicesRequest}s will
- * become unusable.
+ * Generic error response.
  * <p>
  * This class is immutable.
  * @author Kasra Faghihi
  */
-public final class LoadDevicesRequest {
+public final class ErrorResponse {
+    private final String message;
+
+    /**
+     * Constructs a {@link ErrorResponse} object.
+     * @param message error message
+     * @throws NullPointerException if any argument is {@code null}
+     */
+    public ErrorResponse(String message) {
+        Validate.notNull(message);
+        this.message = message;
+    }
+
+    /**
+     * Get error message.
+     * @return error message
+     */
+    public String getMessage() {
+        return message;
+    }
+
+    @Override
+    public String toString() {
+        return "ErrorResponse{" + "message=" + message + '}';
+    }
     
 }

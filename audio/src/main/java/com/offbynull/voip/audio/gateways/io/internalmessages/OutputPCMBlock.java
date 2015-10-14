@@ -14,23 +14,43 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.voip.audio;
+package com.offbynull.voip.audio.gateways.io.internalmessages;
 
 import java.util.Arrays;
 import org.apache.commons.lang3.Validate;
 
-final class InputData {
+/**
+ * A block of PCM audio data to write out to the opened output audio device.
+ * <p>
+ * PCM data must conform to the following ...
+ * <ul>
+ * <li>16000Hz sample rate</li>
+ * <li>8-bit sample size (signed)</li>
+ * <li>1 channel (mono)</li>
+ * <li>at least 800 samples (800 bytes / 50ms of data)</li>
+ * </ul>
+ * <p>
+ * This class is immutable.
+ * @author Kasra Faghihi
+ */
+public final class OutputPCMBlock {
     private final byte[] data;
 
-    public InputData(byte[] data, int len) {
+    /**
+     * Constructs an {@link OutputPCMBlock} object.
+     * @param data PCM data
+     * @throws NullPointerException if any argument is {@code null}
+     */
+    public OutputPCMBlock(byte[] data) {
         Validate.notNull(data);
-        Validate.isTrue(len >= 0);
-        Validate.isTrue(len <= data.length);
-        this.data = Arrays.copyOf(data, len);
+        this.data = Arrays.copyOf(data, data.length);
     }
 
+    /**
+     * Get PCM data.
+     * @return PCM data
+     */
     public byte[] getData() {
         return Arrays.copyOf(data, data.length);
     }
-    
 }

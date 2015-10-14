@@ -14,22 +14,22 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.voip.audio;
+package com.offbynull.voip.audio.gateways.io;
 
 import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.shuttle.Message;
 import com.offbynull.peernetic.core.shuttle.Shuttle;
 import com.offbynull.peernetic.core.shuttles.simple.Bus;
-import com.offbynull.voip.audio.internalmessages.CloseDevicesRequest;
-import com.offbynull.voip.audio.internalmessages.ErrorResponse;
-import com.offbynull.voip.audio.internalmessages.InputPCMBlock;
-import com.offbynull.voip.audio.internalmessages.LoadDevicesRequest;
-import com.offbynull.voip.audio.internalmessages.LoadDevicesResponse;
-import com.offbynull.voip.audio.internalmessages.LoadDevicesResponse.InputDevice;
-import com.offbynull.voip.audio.internalmessages.LoadDevicesResponse.OutputDevice;
-import com.offbynull.voip.audio.internalmessages.OpenDevicesRequest;
-import com.offbynull.voip.audio.internalmessages.OutputPCMBlock;
-import com.offbynull.voip.audio.internalmessages.SuccessResponse;
+import com.offbynull.voip.audio.gateways.io.internalmessages.CloseDevicesRequest;
+import com.offbynull.voip.audio.gateways.io.internalmessages.ErrorResponse;
+import com.offbynull.voip.audio.gateways.io.internalmessages.InputPCMBlock;
+import com.offbynull.voip.audio.gateways.io.internalmessages.LoadDevicesRequest;
+import com.offbynull.voip.audio.gateways.io.internalmessages.LoadDevicesResponse;
+import com.offbynull.voip.audio.gateways.io.internalmessages.LoadDevicesResponse.InputDevice;
+import com.offbynull.voip.audio.gateways.io.internalmessages.LoadDevicesResponse.OutputDevice;
+import com.offbynull.voip.audio.gateways.io.internalmessages.OpenDevicesRequest;
+import com.offbynull.voip.audio.gateways.io.internalmessages.OutputPCMBlock;
+import com.offbynull.voip.audio.gateways.io.internalmessages.SuccessResponse;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;

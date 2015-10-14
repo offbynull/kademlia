@@ -14,25 +14,23 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.voip.audio;
+package com.offbynull.voip.audio.gateways.io;
 
+import java.util.Arrays;
 import org.apache.commons.lang3.Validate;
 
-final class RemoveShuttle {
-    private final String prefix;
+final class InputData {
+    private final byte[] data;
 
-    public RemoveShuttle(String prefix) {
-        Validate.notNull(prefix);
-        this.prefix = prefix;
+    public InputData(byte[] data, int len) {
+        Validate.notNull(data);
+        Validate.isTrue(len >= 0);
+        Validate.isTrue(len <= data.length);
+        this.data = Arrays.copyOf(data, len);
     }
 
-    public String getPrefix() {
-        return prefix;
+    public byte[] getData() {
+        return Arrays.copyOf(data, data.length);
     }
-
-    @Override
-    public String toString() {
-        return "RemoveShuttle{" + "prefix=" + prefix + '}';
-    }
-
+    
 }

@@ -14,26 +14,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.voip.audio;
 
-import com.offbynull.peernetic.core.shuttle.Shuttle;
-import org.apache.commons.lang3.Validate;
-
-final class AddShuttle {
-    private final Shuttle shuttle;
-
-    public AddShuttle(Shuttle shuttle) {
-        Validate.notNull(shuttle);
-        this.shuttle = shuttle;
-    }
-
-    public Shuttle getShuttle() {
-        return shuttle;
-    }
-
-    @Override
-    public String toString() {
-        return "AddShuttle{" + "shuttle=" + shuttle + '}';
-    }
-    
-}
+/**
+ * Gateway that simultaneously plays audio and captures audio.
+ * 
+ * @author Kasra Faghihi
+ */
+package com.offbynull.voip.audio.gateways.io;

@@ -1,4 +1,4 @@
-package com.offbynull.voip.audio.test;
+package com.offbynull.voip.audio.gateways.io;
 
 // Created this to avoid mixing commands to run the example with log output to the console
 import java.util.concurrent.ArrayBlockingQueue;

@@ -14,21 +14,20 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.voip.audio;
+package com.offbynull.voip.audio.gateways.io.internalmessages;
 
-import java.util.Arrays;
-import org.apache.commons.lang3.Validate;
-
-final class OutputData {
-    private final byte[] data;
-
-    public OutputData(byte[] data) {
-        Validate.notNull(data);
-        this.data = Arrays.copyOf(data, data.length);
-    }
-
-    public byte[] getData() {
-        return Arrays.copyOf(data, data.length);
-    }
+/**
+ * Closes the opened audio input device and audio output device.
+ * <p>
+ * Responses sent to this request are ...
+ * <ul>
+ * <li>{@link SuccessResponse}</li>
+ * <li>{@link ErrorResponse}</li>
+ * </ul>
+ * <p>
+ * This class is immutable.
+ * @author Kasra Faghihi
+ */
+public final class CloseDevicesRequest {
     
 }

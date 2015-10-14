@@ -14,48 +14,23 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.voip.audio.internalmessages;
+package com.offbynull.voip.audio.gateways.io.internalmessages;
 
 /**
- * Opens an audio output device and an audio input device.
+ * Loads audio output and audio input devices.
  * <p>
  * Responses sent to this request are ...
  * <ul>
- * <li>{@link SuccessResponse}</li>
+ * <li>{@link LoadDevicesResponse}</li>
  * <li>{@link ErrorResponse}</li>
  * </ul>
+ * <p>
+ * Note that, if you send this request more than once, audio input/output IDs returned by the previous {@link LoadDevicesRequest}s will
+ * become unusable.
  * <p>
  * This class is immutable.
  * @author Kasra Faghihi
  */
-public final class OpenDevicesRequest {
-    private final int outputId;
-    private final int inputId;
-
-    /**
-     * Constructs a {@link OpenDevicesRequest} object.
-     * @param outputId id of output device to open
-     * @param inputId id of input device to open
-     */
-    public OpenDevicesRequest(int outputId, int inputId) {
-        this.outputId = outputId;
-        this.inputId = inputId;
-    }
-
-    /**
-     * Get ID of output device to open.
-     * @return ID of output device to open
-     */
-    public int getOutputId() {
-        return outputId;
-    }
-
-    /**
-     * Get ID of input device to open.
-     * @return ID of input device to open
-     */
-    public int getInputId() {
-        return inputId;
-    }
+public final class LoadDevicesRequest {
     
 }

@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.voip.audio;
+package com.offbynull.voip.audio.gateways.io;
 
 import com.offbynull.peernetic.core.gateway.Gateway;
 import com.offbynull.peernetic.core.shuttle.Shuttle;
@@ -22,11 +22,11 @@ import com.offbynull.peernetic.core.gateway.InputGateway;
 import com.offbynull.peernetic.core.gateway.OutputGateway;
 import com.offbynull.peernetic.core.shuttles.simple.Bus;
 import com.offbynull.peernetic.core.shuttles.simple.SimpleShuttle;
-import com.offbynull.voip.audio.internalmessages.CloseDevicesRequest;
-import com.offbynull.voip.audio.internalmessages.InputPCMBlock;
-import com.offbynull.voip.audio.internalmessages.LoadDevicesRequest;
-import com.offbynull.voip.audio.internalmessages.OpenDevicesRequest;
-import com.offbynull.voip.audio.internalmessages.OutputPCMBlock;
+import com.offbynull.voip.audio.gateways.io.internalmessages.CloseDevicesRequest;
+import com.offbynull.voip.audio.gateways.io.internalmessages.InputPCMBlock;
+import com.offbynull.voip.audio.gateways.io.internalmessages.LoadDevicesRequest;
+import com.offbynull.voip.audio.gateways.io.internalmessages.OpenDevicesRequest;
+import com.offbynull.voip.audio.gateways.io.internalmessages.OutputPCMBlock;
 import org.apache.commons.lang3.Validate;
 
 /**
@@ -45,7 +45,7 @@ import org.apache.commons.lang3.Validate;
  * Use {@link CloseDevicesRequest} to close the devices you opened.
  * @author Kasra Faghihi
  */
-public final class AudioGateway implements InputGateway, OutputGateway {
+public final class AudioIOGateway implements InputGateway, OutputGateway {
 
     private final Thread thread;
     private final Bus bus;
@@ -53,11 +53,11 @@ public final class AudioGateway implements InputGateway, OutputGateway {
     private final SimpleShuttle shuttle;
 
     /**
-     * Constructs a {@link AudioGateway} instance.
+     * Constructs a {@link AudioIOGateway} instance.
      * @param prefix address prefix for this gateway
      * @throws NullPointerException if any argument is {@code null}
      */
-    public AudioGateway(String prefix) {
+    public AudioIOGateway(String prefix) {
         Validate.notNull(prefix);
         
         bus = new Bus();

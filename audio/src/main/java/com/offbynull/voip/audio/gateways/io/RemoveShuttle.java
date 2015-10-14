@@ -14,40 +14,25 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.voip.audio.internalmessages;
+package com.offbynull.voip.audio.gateways.io;
 
 import org.apache.commons.lang3.Validate;
 
-/**
- * Generic error response.
- * <p>
- * This class is immutable.
- * @author Kasra Faghihi
- */
-public final class ErrorResponse {
-    private final String message;
+final class RemoveShuttle {
+    private final String prefix;
 
-    /**
-     * Constructs a {@link ErrorResponse} object.
-     * @param message error message
-     * @throws NullPointerException if any argument is {@code null}
-     */
-    public ErrorResponse(String message) {
-        Validate.notNull(message);
-        this.message = message;
+    public RemoveShuttle(String prefix) {
+        Validate.notNull(prefix);
+        this.prefix = prefix;
     }
 
-    /**
-     * Get error message.
-     * @return error message
-     */
-    public String getMessage() {
-        return message;
+    public String getPrefix() {
+        return prefix;
     }
 
     @Override
     public String toString() {
-        return "ErrorResponse{" + "message=" + message + '}';
+        return "RemoveShuttle{" + "prefix=" + prefix + '}';
     }
-    
+
 }

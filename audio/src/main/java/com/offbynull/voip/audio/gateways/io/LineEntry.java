@@ -14,10 +14,29 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
+package com.offbynull.voip.audio.gateways.io;
 
-/**
- * Gateway that simultaneously plays audio and captures audio.
- * 
- * @author Kasra Faghihi
- */
-package com.offbynull.voip.audio;
+import javax.sound.sampled.Line;
+import javax.sound.sampled.Mixer;
+import org.apache.commons.lang3.Validate;
+
+final class LineEntry {
+    private final Mixer mixer;
+    private final Line.Info lineInfo;
+
+    public LineEntry(Mixer mixer, Line.Info lineInfo) {
+        Validate.notNull(mixer);
+        Validate.notNull(lineInfo);
+        this.mixer = mixer;
+        this.lineInfo = lineInfo;
+    }
+
+    public Mixer getMixer() {
+        return mixer;
+    }
+
+    public Line.Info getLineInfo() {
+        return lineInfo;
+    }
+    
+}

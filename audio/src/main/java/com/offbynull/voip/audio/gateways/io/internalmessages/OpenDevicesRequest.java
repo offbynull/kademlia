@@ -14,10 +14,10 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.voip.audio.internalmessages;
+package com.offbynull.voip.audio.gateways.io.internalmessages;
 
 /**
- * Closes the opened audio input device and audio output device.
+ * Opens an audio output device and an audio input device.
  * <p>
  * Responses sent to this request are ...
  * <ul>
@@ -28,6 +28,34 @@ package com.offbynull.voip.audio.internalmessages;
  * This class is immutable.
  * @author Kasra Faghihi
  */
-public final class CloseDevicesRequest {
+public final class OpenDevicesRequest {
+    private final int outputId;
+    private final int inputId;
+
+    /**
+     * Constructs a {@link OpenDevicesRequest} object.
+     * @param outputId id of output device to open
+     * @param inputId id of input device to open
+     */
+    public OpenDevicesRequest(int outputId, int inputId) {
+        this.outputId = outputId;
+        this.inputId = inputId;
+    }
+
+    /**
+     * Get ID of output device to open.
+     * @return ID of output device to open
+     */
+    public int getOutputId() {
+        return outputId;
+    }
+
+    /**
+     * Get ID of input device to open.
+     * @return ID of input device to open
+     */
+    public int getInputId() {
+        return inputId;
+    }
     
 }

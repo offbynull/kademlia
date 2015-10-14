@@ -20,4 +20,4 @@
  * 
  * @author Kasra Faghihi
  */
-package com.offbynull.voip.audio.internalmessages;
+package com.offbynull.voip.audio.gateways.io.internalmessages;
