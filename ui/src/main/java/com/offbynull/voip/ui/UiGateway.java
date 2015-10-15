@@ -37,7 +37,7 @@ import org.apache.commons.lang3.Validate;
  * To get access to the JavaFX component, use {@link #getJavaFXComponent() }.
  * @author Kasra Faghihi
  */
-public final class UIGateway implements InputGateway, OutputGateway {
+public final class UiGateway implements InputGateway, OutputGateway {
 
     private final Thread thread;
     private final Bus bus;
@@ -53,17 +53,17 @@ public final class UIGateway implements InputGateway, OutputGateway {
      * @param dstAddress address to send UI events to
      * @throws NullPointerException if any argument is {@code null}
      */
-    public UIGateway(String prefix, Address dstAddress) {
+    public UiGateway(String prefix, Address dstAddress) {
         Validate.notNull(prefix);
         Validate.notNull(dstAddress);
 
         bus = new Bus();
 
         busToWebRegion = new Bus();
-        webRegionSupplier = new SingleSupplier<>(() -> UIWebRegion.create(busToWebRegion, bus));
+        webRegionSupplier = new SingleSupplier<>(() -> UiWebRegion.create(busToWebRegion, bus));
         
         shuttle = new SimpleShuttle(prefix, bus);
-        thread = new Thread(new UIRunnable(shuttle.getPrefix(), dstAddress, bus, webRegionSupplier, busToWebRegion));
+        thread = new Thread(new UiRunnable(shuttle.getPrefix(), dstAddress, bus, webRegionSupplier, busToWebRegion));
         thread.setDaemon(true);
         thread.setName(getClass().getSimpleName() + "-" + prefix);
         thread.start();

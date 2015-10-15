@@ -16,10 +16,10 @@
  */
 package com.offbynull.voip.ui;
 
-final class UIAction {
+final class UiAction {
     private Object message;
 
-    public UIAction(Object message) {
+    public UiAction(Object message) {
         this.message = message;
     }
 

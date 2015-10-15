@@ -32,7 +32,7 @@ import javafx.scene.Parent;
 public class ManualTest {
 
     public static void main(String[] args) throws Exception {
-        UIGateway uiGateway = new UIGateway("ui", Address.of("direct"));
+        UiGateway uiGateway = new UiGateway("ui", Address.of("direct"));
         DirectGateway directGateway = new DirectGateway("direct");
         
         uiGateway.addOutgoingShuttle(directGateway.getIncomingShuttle());

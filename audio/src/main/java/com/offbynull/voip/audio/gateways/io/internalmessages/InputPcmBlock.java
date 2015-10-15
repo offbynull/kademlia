@@ -20,7 +20,7 @@ import java.util.Arrays;
 import org.apache.commons.lang3.Validate;
 
 /**
- * A block of PCM audio data to write out to the opened output audio device.
+ * A block of PCM audio data read in from the opened input audio device.
  * <p>
  * PCM data must conform to the following ...
  * <ul>
@@ -33,15 +33,15 @@ import org.apache.commons.lang3.Validate;
  * This class is immutable.
  * @author Kasra Faghihi
  */
-public final class OutputPCMBlock {
+public final class InputPcmBlock {
     private final byte[] data;
 
     /**
-     * Constructs an {@link OutputPCMBlock} object.
+     * Constructs an {@link InputPCMBlock} object.
      * @param data PCM data
      * @throws NullPointerException if any argument is {@code null}
      */
-    public OutputPCMBlock(byte[] data) {
+    public InputPcmBlock(byte[] data) {
         Validate.notNull(data);
         this.data = Arrays.copyOf(data, data.length);
     }

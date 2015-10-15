@@ -23,10 +23,10 @@ import com.offbynull.peernetic.core.gateway.OutputGateway;
 import com.offbynull.peernetic.core.shuttles.simple.Bus;
 import com.offbynull.peernetic.core.shuttles.simple.SimpleShuttle;
 import com.offbynull.voip.audio.gateways.io.internalmessages.CloseDevicesRequest;
-import com.offbynull.voip.audio.gateways.io.internalmessages.InputPCMBlock;
+import com.offbynull.voip.audio.gateways.io.internalmessages.InputPcmBlock;
 import com.offbynull.voip.audio.gateways.io.internalmessages.LoadDevicesRequest;
 import com.offbynull.voip.audio.gateways.io.internalmessages.OpenDevicesRequest;
-import com.offbynull.voip.audio.gateways.io.internalmessages.OutputPCMBlock;
+import com.offbynull.voip.audio.gateways.io.internalmessages.OutputPcmBlock;
 import org.apache.commons.lang3.Validate;
 
 /**
@@ -37,15 +37,15 @@ import org.apache.commons.lang3.Validate;
  * <p>
  * Once the devices have been opened ...
  * <ul>
- * <li>The gateway will send you {@link InputPCMBlock}s with PCM data read in from the audio input device (sent to the address that opened
+ * <li>The gateway will send you {@link InputPcmBlock}s with PCM data read in from the audio input device (sent to the address that opened
  * the devices).</li>
- * <li>You send {@link OutputPCMBlock} to the gateway with PCM data to write out to the audio output device.</li>
+ * <li>You send {@link OutputPcmBlock} to the gateway with PCM data to write out to the audio output device.</li>
  * </ul>
  * <p>
  * Use {@link CloseDevicesRequest} to close the devices you opened.
  * @author Kasra Faghihi
  */
-public final class AudioIOGateway implements InputGateway, OutputGateway {
+public final class AudioIoGateway implements InputGateway, OutputGateway {
 
     private final Thread thread;
     private final Bus bus;
@@ -57,7 +57,7 @@ public final class AudioIOGateway implements InputGateway, OutputGateway {
      * @param prefix address prefix for this gateway
      * @throws NullPointerException if any argument is {@code null}
      */
-    public AudioIOGateway(String prefix) {
+    public AudioIoGateway(String prefix) {
         Validate.notNull(prefix);
         
         bus = new Bus();

@@ -55,9 +55,9 @@ import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-final class UIWebRegion extends Region {
+final class UiWebRegion extends Region {
 
-    private static final Logger LOG = LoggerFactory.getLogger(UIWebRegion.class);
+    private static final Logger LOG = LoggerFactory.getLogger(UiWebRegion.class);
 
     private final WebView webView;
     private final WebEngine webEngine;
@@ -68,8 +68,8 @@ final class UIWebRegion extends Region {
     private final Lock lock;
     private Thread incomingMessagePumpThread;
 
-    public static UIWebRegion create(Bus busFromGateway, Bus busToGateway) {
-        UIWebRegion ret = new UIWebRegion(busFromGateway, busToGateway);
+    public static UiWebRegion create(Bus busFromGateway, Bus busToGateway) {
+        UiWebRegion ret = new UiWebRegion(busFromGateway, busToGateway);
 
         URL resource = ret.getClass().getResource("/index.html");
         Validate.validState(resource != null); // should never happen, sanity check
@@ -82,9 +82,9 @@ final class UIWebRegion extends Region {
                         JSObject win = (JSObject) ret.webEngine.executeScript("window");
                         win.setMember("messageSender", ret.new JavascriptToGatewayBridge());
 
-                        busToGateway.add(new UIAction(new ReadyAction(false)));
+                        busToGateway.add(new UiAction(new ReadyAction(false)));
                     } else if (newState == State.CANCELLED || newState == State.FAILED) {
-                        busToGateway.add(new UIAction(new ReadyAction(true)));
+                        busToGateway.add(new UiAction(new ReadyAction(true)));
                     }
                 });
         ret.webEngine.load(mainPageLink);
@@ -105,7 +105,7 @@ final class UIWebRegion extends Region {
                 if (newValue != null) {
                     Thread thread = new Thread(ret.new GatewayToJavascriptPump());
                     thread.setDaemon(true);
-                    thread.setName(UIWebRegion.class.getSimpleName() + "-GatewayToJavascriptPump");
+                    thread.setName(UiWebRegion.class.getSimpleName() + "-GatewayToJavascriptPump");
                     thread.start();
                     ret.incomingMessagePumpThread = thread;
                 }
@@ -119,7 +119,7 @@ final class UIWebRegion extends Region {
         return ret;
     }
 
-    private UIWebRegion(Bus busFromGateway, Bus busToGateway) {
+    private UiWebRegion(Bus busFromGateway, Bus busToGateway) {
         Validate.notNull(busFromGateway);
         Validate.notNull(busToGateway);
 
@@ -242,43 +242,43 @@ final class UIWebRegion extends Region {
     public final class JavascriptToGatewayBridge {
 
         public void loginAction(String username, String bootstrap) {
-            busToGateway.add(new UIAction(new LoginAction(username, bootstrap)));
+            busToGateway.add(new UiAction(new LoginAction(username, bootstrap)));
         }
 
         public void logoutAction() {
-            busToGateway.add(new UIAction(new LogoutAction()));
+            busToGateway.add(new UiAction(new LogoutAction()));
         }
 
         public void resetDevicesAction() {
-            busToGateway.add(new UIAction(new ResetDevicesAction()));
+            busToGateway.add(new UiAction(new ResetDevicesAction()));
         }
 
         public void chooseDevicesAction(int inputId, int outputId) {
-            busToGateway.add(new UIAction(new ChooseDevicesAction(inputId, outputId)));
+            busToGateway.add(new UiAction(new ChooseDevicesAction(inputId, outputId)));
         }
 
         public void devicesChosenAction() {
-            busToGateway.add(new UIAction(new DevicesChosenAction()));
+            busToGateway.add(new UiAction(new DevicesChosenAction()));
         }
 
         public void callAction(String username) {
-            busToGateway.add(new UIAction(new CallAction(username)));
+            busToGateway.add(new UiAction(new CallAction(username)));
         }
 
         public void acceptIncomingCallAction() {
-            busToGateway.add(new UIAction(new AcceptIncomingCallAction()));
+            busToGateway.add(new UiAction(new AcceptIncomingCallAction()));
         }
 
         public void rejectIncomingCallAction() {
-            busToGateway.add(new UIAction(new RejectIncomingCallAction()));
+            busToGateway.add(new UiAction(new RejectIncomingCallAction()));
         }
 
         public void hangupCallAction() {
-            busToGateway.add(new UIAction(new HangupAction()));
+            busToGateway.add(new UiAction(new HangupAction()));
         }
 
         public void errorAcknowledgedAction() {
-            busToGateway.add(new UIAction(new ErrorAcknowledgedAction()));
+            busToGateway.add(new UiAction(new ErrorAcknowledgedAction()));
         }
     }
 }

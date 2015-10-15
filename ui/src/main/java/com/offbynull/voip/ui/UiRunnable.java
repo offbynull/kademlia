@@ -29,9 +29,9 @@ import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-final class UIRunnable implements Runnable {
+final class UiRunnable implements Runnable {
 
-    private static final Logger LOG = LoggerFactory.getLogger(UIRunnable.class);
+    private static final Logger LOG = LoggerFactory.getLogger(UiRunnable.class);
 
     private final String selfPrefix;
     private final Address dstAddress;
@@ -42,7 +42,7 @@ final class UIRunnable implements Runnable {
     private final SingleSupplier<Parent> webRegionSupplier;
     private final Bus busToWebRegion;
 
-    public UIRunnable(String selfPrefix, Address dstAddress, Bus bus, SingleSupplier<Parent> webRegionSupplier, Bus busToWebRegion) {
+    public UiRunnable(String selfPrefix, Address dstAddress, Bus bus, SingleSupplier<Parent> webRegionSupplier, Bus busToWebRegion) {
         Validate.notNull(selfPrefix);
         Validate.notNull(dstAddress);
         Validate.notNull(bus);
@@ -63,7 +63,7 @@ final class UIRunnable implements Runnable {
     @Override
     public void run() {
         try {
-            UIWebRegion webRegion = (UIWebRegion) webRegionSupplier.retainedReference(); // doesn't return until its created
+            UiWebRegion webRegion = (UiWebRegion) webRegionSupplier.retainedReference(); // doesn't return until its created
             
             while (true) {
                 // Poll for new messages
@@ -91,8 +91,8 @@ final class UIRunnable implements Runnable {
                         String prefix = removeShuttle.getPrefix();
                         Shuttle oldShuttle = outgoingShuttles.remove(prefix);
                         Validate.validState(oldShuttle != null);
-                    } else if (incomingObj instanceof UIAction) {
-                        UIAction uiAction = (UIAction) incomingObj;
+                    } else if (incomingObj instanceof UiAction) {
+                        UiAction uiAction = (UiAction) incomingObj;
                         Object payload = uiAction.getMessage();
                         sendMessage(payload);
                     } else {

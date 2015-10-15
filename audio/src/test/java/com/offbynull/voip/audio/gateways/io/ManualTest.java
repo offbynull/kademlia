@@ -4,13 +4,13 @@ import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.gateways.direct.DirectGateway;
 import com.offbynull.peernetic.core.shuttle.Message;
 import com.offbynull.peernetic.visualizer.gateways.graph.GraphGateway;
-import com.offbynull.voip.audio.gateways.io.AudioIOGateway;
+import com.offbynull.voip.audio.gateways.io.AudioIoGateway;
 import com.offbynull.voip.audio.gateways.io.internalmessages.CloseDevicesRequest;
-import com.offbynull.voip.audio.gateways.io.internalmessages.InputPCMBlock;
+import com.offbynull.voip.audio.gateways.io.internalmessages.InputPcmBlock;
 import com.offbynull.voip.audio.gateways.io.internalmessages.LoadDevicesRequest;
 import com.offbynull.voip.audio.gateways.io.internalmessages.LoadDevicesResponse;
 import com.offbynull.voip.audio.gateways.io.internalmessages.OpenDevicesRequest;
-import com.offbynull.voip.audio.gateways.io.internalmessages.OutputPCMBlock;
+import com.offbynull.voip.audio.gateways.io.internalmessages.OutputPcmBlock;
 import java.util.List;
 import java.util.Scanner;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -32,7 +32,7 @@ public final class ManualTest {
         GraphGateway.startApplication();
         
         GraphGateway graphGateway = new GraphGateway(BASE_GRAPH_ADDRESS_STRING);
-        AudioIOGateway audioGateway = new AudioIOGateway(BASE_AUDIO_ADDRESS_STRING);
+        AudioIoGateway audioGateway = new AudioIoGateway(BASE_AUDIO_ADDRESS_STRING);
         DirectGateway directGateway = new DirectGateway(BASE_DIRECT_ADDRESS_STRING);
 
         
@@ -96,7 +96,7 @@ public final class ManualTest {
                                         .map(m -> new Message(
                                                 m.getDestinationAddress(),
                                                 m.getSourceAddress(),
-                                                new OutputPCMBlock(((InputPCMBlock) m.getMessage()).getData())))
+                                                new OutputPcmBlock(((InputPcmBlock) m.getMessage()).getData())))
                                         .toArray(x -> new Message[x]);
 
                                 consoleStage.outputLine(sendMsgs.length + " pumped");

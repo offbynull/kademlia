@@ -14,21 +14,21 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library.
  */
-package com.offbynull.voip.audio.actors.stream.internalmessages;
+package com.offbynull.voip.audio.actors.stream;
 
 import com.offbynull.peernetic.core.shuttle.Address;
 import com.offbynull.peernetic.core.actor.helpers.AddressTransformer;
 import org.apache.commons.lang3.Validate;
 
 
-public final class Start {
+final class State {
 
     private final AddressTransformer addressTransformer;
     private final Address audioIoAddress;
     private final Address timerAddress;
     private final Address logAddress;
     
-    public Start(
+    public State(
             AddressTransformer addressTransformer,
             Address audioIoAddress,
             Address timerAddress,

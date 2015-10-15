@@ -22,13 +22,13 @@ import com.offbynull.peernetic.core.shuttle.Shuttle;
 import com.offbynull.peernetic.core.shuttles.simple.Bus;
 import com.offbynull.voip.audio.gateways.io.internalmessages.CloseDevicesRequest;
 import com.offbynull.voip.audio.gateways.io.internalmessages.ErrorResponse;
-import com.offbynull.voip.audio.gateways.io.internalmessages.InputPCMBlock;
+import com.offbynull.voip.audio.gateways.io.internalmessages.InputPcmBlock;
 import com.offbynull.voip.audio.gateways.io.internalmessages.LoadDevicesRequest;
 import com.offbynull.voip.audio.gateways.io.internalmessages.LoadDevicesResponse;
 import com.offbynull.voip.audio.gateways.io.internalmessages.LoadDevicesResponse.InputDevice;
 import com.offbynull.voip.audio.gateways.io.internalmessages.LoadDevicesResponse.OutputDevice;
 import com.offbynull.voip.audio.gateways.io.internalmessages.OpenDevicesRequest;
-import com.offbynull.voip.audio.gateways.io.internalmessages.OutputPCMBlock;
+import com.offbynull.voip.audio.gateways.io.internalmessages.OutputPcmBlock;
 import com.offbynull.voip.audio.gateways.io.internalmessages.SuccessResponse;
 import java.util.Collections;
 import java.util.HashMap;
@@ -118,13 +118,13 @@ final class AudioRunnable implements Runnable {
                         } else if (payload instanceof CloseDevicesRequest) {
                             Object response = closeDevices();
                             sendMessage(src, dst, response);
-                        } else if (payload instanceof OutputPCMBlock) {
+                        } else if (payload instanceof OutputPcmBlock) {
                             if (openedToAddress == null || openedFromAddress == null) {
                                 LOG.warn("Output PCM block received but devices closed");
                                 continue;
                             }
                             
-                            OutputPCMBlock outputPCMBlock = (OutputPCMBlock) payload;
+                            OutputPcmBlock outputPCMBlock = (OutputPcmBlock) payload;
                             byte[] data = outputPCMBlock.getData();
                             OutputData outputData = new OutputData(data);
                             
@@ -140,7 +140,7 @@ final class AudioRunnable implements Runnable {
                         
                         InputData inputData = (InputData) incomingObj;
                         byte[] data = inputData.getData();
-                        InputPCMBlock inputPCMBlock = new InputPCMBlock(data);
+                        InputPcmBlock inputPCMBlock = new InputPcmBlock(data);
                         
                         sendMessage(openedFromAddress, openedToAddress, inputPCMBlock);
                     } else if (incomingObj instanceof AddShuttle) {
