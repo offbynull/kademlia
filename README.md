@@ -15,7 +15,7 @@ To use this implementation, construct an instance of the ```Router``` class. You
  * maximum number of nodes allowed in each k-bucket
  * maximum number of cache nodes allowed in each k-bucket
 
-Once you have a router class, you can call...
+Once you have a `Router` instance, you can call...
  * `touch()` whenever a node comes in contact
  * `stale()` whenever a node has failed to come in contact / keep-alive
  * `find()` to find the closest nodes in the routing table to some ID
