@@ -1,6 +1,6 @@
 # Kademlia
 
-This project is a faithfully implementation of the [Kademlia distributed hash table](https://pdos.csail.mit.edu/~petar/papers/maymounkov-kademlia-lncs.pdf) (DHT) routing algorithm. This is an implementation of the strict version of the algorithm. The code is readable, documented, well tested, and fills in all of the missing pieces from the algorithm presented in the original paper.
+This project is a faithful implementation of the [Kademlia distributed hash table](https://pdos.csail.mit.edu/~petar/papers/maymounkov-kademlia-lncs.pdf) (DHT) routing algorithm. This is an implementation of the strict version of the algorithm. The code is readable, documented, well tested, and fills in all of the missing pieces from the algorithm presented in the original paper.
 
 The Kademlia algorithm is the backbone of many massive-scale decentralized applications, including...
  * [Decentrialized BitTorrent (BitTorrent DHT)](http://www.bittorrent.org/beps/bep_0005.html)
